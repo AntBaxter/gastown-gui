@@ -19,7 +19,7 @@ export class BDGateway {
 
   async exec(args, options = {}) {
     const env = { BEADS_DIR: this._beadsDir, ...(options.env ?? {}) };
-    return this._runner.exec('br', args, { cwd: this._gtRoot, ...options, env });
+    return this._runner.exec('bd', args, { cwd: this._gtRoot, ...options, env });
   }
 
   async list({ status } = {}) {

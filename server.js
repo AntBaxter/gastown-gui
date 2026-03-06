@@ -418,14 +418,14 @@ async function executeGT(args, options = {}) {
 
 // Execute a Beads command
 async function executeBD(args, options = {}) {
-  const cmd = `br ${args.join(' ')}`;
+  const cmd = `bd ${args.join(' ')}`;
   console.log(`[BD] Executing: ${cmd}`);
 
-  // Set BEADS_DIR to ensure br finds the database
+  // Set BEADS_DIR to ensure bd finds the database
   const beadsDir = path.join(GT_ROOT, '.beads');
 
   try {
-    const { stdout } = await execFileAsync('br', args, {
+    const { stdout } = await execFileAsync('bd', args, {
       cwd: options.cwd || GT_ROOT,
       timeout: options.timeout || 30000,
       env: { ...process.env, BEADS_DIR: beadsDir }
@@ -1093,7 +1093,7 @@ app.get('/api/setup/status', async (req, res) => {
 
   // Check bd
   try {
-    const bdResult = await execFileAsync('br', ['version'], { timeout: 5000 });
+    const bdResult = await execFileAsync('bd', ['version'], { timeout: 5000 });
     status.bd_installed = true;
     status.bd_version = String(bdResult.stdout || '').trim().split('\n')[0];
   } catch {
