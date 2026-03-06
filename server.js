@@ -367,7 +367,7 @@ async function getDefaultBranch(url) {
 async function getPolecatOutput(sessionName, lines = 50) {
   try {
     const safeLines = Math.max(1, Math.min(10000, parseInt(lines, 10) || 50));
-    const { stdout } = await tmuxExec(['capture-pane', '-t', sessionName, '-p']);
+    const { stdout } = await tmuxExec(['capture-pane', '-t', sessionName, '-p', '-S', '-']);
     const output = String(stdout || '');
     if (!output) return '';
     const outputLines = output.split('\n');
