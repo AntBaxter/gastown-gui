@@ -19,11 +19,11 @@ export class BDGateway {
 
   async exec(args, options = {}) {
     const env = { BEADS_DIR: this._beadsDir, ...(options.env ?? {}) };
-    return this._runner.exec('bd', args, { cwd: this._gtRoot, ...options, env });
+    return this._runner.exec('br', args, { cwd: this._gtRoot, ...options, env });
   }
 
   async list({ status } = {}) {
-    const args = ['--no-daemon', 'list'];
+    const args = ['list'];
     if (status) args.push(`--status=${status}`);
     args.push('--json');
 
@@ -33,7 +33,7 @@ export class BDGateway {
   }
 
   async search(query) {
-    const args = ['--no-daemon', query ? 'search' : 'list'];
+    const args = [query ? 'search' : 'list'];
     if (query) args.push(query);
     args.push('--json');
 
@@ -43,13 +43,11 @@ export class BDGateway {
   }
 
   async create({ title, description, priority, labels } = {}) {
-    const args = ['--no-daemon', 'new', title];
+    const args = ['create', title];
     if (description) args.push('--description', description);
     if (priority) args.push('--priority', priority);
-    if (Array.isArray(labels)) {
-      labels.forEach((label) => {
-        args.push('--label', label);
-      });
+    if (Array.isArray(labels) && labels.length > 0) {
+      args.push('--labels', labels.join(','));
     }
 
     const result = await this.exec(args, { timeoutMs: 30000 });
