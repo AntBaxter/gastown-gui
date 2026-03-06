@@ -215,10 +215,18 @@ function requireAgentPath(req, res) {
   }
 }
 
+// Gas Town uses a dedicated tmux socket
+const TMUX_SOCKET = 'gt';
+
+// Run tmux command with the correct socket
+async function tmuxExec(args) {
+  return execFileAsync('tmux', ['-L', TMUX_SOCKET, ...args]);
+}
+
 // Check if a specific tmux session is running
 async function isSessionRunning(sessionName) {
   try {
-    const { stdout } = await execFileAsync('tmux', ['has-session', '-t', sessionName]);
+    await tmuxExec(['has-session', '-t', sessionName]);
     return true;
   } catch {
     return false;
@@ -247,22 +255,63 @@ function addMayorMessage(target, message, status, response = null) {
   return entry;
 }
 
+// Resolve an agent target name to its tmux session name via gt status --json
+// Returns the session name (e.g. 'hq-mayor') or a fallback guess
+async function resolveSessionName(target) {
+  try {
+    const cached = getCached('gt_status_agents');
+    let agents;
+    if (cached) {
+      agents = cached;
+    } else {
+      const result = await executeGT(['status', '--json', '--fast'], { timeout: 15000 });
+      if (result.success) {
+        const data = parseJSON(result.data);
+        agents = [...(data?.agents || [])];
+        for (const rig of data?.rigs || []) {
+          for (const agent of rig.agents || []) {
+            agents.push(agent);
+          }
+        }
+        setCache('gt_status_agents', agents, CACHE_TTL.agents);
+      }
+    }
+    if (agents) {
+      // Match by name or address (e.g. 'mayor' matches name:'mayor' or address:'mayor/')
+      const agent = agents.find(a =>
+        a.name === target || a.address === target || a.address === `${target}/`
+      );
+      if (agent?.session) return agent.session;
+    }
+  } catch (err) {
+    console.warn(`[Session] Failed to resolve session for ${target}:`, err.message);
+  }
+  // Fallback: can't resolve, return null
+  return null;
+}
+
 // Get running tmux sessions for polecats
 async function getRunningPolecats() {
   try {
-    const { stdout } = await execFileAsync('tmux', ['ls']);
+    const { stdout } = await tmuxExec(['ls']);
     const sessions = new Set();
-    // Parse tmux ls output: "gt-rig-polecat: 1 windows (created ...)"
+    // Parse tmux ls output: "hq-mayor: 1 windows ..." or "co-witness: 1 windows ..."
+    // Session names use rig-prefix format: <prefix>-<role>
     for (const line of String(stdout || '').split('\n')) {
-      const match = line.match(/^(gt-[^:]+):/);
+      const match = line.match(/^([^:]+):/);
       if (match) {
-        // Convert "gt-hytopia-map-compression-capable" to "hytopia-map-compression/capable"
-        const parts = match[1].replace('gt-', '').split('-');
-        if (parts.length >= 2) {
-          const name = parts.pop();
-          const rig = parts.join('-');
-          sessions.add(`${rig}/${name}`);
+        const sessionName = match[1];
+        // Try to resolve via gt status cache for accurate address mapping
+        const cached = getCached('gt_status_agents');
+        if (cached) {
+          const agent = cached.find(a => a.session === sessionName);
+          if (agent) {
+            sessions.add(agent.address?.replace(/\/$/, '') || sessionName);
+            continue;
+          }
         }
+        // Fallback: add raw session name
+        sessions.add(sessionName);
       }
     }
     return sessions;
@@ -318,7 +367,7 @@ async function getDefaultBranch(url) {
 async function getPolecatOutput(sessionName, lines = 50) {
   try {
     const safeLines = Math.max(1, Math.min(10000, parseInt(lines, 10) || 50));
-    const { stdout } = await execFileAsync('tmux', ['capture-pane', '-t', sessionName, '-p']);
+    const { stdout } = await tmuxExec(['capture-pane', '-t', sessionName, '-p']);
     const output = String(stdout || '');
     if (!output) return '';
     const outputLines = output.split('\n');
@@ -591,7 +640,7 @@ app.post('/api/nudge', async (req, res) => {
 
   // Default to mayor if no target specified
   const nudgeTarget = target || 'mayor';
-  const sessionName = `gt-${nudgeTarget}`;
+  const sessionName = await resolveSessionName(nudgeTarget) || `hq-${nudgeTarget}`;
 
   try {
     // Check if target session is running
@@ -812,7 +861,7 @@ app.get('/api/agents', async (req, res) => {
 // Get Mayor output (tmux buffer)
 app.get('/api/mayor/output', async (req, res) => {
   const lines = parseInt(req.query.lines) || 100;
-  const sessionName = 'gt-mayor';
+  const sessionName = await resolveSessionName('mayor') || 'hq-mayor';
 
   try {
     const output = await getPolecatOutput(sessionName, lines);
@@ -951,7 +1000,7 @@ app.post('/api/polecat/:rig/:name/stop', async (req, res) => {
 
   try {
     // Kill the tmux session
-    await execFileAsync('tmux', ['kill-session', '-t', sessionName]);
+    await tmuxExec(['kill-session', '-t', sessionName]);
     broadcast({ type: 'agent_stopped', data: { rig, name, session: sessionName } });
     res.json({ success: true, message: `Stopped ${rig}/${name}` });
   } catch (err) {
@@ -980,7 +1029,7 @@ app.post('/api/polecat/:rig/:name/restart', async (req, res) => {
   try {
     // First try to kill existing session (ignore errors)
     try {
-      await execFileAsync('tmux', ['kill-session', '-t', sessionName]);
+      await tmuxExec(['kill-session', '-t', sessionName]);
     } catch {
       // Ignore - session might not exist
     }
@@ -1446,9 +1495,9 @@ app.post('/api/service/:name/down', async (req, res) => {
       res.json({ success: true, service: name, message: `${name} stopped`, raw: result.data });
     } else {
       // Try killing tmux session directly
-      const sessionName = `gt-${name}`;
+      const sessionName = await resolveSessionName(name) || `hq-${name}`;
       try {
-        await execFileAsync('tmux', ['kill-session', '-t', sessionName]);
+        await tmuxExec(['kill-session', '-t', sessionName]);
         broadcast({ type: 'service_stopped', data: { service: name } });
         res.json({ success: true, service: name, message: `${name} stopped via tmux` });
       } catch {
@@ -1513,16 +1562,12 @@ app.get('/api/service/:name/status', async (req, res) => {
   const { name } = req.params;
 
   try {
-    const runningPolecats = await getRunningPolecats();
-    const sessionName = `gt-${name}`;
+    const sessionName = await resolveSessionName(name);
 
     // Check if service has a tmux session
     let running = false;
-    try {
-      const { stdout } = await execFileAsync('tmux', ['ls']);
-      running = String(stdout || '').includes(sessionName);
-    } catch {
-      running = false;
+    if (sessionName) {
+      running = await isSessionRunning(sessionName);
     }
 
     res.json({ service: name, running, session: running ? sessionName : null });
