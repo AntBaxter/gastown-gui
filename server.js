@@ -1111,18 +1111,10 @@ app.get('/api/setup/status', async (req, res) => {
 
   // Get rigs
   try {
-    const rigResult = await executeGT(['rig', 'list']);
+    const rigResult = await executeGT(['rig', 'list', '--json']);
     if (rigResult.success) {
-      // Parse text output
-      const rigs = [];
-      const lines = rigResult.data.split('\n');
-      for (const line of lines) {
-        const match = line.match(/^  ([a-zA-Z0-9_-]+)$/);
-        if (match) {
-          rigs.push({ name: match[1] });
-        }
-      }
-      status.rigs = rigs;
+      const rigs = parseJSON(rigResult.data);
+      status.rigs = Array.isArray(rigs) ? rigs : [];
     }
   } catch {
     status.rigs = [];
