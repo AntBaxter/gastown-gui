@@ -3,7 +3,7 @@ export function registerBeadRoutes(app, { beadService } = {}) {
 
   app.get('/api/beads', async (req, res) => {
     try {
-      const data = await beadService.list({ status: req.query.status });
+      const data = await beadService.list({ status: req.query.status, rig: req.query.rig });
       res.json(data);
     } catch {
       res.json([]);
@@ -13,7 +13,8 @@ export function registerBeadRoutes(app, { beadService } = {}) {
   app.get('/api/beads/search', async (req, res) => {
     try {
       const query = req.query.q || '';
-      const data = await beadService.search(query);
+      const rig = req.query.rig;
+      const data = await beadService.search(query, { rig });
       res.json(data);
     } catch {
       res.json([]);
@@ -46,4 +47,3 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 }
-

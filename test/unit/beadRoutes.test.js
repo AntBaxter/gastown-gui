@@ -17,8 +17,8 @@ describe('Bead routes (real Express app)', () => {
         calls.push(['list', opts]);
         return [{ id: 'bead-1' }];
       },
-      search: async (query) => {
-        calls.push(['search', query]);
+      search: async (query, opts) => {
+        calls.push(['search', query, opts]);
         return [{ id: 'bead-2' }];
       },
       create: async (opts) => {
@@ -50,14 +50,22 @@ describe('Bead routes (real Express app)', () => {
     const res = await fetch(`${baseUrl}/api/beads?status=open`);
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual([{ id: 'bead-1' }]);
-    expect(calls[0]).toEqual(['list', { status: 'open' }]);
+    expect(calls[0]).toEqual(['list', { status: 'open', rig: undefined }]);
   });
 
-  it('GET /api/beads/search forwards q', async () => {
-    const res = await fetch(`${baseUrl}/api/beads/search?q=login`);
+  it('GET /api/beads forwards rig param', async () => {
+    calls.length = 0;
+    const res = await fetch(`${baseUrl}/api/beads?rig=all`);
+    expect(res.status).toBe(200);
+    expect(calls[0]).toEqual(['list', { status: undefined, rig: 'all' }]);
+  });
+
+  it('GET /api/beads/search forwards q and rig', async () => {
+    calls.length = 0;
+    const res = await fetch(`${baseUrl}/api/beads/search?q=login&rig=all`);
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual([{ id: 'bead-2' }]);
-    expect(calls[1]).toEqual(['search', 'login']);
+    expect(calls[0]).toEqual(['search', 'login', { rig: 'all' }]);
   });
 
   it('POST /api/beads returns 400 when title is missing', async () => {
@@ -76,4 +84,3 @@ describe('Bead routes (real Express app)', () => {
     expect(res.status).toBe(404);
   });
 });
-

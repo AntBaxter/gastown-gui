@@ -122,6 +122,9 @@ async function init() {
   // Set up work filters
   setupWorkFilters();
 
+  // Set up rig filter
+  setupRigFilter();
+
   // Set up mail filters
   setupMailFilters();
 
@@ -641,8 +644,12 @@ let workFilter = 'closed'; // Default to showing completed work
 async function loadWork() {
   showLoadingState(elements.workList, 'Loading work...');
   try {
-    const params = workFilter === 'all' ? {} : { status: workFilter };
-    const beads = await api.get(`/api/beads${workFilter !== 'all' ? `?status=${workFilter}` : ''}`);
+    const params = new URLSearchParams();
+    if (workFilter !== 'all') params.set('status', workFilter);
+    const selectedRig = state.getSelectedRig();
+    if (selectedRig) params.set('rig', selectedRig);
+    const query = params.toString();
+    const beads = await api.get(`/api/beads${query ? '?' + query : ''}`);
     renderWorkList(elements.workList, beads || []);
   } catch (err) {
     console.error('[App] Failed to load work:', err);
@@ -691,6 +698,45 @@ function setupWorkFilters() {
   }
 }
 
+// Rig filter in footer bar
+function setupRigFilter() {
+  const select = document.getElementById('rig-filter-select');
+  if (!select) return;
+
+  // Restore persisted selection
+  select.value = state.getSelectedRig();
+
+  select.addEventListener('change', () => {
+    state.setSelectedRig(select.value);
+    loadWork();
+  });
+}
+
+function populateRigFilterOptions(rigs) {
+  const select = document.getElementById('rig-filter-select');
+  if (!select) return;
+
+  const current = state.getSelectedRig();
+
+  // Keep static options (All, HQ), rebuild rig options
+  select.innerHTML = '<option value="all">All Rigs</option><option value="hq">HQ</option>';
+  for (const rig of rigs || []) {
+    if (!rig?.name) continue;
+    const opt = document.createElement('option');
+    opt.value = rig.name;
+    opt.textContent = rig.name;
+    select.appendChild(opt);
+  }
+
+  // Restore selection if still valid
+  if (current && [...select.options].some(o => o.value === current)) {
+    select.value = current;
+  } else {
+    select.value = 'all';
+    state.setSelectedRig('all');
+  }
+}
+
 // State subscriptions
 function subscribeToState() {
   // Status updates
@@ -710,6 +756,11 @@ function subscribeToState() {
 
     // Render sidebar
     renderSidebar(elements.agentTree, status);
+
+    // Update rig filter options
+    if (status?.rigs) {
+      populateRigFilterOptions(status.rigs);
+    }
   });
 
   // Convoy updates

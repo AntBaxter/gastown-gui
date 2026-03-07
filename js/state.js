@@ -12,6 +12,7 @@ const store = {
   agents: [],
   events: [],
   mail: [],
+  selectedRig: localStorage.getItem('gastownui-rig-filter') || 'all',
 };
 
 // Subscribers by key
@@ -131,6 +132,17 @@ export const state = {
       mail.read = true;
       notify('mail');
     }
+  },
+
+  // Rig filter
+  getSelectedRig() {
+    return store.selectedRig;
+  },
+
+  setSelectedRig(rig) {
+    store.selectedRig = rig;
+    localStorage.setItem('gastownui-rig-filter', rig);
+    notify('selectedRig');
   },
 };
 

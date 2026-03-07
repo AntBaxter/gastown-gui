@@ -65,6 +65,7 @@ const statusService = new StatusService({ gtGateway, tmuxGateway, cache: backend
 const targetService = new TargetService({ statusService });
 const beadService = new BeadService({
   bdGateway,
+  statusService,
   emit: (type, data) => broadcast({ type, data }),
 });
 const workService = new WorkService({

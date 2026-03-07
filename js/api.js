@@ -165,8 +165,10 @@ export const api = {
     return this.post(`/api/work/${encodeURIComponent(beadId)}/reassign`, { target });
   },
 
-  searchBeads(query) {
-    return this.get(`/api/beads/search?q=${encodeURIComponent(query)}`);
+  searchBeads(query, options = {}) {
+    const params = new URLSearchParams({ q: query });
+    if (options.rig) params.set('rig', options.rig);
+    return this.get(`/api/beads/search?${params}`);
   },
 
   searchFormulas(query) {

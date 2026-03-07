@@ -206,6 +206,11 @@ function renderBeadCard(bead, index) {
               <span class="material-icons">${typeIcon}</span>
               ${bead.issue_type || 'task'}
             </span>
+            ${bead.rig ? `
+              <span class="bead-rig-badge" title="Rig: ${escapeHtml(bead.rig)}">
+                ${escapeHtml(bead.rig)}
+              </span>
+            ` : ''}
             ${assignee ? `
               <span class="bead-assignee">
                 <span class="material-icons">person</span>

@@ -22,9 +22,10 @@ export class BDGateway {
     return this._runner.exec('bd', args, { cwd: this._gtRoot, ...options, env });
   }
 
-  async list({ status } = {}) {
+  async list({ status, rig } = {}) {
     const args = ['list'];
     if (status) args.push(`--status=${status}`);
+    if (rig) args.push('--rig', rig);
     args.push('--json');
 
     const result = await this.exec(args, { timeoutMs: 30000 });

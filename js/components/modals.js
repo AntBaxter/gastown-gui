@@ -456,8 +456,9 @@ function initSlingModal(element, data) {
       search: async (query) => {
         // Search both beads and formulas
         try {
+          const selectedRig = state.getSelectedRig();
           const [beads, formulas] = await Promise.all([
-            api.searchBeads(query).catch(() => []),
+            api.searchBeads(query, { rig: selectedRig }).catch(() => []),
             api.searchFormulas(query).catch(() => []),
           ]);
 

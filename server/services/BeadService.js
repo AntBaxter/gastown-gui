@@ -13,7 +13,7 @@ function normalizeLabels(labels) {
 }
 
 export class BeadService {
-  constructor({ bdGateway, emit } = {}) {
+  constructor({ bdGateway, statusService, emit } = {}) {
     if (!bdGateway) throw new Error('BeadService requires bdGateway');
     if (!bdGateway.list) throw new Error('BeadService requires bdGateway.list()');
     if (!bdGateway.search) throw new Error('BeadService requires bdGateway.search()');
@@ -21,16 +21,99 @@ export class BeadService {
     if (!bdGateway.create) throw new Error('BeadService requires bdGateway.create()');
 
     this._bd = bdGateway;
+    this._status = statusService ?? null;
     this._emit = emit ?? null;
   }
 
-  async list({ status } = {}) {
+  async _getRigNames() {
+    if (!this._status) return [];
+    try {
+      const status = await this._status.getStatus();
+      return (status?.rigs || []).map(r => r.name).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  async list({ status, rig } = {}) {
+    // Single rig query
+    if (rig && rig !== 'all') {
+      const rigName = rig === 'hq' ? null : rig;
+      const result = await this._bd.list({ status, rig: rigName });
+      if (!result.ok || !Array.isArray(result.data)) return [];
+      return result.data.map(b => ({ ...b, rig: rig === 'hq' ? 'hq' : rigName }));
+    }
+
+    // "all" — aggregate HQ + all rigs
+    if (rig === 'all') {
+      const rigNames = await this._getRigNames();
+      const queries = [
+        this._bd.list({ status }).then(r => ({ r, rigLabel: 'hq' })),
+        ...rigNames.map(name =>
+          this._bd.list({ status, rig: name }).then(r => ({ r, rigLabel: name }))
+        ),
+      ];
+
+      const results = await Promise.allSettled(queries);
+      const merged = [];
+      const seen = new Set();
+      for (const outcome of results) {
+        if (outcome.status !== 'fulfilled') continue;
+        const { r, rigLabel } = outcome.value;
+        if (!r.ok || !Array.isArray(r.data)) continue;
+        for (const bead of r.data) {
+          if (!seen.has(bead.id)) {
+            seen.add(bead.id);
+            merged.push({ ...bead, rig: rigLabel });
+          }
+        }
+      }
+      return merged;
+    }
+
+    // Default (no rig param) — HQ only (backward compatible)
     const result = await this._bd.list({ status });
     if (!result.ok || !Array.isArray(result.data)) return [];
     return result.data;
   }
 
-  async search(query) {
+  async search(query, { rig } = {}) {
+    // bd search doesn't support --rig, so we can only search default db.
+    // For cross-rig search, we use bd list --rig per rig with no status filter
+    // and filter client-side. This is a reasonable trade-off.
+    if (rig === 'all') {
+      const rigNames = await this._getRigNames();
+      const queries = [
+        this._bd.search(query).then(r => ({ r, rigLabel: 'hq' })),
+        ...rigNames.map(name =>
+          this._bd.list({ rig: name }).then(r => ({ r, rigLabel: name }))
+        ),
+      ];
+
+      const results = await Promise.allSettled(queries);
+      const merged = [];
+      const seen = new Set();
+      const lowerQuery = (query || '').toLowerCase();
+
+      for (const outcome of results) {
+        if (outcome.status !== 'fulfilled') continue;
+        const { r, rigLabel } = outcome.value;
+        if (!r.ok || !Array.isArray(r.data)) continue;
+        for (const bead of r.data) {
+          if (seen.has(bead.id)) continue;
+          // For rig results (from bd list), filter by query match
+          if (rigLabel !== 'hq' && lowerQuery) {
+            const title = (bead.title || '').toLowerCase();
+            const id = (bead.id || '').toLowerCase();
+            if (!title.includes(lowerQuery) && !id.includes(lowerQuery)) continue;
+          }
+          seen.add(bead.id);
+          merged.push({ ...bead, rig: rigLabel });
+        }
+      }
+      return merged;
+    }
+
     const result = await this._bd.search(query ?? '');
     if (!result.ok || !Array.isArray(result.data)) return [];
     return result.data;
@@ -66,4 +149,3 @@ export class BeadService {
     return { ok: true, beadId, raw: result.raw };
   }
 }
-
