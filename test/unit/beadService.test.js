@@ -35,6 +35,7 @@ describe('BeadService', () => {
       description: 'Steps…',
       priority: 'P1',
       labels: ['bug', ' ui '],
+      rig: null,
     });
     expect(emitted).toEqual([['bead_created', { bead_id: 'gt-abc123', title: 'Fix login' }]]);
   });

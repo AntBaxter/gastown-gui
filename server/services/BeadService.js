@@ -42,7 +42,7 @@ export class BeadService {
     return { ok: true, bead: result.data || { id: beadId } };
   }
 
-  async create({ title, description, priority, labels } = {}) {
+  async create({ title, description, priority, labels, rig } = {}) {
     if (!title) return { ok: false, statusCode: 400, error: 'Title is required' };
 
     const normalizedPriority = priority ? PRIORITY_MAP[String(priority).toLowerCase()] || String(priority) : null;
@@ -53,6 +53,7 @@ export class BeadService {
       description,
       priority: normalizedPriority && normalizedPriority !== 'P2' ? normalizedPriority : null,
       labels: normalizedLabels,
+      rig: rig || null,
     });
 
     if (!result.ok) return { ok: false, statusCode: 500, error: result.error || 'Failed to create bead' };

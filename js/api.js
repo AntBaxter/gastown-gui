@@ -137,6 +137,7 @@ export const api = {
       description: options.description,
       priority: options.priority,
       labels: options.labels,
+      rig: options.rig,
     });
   },
 

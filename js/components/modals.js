@@ -369,11 +369,29 @@ function initNewBeadModal(element, data) {
   // Clear any previous state
   const form = element.querySelector('form');
   if (form) form.reset();
+
+  // Populate rig dropdown from status rigs
+  const rigSelect = element.querySelector('[name="rig"]');
+  if (rigSelect) {
+    const rigs = state.getRigs();
+    // Keep the default option, remove previously added rig options
+    rigSelect.innerHTML = '<option value="">Default (HQ)</option>';
+    for (const rig of rigs) {
+      const name = typeof rig === 'string' ? rig : rig.name;
+      if (name) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        rigSelect.appendChild(opt);
+      }
+    }
+  }
 }
 
 async function handleNewBeadSubmit(form) {
   const title = form.querySelector('[name="title"]')?.value;
   const description = form.querySelector('[name="description"]')?.value || '';
+  const rig = form.querySelector('[name="rig"]')?.value || '';
   const priority = form.querySelector('[name="priority"]')?.value || 'normal';
   const labelsText = form.querySelector('[name="labels"]')?.value || '';
   const slingNow = form.querySelector('[name="sling_now"]')?.checked || false;
@@ -394,7 +412,7 @@ async function handleNewBeadSubmit(form) {
   closeAllModals();
 
   // Run in background (non-blocking)
-  api.createBead(title, { description, priority, labels }).then(result => {
+  api.createBead(title, { description, priority, labels, rig: rig || undefined }).then(result => {
     if (result.success) {
       showToast(`Work item created: ${result.bead_id}`, 'success');
 
