@@ -23,13 +23,32 @@ describe('ConvoyService', () => {
     const first = await service.list({ all: true, status: 'running', ttlMs: 1000 });
     const second = await service.list({ all: true, status: 'running', ttlMs: 1000 });
 
-    expect(first).toEqual([{ id: 'convoy-1' }]);
-    expect(second).toEqual([{ id: 'convoy-1' }]);
+    expect(first).toEqual([{ id: 'convoy-1', name: null, issues: [] }]);
+    expect(second).toEqual([{ id: 'convoy-1', name: null, issues: [] }]);
     expect(gtGateway.listCalls).toBe(1);
 
     now += 1001;
     await service.list({ all: true, status: 'running', ttlMs: 1000 });
     expect(gtGateway.listCalls).toBe(2);
+  });
+
+  it('maps API title/tracked fields to name/issues', async () => {
+    const gtGateway = {
+      listConvoys: async () => ({
+        ok: true,
+        data: [{ id: 'c-1', title: 'My Convoy', tracked: ['bd-1', 'bd-2'] }],
+      }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: 'c-1' }),
+    };
+
+    const service = new ConvoyService({ gtGateway });
+    const result = await service.list();
+
+    expect(result[0].name).toBe('My Convoy');
+    expect(result[0].issues).toEqual(['bd-1', 'bd-2']);
+    expect(result[0].title).toBe('My Convoy');
+    expect(result[0].tracked).toEqual(['bd-1', 'bd-2']);
   });
 
   it('creates a convoy and emits convoy_created', async () => {

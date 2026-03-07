@@ -29,7 +29,12 @@ export class ConvoyService {
   async _fetchList({ all, status }) {
     const result = await this._gt.listConvoys({ all, status });
     if (!result.ok) throw new Error(result.error || 'Failed to list convoys');
-    return Array.isArray(result.data) ? result.data : [];
+    const items = Array.isArray(result.data) ? result.data : [];
+    return items.map(c => ({
+      ...c,
+      name: c.name ?? c.title ?? null,
+      issues: c.issues ?? c.tracked ?? [],
+    }));
   }
 
   async get(convoyId) {

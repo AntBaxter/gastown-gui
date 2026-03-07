@@ -463,7 +463,8 @@ function calculateProgress(convoy) {
   }
   if (convoy.status === 'complete') return 100;
   if (convoy.status === 'pending') return 0;
-  return 50; // Default for running
+  if (convoy.status === 'running') return 50;
+  return 0;
 }
 
 /**
