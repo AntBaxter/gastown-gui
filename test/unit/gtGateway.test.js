@@ -70,7 +70,7 @@ describe('GTGateway', () => {
     expect(result.convoyId).toBe('convoy-abc123');
   });
 
-  it('sling() builds args for target/molecule/quality/args', async () => {
+  it('sling() builds args for target/molecule/args', async () => {
     const runner = new FakeRunner();
     runner.queue({ ok: true, exitCode: 0, stdout: 'ok', stderr: 'warn', error: null, signal: null });
     const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
@@ -79,11 +79,10 @@ describe('GTGateway', () => {
       bead: 'bd-1',
       target: 'mayor',
       molecule: 'foo',
-      quality: 'high',
       args: '--bar',
     });
 
-    expect(runner.calls[0].args).toEqual(['sling', 'bd-1', 'mayor', '--molecule', 'foo', '--quality=high', '--args', '--bar']);
+    expect(runner.calls[0].args).toEqual(['sling', 'bd-1', 'mayor', '--molecule', 'foo', '--args', '--bar']);
     expect(result.raw).toBe('okwarn');
   });
 

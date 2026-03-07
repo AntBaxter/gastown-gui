@@ -254,7 +254,6 @@ describe('POST /api/sling', () => {
         bead: 'test-bead-123',
         target: 'zoo-game/Polecat-1',
         molecule: 'test-molecule',
-        quality: 'normal',
       }),
     });
 

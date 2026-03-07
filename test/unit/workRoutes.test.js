@@ -57,12 +57,12 @@ describe('Work routes (real Express app)', () => {
     const res = await fetch(`${baseUrl}/api/sling`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bead: 'bead-1', target: 'mayor', molecule: 'm', quality: 'q', args: '--x' }),
+      body: JSON.stringify({ bead: 'bead-1', target: 'mayor', molecule: 'm', args: '--x' }),
     });
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ success: true, data: { bead: 'bead-1', target: 'mayor' }, raw: 'ok' });
-    expect(calls[0]).toEqual(['sling', { bead: 'bead-1', target: 'mayor', molecule: 'm', quality: 'q', args: '--x' }]);
+    expect(calls[0]).toEqual(['sling', { bead: 'bead-1', target: 'mayor', molecule: 'm', args: '--x' }]);
   });
 
   it('POST /api/escalate returns success', async () => {

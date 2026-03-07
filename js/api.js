@@ -83,7 +83,6 @@ export const api = {
       bead,
       target,
       molecule: options.molecule,
-      quality: options.quality,
       args: options.args,
     });
   },

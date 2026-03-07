@@ -28,7 +28,7 @@ function slingErrorResponse({ errorMsg }) {
         error: `Formula '${formula}' not found`,
         errorType: 'formula_missing',
         formula,
-        hint: `Create the formula at ~/.beads/formulas/${formula}.toml or try a different quality level`,
+        hint: `Create the formula at ~/.beads/formulas/${formula}.toml`,
         fix: {
           action: 'create_formula',
           formula,
@@ -75,8 +75,8 @@ export class WorkService {
     this._emit = emit ?? null;
   }
 
-  async sling({ bead, target, molecule, quality, args } = {}) {
-    const result = await this._gt.sling({ bead, target, molecule, quality, args });
+  async sling({ bead, target, molecule, args } = {}) {
+    const result = await this._gt.sling({ bead, target, molecule, args });
     const { raw, workAttached, promptSent, polecatSpawned } = analyzeSlingOutput(result.raw);
 
     const ok = Boolean(result.ok || workAttached || promptSent);

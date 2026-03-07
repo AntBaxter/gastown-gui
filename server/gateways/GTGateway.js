@@ -54,11 +54,10 @@ export class GTGateway {
     return { ...result, raw, convoyId };
   }
 
-  async sling({ bead, target, molecule, quality, args: slingArgs } = {}) {
+  async sling({ bead, target, molecule, args: slingArgs } = {}) {
     const cmdArgs = ['sling', bead];
     if (target) cmdArgs.push(target);
     if (molecule) cmdArgs.push('--molecule', molecule);
-    if (quality) cmdArgs.push(`--quality=${quality}`);
     if (slingArgs) cmdArgs.push('--args', slingArgs);
 
     const result = await this.exec(cmdArgs, { timeoutMs: 90000 });

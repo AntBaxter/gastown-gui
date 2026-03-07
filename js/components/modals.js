@@ -598,7 +598,6 @@ async function handleSlingSubmit(form) {
   const bead = form.querySelector('[name="bead"]')?.value;
   const target = form.querySelector('[name="target"]')?.value;
   const molecule = form.querySelector('[name="molecule"]')?.value || undefined;
-  const quality = form.querySelector('[name="quality"]')?.value || undefined;
 
   if (!bead || !target) {
     showToast('Please enter both bead and target', 'warning');
@@ -610,7 +609,7 @@ async function handleSlingSubmit(form) {
   closeAllModals();
 
   // Run in background (non-blocking)
-  api.sling(bead, target, { molecule, quality }).then(result => {
+  api.sling(bead, target, { molecule }).then(result => {
     showToast(`Work slung: ${bead} → ${target}`, 'success');
     // Dispatch event
     document.dispatchEvent(new CustomEvent(WORK_SLUNG, { detail: result }));
@@ -641,9 +640,9 @@ function showSlingError(form, errorData) {
         </div>
         <div class="sling-error-hint">${escapeHtml(errorData.hint)}</div>
         <div class="sling-error-actions">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('form').querySelector('[name=quality]').value = ''; this.closest('.sling-error').remove(); showToast('Quality cleared - try again', 'info');">
-            <span class="material-icons">remove_circle</span>
-            Clear Quality & Retry
+          <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.sling-error').remove();">
+            <span class="material-icons">close</span>
+            Dismiss
           </button>
         </div>
       </div>
