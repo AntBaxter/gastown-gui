@@ -34,3 +34,4 @@ dist/
 .claude/
 .logs/
 __pycache__/
+.beads/
