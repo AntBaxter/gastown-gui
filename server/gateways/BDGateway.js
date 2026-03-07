@@ -50,12 +50,13 @@ export class BDGateway {
       args.push('--labels', labels.join(','));
     }
     if (rig) args.push('--rig', rig);
+    args.push('--json');
 
     const result = await this.exec(args, { timeoutMs: 30000 });
     const raw = (result.stdout || '').trim();
 
-    const match = raw.match(/(?:Created|created)\s*(?:bead|issue)?:?\s*(\S+)/i);
-    const beadId = match ? match[1] : raw || null;
+    const parsed = parseJsonOrNull(raw);
+    const beadId = parsed?.id || null;
 
     return { ...result, raw, beadId };
   }

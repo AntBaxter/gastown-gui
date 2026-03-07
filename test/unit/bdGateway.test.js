@@ -50,9 +50,9 @@ describe('BDGateway', () => {
     expect(runner.calls[0].args).toEqual(['list', '--json']);
   });
 
-  it('create() builds args and extracts beadId', async () => {
+  it('create() builds args with --json and extracts beadId', async () => {
     const runner = new FakeRunner();
-    runner.queue({ ok: true, exitCode: 0, stdout: 'Created bead: gt-abc123\n', stderr: '', error: null, signal: null });
+    runner.queue({ ok: true, exitCode: 0, stdout: '{"id":"gt-abc123","title":"Fix login bug","status":"open"}\n', stderr: '', error: null, signal: null });
     const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
 
     const result = await gateway.create({
@@ -71,13 +71,14 @@ describe('BDGateway', () => {
       'P1',
       '--labels',
       'bug,ui',
+      '--json',
     ]);
     expect(result.beadId).toBe('gt-abc123');
   });
 
   it('create() passes --rig flag when rig is specified', async () => {
     const runner = new FakeRunner();
-    runner.queue({ ok: true, exitCode: 0, stdout: 'Created bead: ga-xyz456\n', stderr: '', error: null, signal: null });
+    runner.queue({ ok: true, exitCode: 0, stdout: '{"id":"ga-xyz456","title":"Rig-specific bead","status":"open"}\n', stderr: '', error: null, signal: null });
     const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
 
     const result = await gateway.create({
@@ -90,8 +91,18 @@ describe('BDGateway', () => {
       'Rig-specific bead',
       '--rig',
       'gastownui',
+      '--json',
     ]);
     expect(result.beadId).toBe('ga-xyz456');
+  });
+
+  it('create() returns null beadId when JSON parse fails', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'unexpected output\n', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.create({ title: 'Test' });
+    expect(result.beadId).toBeNull();
   });
 
   it('markDone() uses bd close with -r flag', async () => {
