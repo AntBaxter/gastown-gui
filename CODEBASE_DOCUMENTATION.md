@@ -19,11 +19,11 @@ DOCS:     refactoring-analysis/ - Refactor plans/reports, CLI-COMPATIBILITY.md
 ## Backend — Entry & App
 
 ```
-server.js - Monolith Express server; imports refactored modules + legacy endpoints
+server.js - Express server entry point; DI wiring + WebSocket + server startup
+├─ Creates infrastructure (CommandRunner, CacheRegistry)
 ├─ Wires gateways → services → routes
 ├─ WebSocket server for real-time events (gt feed)
-├─ Legacy endpoints still inline: mail, agents, nudge, polecat, service controls
-└─ ~1700 lines, partially refactored
+└─ ~290 lines, fully refactored
 
 server/app/createApp.js - Express app factory with CORS config
 ```
@@ -68,25 +68,39 @@ server/infrastructure/EventBus.js - Internal pub/sub for cache invalidation
 ## Backend — Services
 
 ```
-server/services/StatusService.js - Town status aggregation
-server/services/ConvoyService.js - Convoy CRUD via GTGateway
-server/services/FormulaService.js - Formula CRUD + run via GTGateway
+server/services/AgentService.js - Agent list, polecat output/start/stop/restart, transcript, bead links
 server/services/BeadService.js - Bead CRUD via BDGateway
-server/services/WorkService.js - Work lifecycle (close, defer, reassign)
+server/services/ConvoyService.js - Convoy CRUD via GTGateway
+server/services/CrewService.js - Crew CRUD via GTGateway
+server/services/DoctorService.js - Doctor check + fix via GTGateway
+server/services/FormulaService.js - Formula CRUD + run via GTGateway
 server/services/GitHubService.js - PR/issue/repo queries via GitHubGateway
+server/services/MailService.js - Mail inbox/send/read/mark + feed reading
+server/services/NudgeService.js - Nudge messaging + mayor message history
+server/services/RigService.js - Rig CRUD, dock/undock, setup status
+server/services/ServiceControlService.js - Service start/stop/restart/status
+server/services/StatusService.js - Town status aggregation
 server/services/TargetService.js - Available sling targets
+server/services/WorkService.js - Work lifecycle (close, defer, reassign)
 ```
 
 ## Backend — Routes
 
 ```
-server/routes/status.js - GET /api/status, /api/health
-server/routes/convoys.js - GET/POST /api/convoys, /api/convoy/:id
-server/routes/formulas.js - CRUD /api/formulas, /api/formula/:name
+server/routes/agents.js - GET /api/agents, /api/polecat/:rig/:name/*, /api/hook, /api/bead/:id/links
 server/routes/beads.js - CRUD /api/beads, /api/bead/:id
-server/routes/work.js - POST /api/work/:id/{done,park,release,reassign}
+server/routes/convoys.js - GET/POST /api/convoys, /api/convoy/:id
+server/routes/crews.js - CRUD /api/crews, /api/crew/:name
+server/routes/doctor.js - GET /api/doctor, POST /api/doctor/fix
+server/routes/formulas.js - CRUD /api/formulas, /api/formula/:name
 server/routes/github.js - GET /api/github/{prs,issues,repos}
+server/routes/mail.js - CRUD /api/mail, /api/mail/all, /api/mail/:id
+server/routes/nudge.js - POST /api/nudge, GET /api/mayor/messages
+server/routes/rigs.js - CRUD /api/rigs, /api/setup/status, dock/undock
+server/routes/services.js - POST /api/service/:name/{up,down,restart}, GET status
+server/routes/status.js - GET /api/status
 server/routes/targets.js - GET /api/targets
+server/routes/work.js - POST /api/work/:id/{done,park,release,reassign}
 ```
 
 ## Frontend — Core
