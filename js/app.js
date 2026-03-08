@@ -600,16 +600,32 @@ async function loadAgents() {
 
   try {
     const response = await api.getAgents();
-    // Combine agents and polecats into a flat list
+    // Combine town-level agents (mayor, deacon) with rig-level agents
+    // (witnesses, refineries, polecats)
     const allAgents = [
-      ...(response.agents || []),
+      ...(response.agents || []).map(a => ({
+        ...a,
+        id: a.address || a.name,
+      })),
+      ...(response.rigAgents || []),
+      // Legacy support: handle old polecats field if present
       ...(response.polecats || []).map(p => ({
         ...p,
         id: p.name,
-        status: p.running ? 'working' : 'idle',
       })),
     ];
-    state.setAgents(allAgents);
+
+    // Filter by selected rig if one is chosen
+    const selectedRig = state.getSelectedRig();
+    let filteredAgents = allAgents;
+    if (selectedRig && selectedRig !== 'all' && selectedRig !== 'hq') {
+      filteredAgents = allAgents.filter(a => a.rig === selectedRig);
+    } else if (selectedRig === 'hq') {
+      // HQ = town-level agents only (mayor, deacon)
+      filteredAgents = allAgents.filter(a => !a.rig);
+    }
+
+    state.setAgents(filteredAgents);
   } catch (err) {
     console.error('[App] Failed to load agents:', err);
     // Only show error if we don't have cached data
@@ -725,6 +741,7 @@ function setupRigFilter() {
   select.addEventListener('change', () => {
     state.setSelectedRig(select.value);
     loadWork();
+    loadAgents();
   });
 }
 

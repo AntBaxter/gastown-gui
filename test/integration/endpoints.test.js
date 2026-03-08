@@ -153,23 +153,25 @@ describe('API Endpoint Tests', () => {
   });
 
   describe('GET /api/agents', () => {
-    it('should return array of agents', async () => {
+    it('should return agents object with town and rig agents', async () => {
       const { status, data, ok } = await api('/api/agents');
 
       expect(ok).toBe(true);
       expect(status).toBe(200);
-      expect(Array.isArray(data)).toBe(true);
+      expect(data).toHaveProperty('agents');
+      expect(data).toHaveProperty('rigAgents');
+      expect(Array.isArray(data.agents)).toBe(true);
+      expect(Array.isArray(data.rigAgents)).toBe(true);
     });
 
     it('should include agent details', async () => {
       const { data } = await api('/api/agents');
+      const allAgents = [...data.agents, ...data.rigAgents];
 
-      if (data.length > 0) {
-        const agent = data[0];
-        expect(agent).toHaveProperty('id');
+      if (allAgents.length > 0) {
+        const agent = allAgents[0];
         expect(agent).toHaveProperty('name');
         expect(agent).toHaveProperty('role');
-        expect(agent).toHaveProperty('status');
       }
     });
   });

@@ -827,31 +827,29 @@ app.get('/api/agents', async (req, res) => {
 
   if (result.success) {
     const data = parseJSON(result.data);
-    const agents = data?.agents || [];
+    const townAgents = data?.agents || [];
 
-    // Enhance agents with running state
-    for (const agent of agents) {
+    // Enhance town agents with running state
+    for (const agent of townAgents) {
       agent.running = runningPolecats.has(agent.address?.replace(/\/$/, ''));
     }
 
-    // Also include running polecats from rigs
-    const polecats = [];
+    // Include ALL rig-level agents (witnesses, refineries, polecats)
+    const rigAgents = [];
     for (const rig of data?.rigs || []) {
-      for (const hook of rig.hooks || []) {
-        const isRunning = runningPolecats.has(hook.agent) ||
-          runningPolecats.has(hook.agent?.replace(/\//, '/polecats/'));
-        polecats.push({
-          name: hook.agent,
+      for (const agent of rig.agents || []) {
+        const addr = agent.address?.replace(/\/$/, '');
+        const isRunning = agent.running || runningPolecats.has(addr);
+        rigAgents.push({
+          ...agent,
+          id: agent.address || `${rig.name}/${agent.name}`,
           rig: rig.name,
-          role: hook.role,
           running: isRunning,
-          has_work: hook.has_work,
-          hook_bead: hook.hook_bead
         });
       }
     }
 
-    const response = { agents, polecats, runningPolecats: Array.from(runningPolecats) };
+    const response = { agents: townAgents, rigAgents, runningPolecats: Array.from(runningPolecats) };
     setCache('agents', response, CACHE_TTL.agents);
     res.json(response);
   } else {

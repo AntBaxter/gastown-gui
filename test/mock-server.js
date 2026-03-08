@@ -21,11 +21,11 @@ const mockData = {
     uptime: 3600,
     hook: null,
     agents: [
-      { id: 'agent-1', name: 'Mayor', role: 'mayor', status: 'idle', running: true },
-      { id: 'agent-2', name: 'Deacon-1', role: 'deacon', status: 'working', current_task: 'Processing convoy', running: true },
-      { id: 'agent-3', name: 'Polecat-1', role: 'polecat', status: 'idle', running: false },
-      { id: 'agent-4', name: 'Witness-1', role: 'witness', status: 'idle', running: true, rig: 'my-rig' },
-      { id: 'agent-5', name: 'Refinery-1', role: 'refinery', status: 'idle', running: false, rig: 'my-rig' },
+      { id: 'agent-1', name: 'Mayor', address: 'mayor/', role: 'mayor', status: 'idle', running: true },
+      { id: 'agent-2', name: 'Deacon-1', address: 'deacon/', role: 'deacon', status: 'working', current_task: 'Processing convoy', running: true },
+      { id: 'agent-3', name: 'Polecat-1', address: 'my-rig/polecat-1', role: 'polecat', status: 'idle', running: false, rig: 'my-rig' },
+      { id: 'agent-4', name: 'Witness-1', address: 'my-rig/witness', role: 'witness', status: 'idle', running: true, rig: 'my-rig' },
+      { id: 'agent-5', name: 'Refinery-1', address: 'my-rig/refinery', role: 'refinery', status: 'idle', running: false, rig: 'my-rig' },
     ],
     convoy_count: 2,
     active_agents: 1,
@@ -176,7 +176,13 @@ app.post('/api/mail', (req, res) => {
 });
 
 app.get('/api/agents', (req, res) => {
-  res.json(mockData.status.agents);
+  const allAgents = mockData.status.agents;
+  const townAgents = allAgents.filter(a => !a.rig);
+  const rigAgents = allAgents.filter(a => a.rig).map(a => ({
+    ...a,
+    id: a.id || `${a.rig}/${a.name}`,
+  }));
+  res.json({ agents: townAgents, rigAgents, runningPolecats: [] });
 });
 
 // Rig management endpoints
