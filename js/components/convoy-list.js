@@ -20,12 +20,16 @@ const STATUS_ICONS = {
   cancelled: 'cancel',
 };
 
-// Issue status icons
+// Issue status icons (keys match bd valid statuses)
 const ISSUE_STATUS_ICONS = {
   open: 'radio_button_unchecked',
+  in_progress: 'pending',
   'in-progress': 'pending',
-  done: 'check_circle',
+  closed: 'check_circle',
   blocked: 'block',
+  deferred: 'pause_circle',
+  pinned: 'push_pin',
+  hooked: 'link',
 };
 
 // Priority colors
