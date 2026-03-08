@@ -1213,10 +1213,18 @@ function showMailDetailModal(mailId, mail) {
 
 // === Bead Detail Modal ===
 
-function showBeadDetailModal(beadId, bead) {
+async function showBeadDetailModal(beadId, bead) {
   if (!bead) {
-    showToast('Bead data not available', 'warning');
-    return;
+    try {
+      bead = await api.getBead(beadId);
+    } catch {
+      showToast('Failed to load bead details', 'error');
+      return;
+    }
+    if (!bead || !bead.id) {
+      showToast('Bead not found', 'warning');
+      return;
+    }
   }
 
   const statusIcons = {
