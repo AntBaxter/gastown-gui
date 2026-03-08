@@ -199,6 +199,26 @@ app.post('/api/rigs', (req, res) => {
   res.status(201).json({ success: true, rig: newRig });
 });
 
+app.post('/api/rigs/:name/dock', (req, res) => {
+  const { name } = req.params;
+  const rig = mockRigs.find(r => r.name === name);
+  if (!rig) {
+    return res.status(404).json({ error: 'Rig not found' });
+  }
+  rig.status = 'docked';
+  res.json({ success: true, name });
+});
+
+app.post('/api/rigs/:name/undock', (req, res) => {
+  const { name } = req.params;
+  const rig = mockRigs.find(r => r.name === name);
+  if (!rig) {
+    return res.status(404).json({ error: 'Rig not found' });
+  }
+  rig.status = 'active';
+  res.json({ success: true, name });
+});
+
 app.delete('/api/rigs/:name', (req, res) => {
   const { name } = req.params;
   const index = mockRigs.findIndex(r => r.name === name);

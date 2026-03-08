@@ -1202,6 +1202,42 @@ app.get('/api/rigs', async (req, res) => {
   }
 });
 
+// Dock a rig (global, persistent shutdown)
+app.post('/api/rigs/:name/dock', async (req, res) => {
+  const { name } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Rig name is required' });
+  }
+
+  const result = await executeGT(['rig', 'dock', name], { timeout: 60000 });
+
+  if (result.success) {
+    broadcast({ type: 'rig_docked', data: { name } });
+    res.json({ success: true, name, raw: result.data });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+});
+
+// Undock a rig (remove global docked status)
+app.post('/api/rigs/:name/undock', async (req, res) => {
+  const { name } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Rig name is required' });
+  }
+
+  const result = await executeGT(['rig', 'undock', name], { timeout: 30000 });
+
+  if (result.success) {
+    broadcast({ type: 'rig_undocked', data: { name } });
+    res.json({ success: true, name, raw: result.data });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+});
+
 // Remove a rig
 app.delete('/api/rigs/:name', async (req, res) => {
   const { name } = req.params;

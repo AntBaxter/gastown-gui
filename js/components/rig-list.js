@@ -83,6 +83,24 @@ export function renderRigList(container, rigs) {
       });
     });
 
+    // Dock rig
+    card.querySelectorAll('[data-action="dock"]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const rigName = btn.dataset.rigName;
+        await handleRigDock(rigName, btn);
+      });
+    });
+
+    // Undock rig
+    card.querySelectorAll('[data-action="undock"]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const rigName = btn.dataset.rigName;
+        await handleRigUndock(rigName, btn);
+      });
+    });
+
     // Remove rig
     card.querySelectorAll('[data-action="remove"]').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -174,6 +192,14 @@ function renderRigCard(rig, index) {
         <button class="btn btn-sm btn-secondary" data-action="spawn" title="Spawn a new polecat">
           <span class="material-icons">add</span>
           Spawn Polecat
+        </button>
+        <button class="btn btn-sm btn-warning-ghost" data-action="dock" data-rig-name="${rig.name}" title="Dock rig (persistent shutdown across all clones)">
+          <span class="material-icons">anchor</span>
+          Dock
+        </button>
+        <button class="btn btn-sm btn-success-ghost" data-action="undock" data-rig-name="${rig.name}" title="Undock rig (allow agents to restart)">
+          <span class="material-icons">sailing</span>
+          Undock
         </button>
         <button class="btn btn-sm btn-ghost" data-action="settings" title="Rig settings">
           <span class="material-icons">settings</span>
@@ -308,6 +334,60 @@ async function handleAgentRestart(rig, name, btn) {
       document.dispatchEvent(new CustomEvent(RIGS_REFRESH));
     } else {
       showToast(`Failed to restart: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  } finally {
+    btn.innerHTML = originalIcon;
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Handle rig dock (global persistent shutdown)
+ */
+async function handleRigDock(rigName, btn) {
+  if (!confirm(`Dock rig "${rigName}"?\n\nThis will stop all agents and persistently disable the rig across all clones. Use "Undock" to re-enable.`)) {
+    return;
+  }
+
+  const originalIcon = btn.innerHTML;
+  btn.innerHTML = '<span class="material-icons spinning">sync</span>';
+  btn.disabled = true;
+
+  try {
+    const result = await api.dockRig(rigName);
+    if (result.success) {
+      showToast(`Rig "${rigName}" docked`, 'success');
+      document.dispatchEvent(new CustomEvent(RIGS_REFRESH));
+      document.dispatchEvent(new CustomEvent(STATUS_REFRESH));
+    } else {
+      showToast(`Failed to dock rig: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  } finally {
+    btn.innerHTML = originalIcon;
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Handle rig undock (remove persistent docked status)
+ */
+async function handleRigUndock(rigName, btn) {
+  const originalIcon = btn.innerHTML;
+  btn.innerHTML = '<span class="material-icons spinning">sync</span>';
+  btn.disabled = true;
+
+  try {
+    const result = await api.undockRig(rigName);
+    if (result.success) {
+      showToast(`Rig "${rigName}" undocked`, 'success');
+      document.dispatchEvent(new CustomEvent(RIGS_REFRESH));
+      document.dispatchEvent(new CustomEvent(STATUS_REFRESH));
+    } else {
+      showToast(`Failed to undock rig: ${result.error}`, 'error');
     }
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');

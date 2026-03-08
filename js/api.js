@@ -229,6 +229,14 @@ export const api = {
     return this.request(`/api/rigs/${encodeURIComponent(name)}`, { method: 'DELETE' });
   },
 
+  dockRig(name) {
+    return this.post(`/api/rigs/${encodeURIComponent(name)}/dock`);
+  },
+
+  undockRig(name) {
+    return this.post(`/api/rigs/${encodeURIComponent(name)}/undock`);
+  },
+
   // === Crew Management ===
   getCrews() {
     return this.get('/api/crews');

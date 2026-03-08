@@ -332,6 +332,22 @@ function handleWebSocketMessage(message) {
       }
       break;
 
+    case 'rig_docked':
+      showToast(`Rig docked: ${message.data?.name || 'unknown'}`, 'info');
+      api.getStatus(true);
+      if (state.currentView === 'rigs') {
+        loadRigs();
+      }
+      break;
+
+    case 'rig_undocked':
+      showToast(`Rig undocked: ${message.data?.name || 'unknown'}`, 'info');
+      api.getStatus(true);
+      if (state.currentView === 'rigs') {
+        loadRigs();
+      }
+      break;
+
     case 'mayor_message':
       // Mayor message sent - add to activity feed
       state.addEvent({
