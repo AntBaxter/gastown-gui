@@ -8,7 +8,7 @@
 import { escapeHtml, escapeAttr, truncate } from '../utils/html.js';
 import { formatTimeAgoOrDate } from '../utils/formatting.js';
 import { TIMING_MS } from '../shared/timing.js';
-import { AGENT_NUDGE, CONVOY_DETAIL, CONVOY_ESCALATE, ISSUE_DETAIL, SLING_OPEN } from '../shared/events.js';
+import { AGENT_NUDGE, BEAD_DETAIL, CONVOY_DETAIL, CONVOY_ESCALATE, SLING_OPEN } from '../shared/events.js';
 import { getStaggerClass } from '../shared/animations.js';
 
 // Status icons for convoys
@@ -119,11 +119,22 @@ function setupConvoyEventListeners(container) {
     });
   });
 
-  // Issue item clicks
+  // Issue item clicks (expanded tree view)
   container.querySelectorAll('.issue-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const issueId = item.dataset.issueId;
+      if (issueId) {
+        showIssueDetail(issueId);
+      }
+    });
+  });
+
+  // Issue chip clicks (collapsed chip view)
+  container.querySelectorAll('.issue-chip[data-issue-id]').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const issueId = chip.dataset.issueId;
       if (issueId) {
         showIssueDetail(issueId);
       }
@@ -414,7 +425,8 @@ function renderIssueChips(issues) {
         const issueObj = typeof issue === 'string' ? { title: issue } : issue;
         const status = issueObj.status || 'open';
         return `
-          <div class="issue-chip status-${status}" title="${escapeHtml(issueObj.title || issueObj)}">
+          <div class="issue-chip status-${status}" title="${escapeHtml(issueObj.title || issueObj)}"
+               ${issueObj.id ? `data-issue-id="${escapeAttr(issueObj.id)}"` : ''}>
             <span class="material-icons">${ISSUE_STATUS_ICONS[status] || 'assignment'}</span>
             ${escapeHtml(truncate(issueObj.title || issueObj, 20))}
           </div>
@@ -486,10 +498,10 @@ function openSlingForConvoy(convoyId) {
 }
 
 /**
- * Show issue detail
+ * Show issue detail in the bead detail modal
  */
 function showIssueDetail(issueId) {
-  const event = new CustomEvent(ISSUE_DETAIL, { detail: { issueId } });
+  const event = new CustomEvent(BEAD_DETAIL, { detail: { beadId: issueId } });
   document.dispatchEvent(event);
 }
 

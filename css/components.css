@@ -1955,6 +1955,14 @@ select {
   color: var(--text-secondary);
 }
 
+.issue-chip[data-issue-id] {
+  cursor: pointer;
+}
+
+.issue-chip[data-issue-id]:hover {
+  background: var(--bg-hover);
+}
+
 .issue-chip .material-icons {
   font-size: 12px;
 }
