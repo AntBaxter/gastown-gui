@@ -112,6 +112,10 @@ export const api = {
     return this.post(`/api/mail/${encodeURIComponent(id)}/unread`);
   },
 
+  deleteMail(id) {
+    return this.request(`/api/mail/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
   // === Agents ===
   getAgents() {
     return this.get('/api/agents');

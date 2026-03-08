@@ -661,6 +661,16 @@ app.post('/api/mail/:id/unread', (req, res) => {
   res.json({ success: true, mail });
 });
 
+app.delete('/api/mail/:id', (req, res) => {
+  const { id } = req.params;
+  const index = mockData.mail.findIndex(m => m.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Mail not found' });
+  }
+  mockData.mail.splice(index, 1);
+  res.json({ success: true, id });
+});
+
 // === Beads endpoints ===
 const mockBeads = [
   {

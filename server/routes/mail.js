@@ -58,4 +58,13 @@ export function registerMailRoutes(app, { mailService } = {}) {
       res.status(500).json({ error: err.message });
     }
   });
+
+  app.delete('/api/mail/:id', async (req, res) => {
+    try {
+      const result = await mailService.delete(req.params.id);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 }

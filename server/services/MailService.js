@@ -51,6 +51,13 @@ export class MailService {
     return { success: true, id, read: false };
   }
 
+  async delete(id) {
+    const result = await this._gt.mailDelete(id);
+    if (!result.ok) throw new Error(result.error || 'Failed to delete mail');
+    this._cache?.del?.('mail');
+    return { success: true, id };
+  }
+
   async allFromFeed({ page = 1, limit = 50 } = {}) {
     const feedPath = path.join(this._gtRoot, '.events.jsonl');
 
