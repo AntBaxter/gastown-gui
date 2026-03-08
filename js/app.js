@@ -10,7 +10,7 @@ import { state, subscribe } from './state.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
-import { renderActivityFeed } from './components/activity-feed.js';
+import { renderActivityFeed, addEventToFeed } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderMailList } from './components/mail-list.js';
 import { renderRigList } from './components/rig-list.js';
@@ -487,18 +487,17 @@ async function loadMayorMessageHistory() {
   try {
     const messages = await api.getMayorMessages(20);
     if (messages && messages.length > 0) {
-      // Add messages to activity feed (oldest first so newest appear at top)
-      for (const msg of messages.reverse()) {
-        state.addEvent({
-          id: msg.id,
-          type: 'mayor_message',
-          timestamp: msg.timestamp,
-          target: msg.target,
-          message: msg.message,
-          status: msg.status,
-          response: msg.response
-        });
-      }
+      // Batch-add messages to activity feed (oldest first so newest appear at top)
+      const events = messages.reverse().map(msg => ({
+        id: msg.id,
+        type: 'mayor_message',
+        timestamp: msg.timestamp,
+        target: msg.target,
+        message: msg.message,
+        status: msg.status,
+        response: msg.response
+      }));
+      state.addEvents(events);
       console.log(`[App] Loaded ${messages.length} Mayor messages into activity feed`);
     }
   } catch (err) {
@@ -770,6 +769,22 @@ function populateRigFilterOptions(rigs) {
   }
 }
 
+// Debounced sidebar render to avoid layout thrashing from rapid status updates
+let sidebarRenderTimer = null;
+let pendingSidebarStatus = null;
+
+function debouncedRenderSidebar(container, status) {
+  pendingSidebarStatus = status;
+  if (sidebarRenderTimer) return; // Already scheduled
+  sidebarRenderTimer = requestAnimationFrame(() => {
+    sidebarRenderTimer = null;
+    if (pendingSidebarStatus) {
+      renderSidebar(container, pendingSidebarStatus);
+      pendingSidebarStatus = null;
+    }
+  });
+}
+
 // State subscriptions
 function subscribeToState() {
   // Status updates
@@ -787,8 +802,8 @@ function subscribeToState() {
       elements.hookStatus.querySelector('.hook-text').textContent = 'No work hooked';
     }
 
-    // Render sidebar
-    renderSidebar(elements.agentTree, status);
+    // Debounced sidebar render to coalesce rapid status changes
+    debouncedRenderSidebar(elements.agentTree, status);
 
     // Update rig filter options
     if (status?.rigs) {
@@ -806,9 +821,13 @@ function subscribeToState() {
     renderAgentGrid(elements.agentGrid, agents);
   });
 
-  // Event updates
-  subscribe('events', (events) => {
-    renderActivityFeed(elements.feedList, events);
+  // Event updates — use incremental DOM insert for single new events
+  subscribe('events', (events, meta) => {
+    if (meta?.incremental && meta.newEvent && elements.feedList.children.length > 0) {
+      addEventToFeed(elements.feedList, meta.newEvent);
+    } else {
+      renderActivityFeed(elements.feedList, events);
+    }
   });
 
   // Mail updates

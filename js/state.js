@@ -35,10 +35,10 @@ export function subscribe(key, callback) {
 }
 
 // Notify subscribers of changes
-function notify(key) {
+function notify(key, meta) {
   const callbacks = subscribers.get(key);
   if (callbacks) {
-    callbacks.forEach(cb => cb(store[key]));
+    callbacks.forEach(cb => cb(store[key], meta));
   }
 }
 
@@ -104,6 +104,25 @@ export const state = {
 
     // Add to beginning
     store.events.unshift(event);
+
+    // Trim to max
+    if (store.events.length > MAX_EVENTS) {
+      store.events = store.events.slice(0, MAX_EVENTS);
+    }
+
+    notify('events', { incremental: true, newEvent: event });
+  },
+
+  // Add multiple events at once (single notification)
+  addEvents(events) {
+    if (!events || events.length === 0) return;
+
+    for (const event of events) {
+      if (!event.timestamp) {
+        event.timestamp = new Date().toISOString();
+      }
+      store.events.unshift(event);
+    }
 
     // Trim to max
     if (store.events.length > MAX_EVENTS) {
