@@ -5,136 +5,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-// Mock the state module inline since it uses browser globals
-const createState = () => {
-  // State store
-  const store = {
-    status: null,
-    convoys: [],
-    agents: [],
-    events: [],
-    mail: [],
-  };
-
-  // Subscribers by key
-  const subscribers = new Map();
-
-  // Maximum events to keep
-  const MAX_EVENTS = 500;
-
-  // Subscribe to state changes
-  function subscribe(key, callback) {
-    if (!subscribers.has(key)) {
-      subscribers.set(key, new Set());
-    }
-    subscribers.get(key).add(callback);
-
-    // Return unsubscribe function
-    return () => {
-      subscribers.get(key).delete(callback);
-    };
-  }
-
-  // Notify subscribers of changes
-  function notify(key) {
-    const callbacks = subscribers.get(key);
-    if (callbacks) {
-      callbacks.forEach(cb => cb(store[key]));
-    }
-  }
-
-  // State mutations
-  const state = {
-    // Get current state
-    get(key) {
-      return store[key];
-    },
-
-    // Set status
-    setStatus(status) {
-      store.status = status;
-      notify('status');
-
-      // Extract agents from status if present
-      if (status?.agents) {
-        this.setAgents(status.agents);
-      }
-    },
-
-    // Set convoys
-    setConvoys(convoys) {
-      store.convoys = convoys || [];
-      notify('convoys');
-    },
-
-    // Update single convoy
-    updateConvoy(convoy) {
-      if (!convoy?.id) return;
-
-      const index = store.convoys.findIndex(c => c.id === convoy.id);
-      if (index >= 0) {
-        store.convoys[index] = { ...store.convoys[index], ...convoy };
-      } else {
-        store.convoys.unshift(convoy);
-      }
-      notify('convoys');
-    },
-
-    // Set agents
-    setAgents(agents) {
-      store.agents = agents || [];
-      notify('agents');
-    },
-
-    // Add event
-    addEvent(event) {
-      // Add timestamp if missing
-      if (!event.timestamp) {
-        event.timestamp = new Date().toISOString();
-      }
-
-      // Add to beginning
-      store.events.unshift(event);
-
-      // Trim to max
-      if (store.events.length > MAX_EVENTS) {
-        store.events = store.events.slice(0, MAX_EVENTS);
-      }
-
-      notify('events');
-    },
-
-    // Clear events
-    clearEvents() {
-      store.events = [];
-      notify('events');
-    },
-
-    // Set mail
-    setMail(mail) {
-      store.mail = mail || [];
-      notify('mail');
-    },
-
-    // Mark mail as read
-    markMailRead(id) {
-      const mail = store.mail.find(m => m.id === id);
-      if (mail) {
-        mail.read = true;
-        notify('mail');
-      }
-    },
-  };
-
-  return { state, subscribe, store };
-};
+import { createStateStore } from '../../js/state.js';
 
 describe('State Management', () => {
   let state, subscribe, store;
 
   beforeEach(() => {
-    const result = createState();
+    const result = createStateStore();
     state = result.state;
     subscribe = result.subscribe;
     store = result.store;
@@ -161,7 +38,7 @@ describe('State Management', () => {
       state.setStatus({ name: 'Test Town', version: '1.0.0' });
 
       expect(state.get('status')).toEqual({ name: 'Test Town', version: '1.0.0' });
-      expect(callback).toHaveBeenCalledWith({ name: 'Test Town', version: '1.0.0' });
+      expect(callback).toHaveBeenCalledWith({ name: 'Test Town', version: '1.0.0' }, undefined);
     });
 
     it('should extract agents from status', () => {
@@ -172,7 +49,7 @@ describe('State Management', () => {
       state.setStatus({ name: 'Town', agents });
 
       expect(state.get('agents')).toEqual(agents);
-      expect(callback).toHaveBeenCalledWith(agents);
+      expect(callback).toHaveBeenCalledWith(agents, undefined);
     });
   });
 
@@ -203,7 +80,7 @@ describe('State Management', () => {
       const convoys = [{ id: 'conv-1' }];
       state.setConvoys(convoys);
 
-      expect(callback).toHaveBeenCalledWith(convoys);
+      expect(callback).toHaveBeenCalledWith(convoys, undefined);
     });
   });
 
@@ -256,6 +133,30 @@ describe('State Management', () => {
     });
   });
 
+  describe('getAgents()', () => {
+    it('should return agents array', () => {
+      const agents = [{ id: 'agent-1', name: 'Mayor' }];
+      state.setAgents(agents);
+      expect(state.getAgents()).toEqual(agents);
+    });
+
+    it('should return empty array when no agents set', () => {
+      expect(state.getAgents()).toEqual([]);
+    });
+  });
+
+  describe('getRigs()', () => {
+    it('should return rigs from status', () => {
+      const rigs = ['gastownui', 'beads'];
+      state.setStatus({ rigs });
+      expect(state.getRigs()).toEqual(rigs);
+    });
+
+    it('should return empty array when no status', () => {
+      expect(state.getRigs()).toEqual([]);
+    });
+  });
+
   describe('addEvent()', () => {
     it('should add event to beginning of list', () => {
       state.addEvent({ type: 'first', message: 'First event' });
@@ -281,6 +182,19 @@ describe('State Management', () => {
       expect(event.timestamp).toBe(timestamp);
     });
 
+    it('should notify with incremental meta', () => {
+      const callback = vi.fn();
+      subscribe('events', callback);
+
+      const event = { type: 'test', message: 'hello' };
+      state.addEvent(event);
+
+      expect(callback).toHaveBeenCalledWith(
+        expect.any(Array),
+        { incremental: true, newEvent: expect.objectContaining({ type: 'test', message: 'hello' }) }
+      );
+    });
+
     it('should trim to max events', () => {
       // Add 510 events
       for (let i = 0; i < 510; i++) {
@@ -290,6 +204,55 @@ describe('State Management', () => {
       const events = state.get('events');
       expect(events.length).toBe(500);
       expect(events[0].index).toBe(509); // Most recent
+    });
+  });
+
+  describe('addEvents()', () => {
+    it('should add multiple events at once', () => {
+      state.addEvents([
+        { type: 'a', message: 'First' },
+        { type: 'b', message: 'Second' },
+      ]);
+
+      const events = state.get('events');
+      expect(events.length).toBe(2);
+      expect(events[0].type).toBe('b'); // Most recent first
+    });
+
+    it('should add timestamps to events missing them', () => {
+      state.addEvents([{ type: 'test' }]);
+      expect(state.get('events')[0].timestamp).toBeDefined();
+    });
+
+    it('should send single notification', () => {
+      const callback = vi.fn();
+      subscribe('events', callback);
+
+      state.addEvents([
+        { type: 'a' },
+        { type: 'b' },
+        { type: 'c' },
+      ]);
+
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should do nothing for empty or null input', () => {
+      const callback = vi.fn();
+      subscribe('events', callback);
+
+      state.addEvents([]);
+      state.addEvents(null);
+
+      expect(callback).not.toHaveBeenCalled();
+      expect(state.get('events')).toEqual([]);
+    });
+
+    it('should trim to max events', () => {
+      const events = Array.from({ length: 510 }, (_, i) => ({ type: 'test', index: i }));
+      state.addEvents(events);
+
+      expect(state.get('events').length).toBe(500);
     });
   });
 
@@ -309,7 +272,7 @@ describe('State Management', () => {
 
       state.clearEvents();
 
-      expect(callback).toHaveBeenCalledWith([]);
+      expect(callback).toHaveBeenCalledWith([], undefined);
     });
   });
 
@@ -362,6 +325,40 @@ describe('State Management', () => {
     });
   });
 
+  describe('selectedRig', () => {
+    it('should default to "all" without storage', () => {
+      expect(state.getSelectedRig()).toBe('all');
+    });
+
+    it('should read initial value from storage', () => {
+      const mockStorage = {
+        getItem: vi.fn(() => 'myrig'),
+        setItem: vi.fn(),
+      };
+      const { state: s } = createStateStore({ storage: mockStorage });
+      expect(s.getSelectedRig()).toBe('myrig');
+      expect(mockStorage.getItem).toHaveBeenCalledWith('gastownui-rig-filter');
+    });
+
+    it('should persist to storage on set', () => {
+      const mockStorage = {
+        getItem: vi.fn(() => null),
+        setItem: vi.fn(),
+      };
+      const { state: s } = createStateStore({ storage: mockStorage });
+      s.setSelectedRig('testrig');
+      expect(s.getSelectedRig()).toBe('testrig');
+      expect(mockStorage.setItem).toHaveBeenCalledWith('gastownui-rig-filter', 'testrig');
+    });
+
+    it('should notify subscribers on change', () => {
+      const callback = vi.fn();
+      subscribe('selectedRig', callback);
+      state.setSelectedRig('newrig');
+      expect(callback).toHaveBeenCalledWith('newrig', undefined);
+    });
+  });
+
   describe('subscribe()', () => {
     it('should return unsubscribe function', () => {
       const callback = vi.fn();
@@ -408,7 +405,7 @@ describe('State Integration', () => {
   let state, subscribe;
 
   beforeEach(() => {
-    const result = createState();
+    const result = createStateStore();
     state = result.state;
     subscribe = result.subscribe;
   });
