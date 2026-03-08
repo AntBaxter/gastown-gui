@@ -296,25 +296,14 @@ function renderConvoyCard(convoy, index) {
  */
 function renderConvoyDetail(convoy) {
   const issues = convoy.issues || [];
-  const workers = convoy.workers || [];
 
   return `
     <div class="convoy-detail" style="max-height: ${expandedConvoys.has(convoy.id) ? 'none' : '0'}">
-      <div class="convoy-detail-grid">
-        <!-- Issue Tree -->
-        <div class="convoy-detail-section">
-          <h4><span class="material-icons">assignment</span> Issues (${issues.length})</h4>
-          ${issues.length > 0 ? renderIssueTree(issues) : '<p class="empty-hint">No issues tracked</p>'}
-        </div>
-
-        <!-- Worker Panel -->
-        <div class="convoy-detail-section">
-          <h4><span class="material-icons">groups</span> Workers (${workers.length})</h4>
-          ${workers.length > 0 ? renderWorkerPanel(workers) : '<p class="empty-hint">No workers assigned</p>'}
-        </div>
+      <div class="convoy-detail-section">
+        <h4><span class="material-icons">assignment</span> Issues (${issues.length})</h4>
+        ${issues.length > 0 ? renderIssueTree(issues) : '<p class="empty-hint">No issues tracked</p>'}
       </div>
 
-      <!-- Progress Breakdown -->
       <div class="convoy-detail-section">
         <h4><span class="material-icons">analytics</span> Progress Breakdown</h4>
         ${renderProgressBreakdown(convoy)}
@@ -346,41 +335,6 @@ function renderIssueTree(issues) {
   `;
 }
 
-/**
- * Render worker panel with status and actions
- */
-function renderWorkerPanel(workers) {
-  return `
-    <div class="worker-panel">
-      ${workers.map(worker => {
-        const workerObj = typeof worker === 'string' ? { name: worker, status: 'idle' } : worker;
-        const status = workerObj.status || 'idle';
-
-        return `
-          <div class="worker-item status-${status}">
-            <div class="worker-info">
-              <span class="worker-avatar">${getWorkerInitials(workerObj.name)}</span>
-              <div class="worker-details">
-                <span class="worker-name">${escapeHtml(workerObj.name)}</span>
-                <span class="worker-status">${status}</span>
-              </div>
-            </div>
-            <div class="worker-actions">
-              ${workerObj.current_task ? `
-                <span class="worker-task" title="${escapeHtml(workerObj.current_task)}">
-                  <span class="material-icons">task</span>
-                </span>
-              ` : ''}
-              <button class="btn btn-icon btn-sm" title="Nudge" data-action="nudge-worker" data-worker-id="${workerObj.id || workerObj.name}">
-                <span class="material-icons">notifications</span>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
 
 /**
  * Render progress breakdown visualization
@@ -527,14 +481,3 @@ function openEscalationModal(convoyId, convoyName) {
   document.dispatchEvent(event);
 }
 
-/**
- * Get worker initials for avatar
- */
-function getWorkerInitials(name) {
-  if (!name) return '?';
-  const parts = name.split(/[\s-_]+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}

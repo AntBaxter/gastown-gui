@@ -159,12 +159,11 @@ async function runTests() {
           info('No issue tree (may have no issues)');
         }
 
-        // Check for worker panel
-        const hasWorkerPanel = await page.evaluate(() => {
-          return document.querySelector('.worker-panel, .worker-item') !== null ||
-                 document.querySelector('.convoy-detail') !== null;
+        // Check for detail section
+        const hasDetailSection = await page.evaluate(() => {
+          return document.querySelector('.convoy-detail') !== null;
         });
-        if (hasWorkerPanel) {
+        if (hasDetailSection) {
           success('Detail section rendered');
           passed++;
         }

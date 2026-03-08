@@ -1586,18 +1586,6 @@ select {
   padding: var(--space-md) 0;
 }
 
-.convoy-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg);
-  margin-bottom: var(--space-md);
-}
-
-@media (max-width: 768px) {
-  .convoy-detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 .convoy-detail-section {
   min-width: 0;
@@ -1682,93 +1670,6 @@ select {
 }
 
 /* === Worker Panel === */
-.worker-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.worker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.worker-item:hover {
-  background: var(--bg-hover);
-}
-
-.worker-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
-.worker-avatar {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  background: var(--accent-primary);
-  color: var(--text-inverse);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.worker-details {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.worker-name {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.worker-status {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-transform: capitalize;
-}
-
-.worker-item.status-working .worker-avatar {
-  background: var(--status-working);
-  animation: pulse 1.5s infinite;
-}
-
-.worker-item.status-idle .worker-avatar {
-  background: var(--status-idle);
-}
-
-.worker-item.status-done .worker-avatar {
-  background: var(--status-done);
-}
-
-.worker-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.worker-task {
-  color: var(--text-muted);
-}
-
-.worker-task .material-icons {
-  font-size: 16px;
-}
 
 .btn-sm {
   padding: 2px;
