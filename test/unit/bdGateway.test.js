@@ -150,4 +150,31 @@ describe('BDGateway', () => {
     await gateway.reassign({ beadId: 'bd-4', target: 'mayor' });
     expect(runner.calls[0].args).toEqual(['update', 'bd-4', '--assignee', 'mayor']);
   });
+
+  it('list() propagates runner failure with ok=false', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: false, exitCode: 1, stdout: '', stderr: 'bd: database locked', error: 'exit code 1', signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.list({ status: 'open' });
+    expect(result.ok).toBe(false);
+  });
+
+  it('list() handles invalid JSON in stdout', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'not json', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.list({});
+    expect(result.data).toBeNull();
+  });
+
+  it('create() propagates runner failure', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: false, exitCode: 1, stdout: '', stderr: 'creation failed', error: 'exit code 1', signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.create({ title: 'Test' });
+    expect(result.ok).toBe(false);
+  });
 });

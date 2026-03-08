@@ -100,4 +100,31 @@ describe('GTGateway', () => {
     expect(runner.calls[0].args).toEqual(['escalate', 'Convoy abc needs attention', '-s', 'HIGH', '-r', 'Blocked']);
     expect(result.raw).toBe('sent');
   });
+
+  it('status() propagates runner failure with ok=false', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: false, exitCode: 1, stdout: '', stderr: 'gt: command failed', error: 'exit code 1', signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.status();
+    expect(result.ok).toBe(false);
+  });
+
+  it('status() handles invalid JSON in stdout', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'not json', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.status();
+    expect(result.data).toBeNull();
+  });
+
+  it('listConvoys() handles invalid JSON in stdout', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'broken', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.listConvoys({});
+    expect(result.data).toBeNull();
+  });
 });

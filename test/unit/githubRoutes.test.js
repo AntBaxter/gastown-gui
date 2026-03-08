@@ -73,3 +73,51 @@ describe('GitHub routes (real Express app)', () => {
   });
 });
 
+describe('GitHub routes error handling', () => {
+  let server;
+  let baseUrl;
+
+  beforeAll(async () => {
+    const gitHubService = {
+      listPullRequests: async () => { throw new Error('gh not installed'); },
+      viewPullRequest: async () => { throw new Error('gh not installed'); },
+      listIssues: async () => { throw new Error('gh not installed'); },
+      viewIssue: async () => { throw new Error('gh not installed'); },
+      listRepos: async () => { throw new Error('gh not installed'); },
+    };
+
+    const app = createApp({ allowedOrigins: ['*'] });
+    registerGitHubRoutes(app, { gitHubService });
+
+    server = createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('GET /api/github/prs returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/github/prs`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'gh not installed');
+  });
+
+  it('GET /api/github/pr/:repo/:number returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/github/pr/acme%2Fone/123`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'gh not installed');
+  });
+
+  it('GET /api/github/repos returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/github/repos`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'gh not installed');
+  });
+});
+

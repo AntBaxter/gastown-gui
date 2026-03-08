@@ -100,3 +100,85 @@ describe('Work routes (real Express app)', () => {
   });
 });
 
+describe('Work routes error handling', () => {
+  let server;
+  let baseUrl;
+
+  beforeAll(async () => {
+    const workService = {
+      sling: async () => { throw new Error('Gateway unavailable'); },
+      escalate: async () => { throw new Error('Gateway unavailable'); },
+      markDone: async () => ({ ok: false, error: 'Bead not found' }),
+      park: async () => ({ ok: false, error: 'Bead not found' }),
+      release: async () => ({ ok: false, error: 'Bead not found' }),
+      reassign: async () => ({ ok: false, error: 'Bead not found' }),
+    };
+
+    const app = createApp({ allowedOrigins: ['*'] });
+    registerWorkRoutes(app, { workService });
+
+    server = createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('POST /api/sling returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/sling`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bead: 'bead-1', target: 'mayor' }),
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'Gateway unavailable');
+  });
+
+  it('POST /api/escalate returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/escalate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ convoy_id: 'c-1', reason: 'blocked', priority: 'high' }),
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'Gateway unavailable');
+  });
+
+  it('POST /api/work/:beadId/done returns 500 when service returns not ok', async () => {
+    const res = await fetch(`${baseUrl}/api/work/bead-1/done`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ summary: 'done' }),
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ success: false, error: 'Bead not found' });
+  });
+
+  it('POST /api/work/:beadId/park returns 500 when service returns not ok', async () => {
+    const res = await fetch(`${baseUrl}/api/work/bead-1/park`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'blocked' }),
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ success: false, error: 'Bead not found' });
+  });
+
+  it('POST /api/work/:beadId/release returns 500 when service returns not ok', async () => {
+    const res = await fetch(`${baseUrl}/api/work/bead-1/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ success: false, error: 'Bead not found' });
+  });
+});
+

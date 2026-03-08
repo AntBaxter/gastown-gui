@@ -50,3 +50,33 @@ describe('Status routes (real Express app)', () => {
   });
 });
 
+describe('Status routes error handling', () => {
+  let server;
+  let baseUrl;
+
+  beforeAll(async () => {
+    const statusService = {
+      getStatus: async () => { throw new Error('gt not found'); },
+    };
+
+    const app = createApp({ allowedOrigins: ['*'] });
+    registerStatusRoutes(app, { statusService });
+
+    server = createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('GET /api/status returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/status`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'gt not found');
+  });
+});
+

@@ -112,6 +112,9 @@ app.get('/api/convoy/:id', (req, res) => {
 
 app.post('/api/convoy', (req, res) => {
   const { name, issues, notify } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Missing required field: name' });
+  }
   const newConvoy = {
     id: `convoy-${Date.now()}`,
     name,

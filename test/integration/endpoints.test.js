@@ -86,12 +86,11 @@ describe('API Endpoint Tests', () => {
     it('should include convoy details', async () => {
       const { data } = await api('/api/convoys');
 
-      if (data.length > 0) {
-        const convoy = data[0];
-        expect(convoy).toHaveProperty('id');
-        expect(convoy).toHaveProperty('name');
-        expect(convoy).toHaveProperty('status');
-      }
+      expect(data.length).toBeGreaterThan(0);
+      const convoy = data[0];
+      expect(convoy).toHaveProperty('id');
+      expect(convoy).toHaveProperty('name');
+      expect(convoy).toHaveProperty('status');
     });
   });
 
@@ -99,22 +98,20 @@ describe('API Endpoint Tests', () => {
     it('should return specific convoy by id', async () => {
       // First get list to find a valid ID
       const { data: convoys } = await api('/api/convoys');
+      expect(convoys.length).toBeGreaterThan(0);
 
-      if (convoys.length > 0) {
-        const convoyId = convoys[0].id;
-        const { status, data, ok } = await api(`/api/convoy/${convoyId}`);
+      const convoyId = convoys[0].id;
+      const { status, data, ok } = await api(`/api/convoy/${convoyId}`);
 
-        expect(ok).toBe(true);
-        expect(status).toBe(200);
-        expect(data).toHaveProperty('id', convoyId);
-      }
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
+      expect(data).toHaveProperty('id', convoyId);
     });
 
     it('should return 404 for non-existent convoy', async () => {
-      const { status, ok } = await api('/api/convoy/non-existent-id-12345');
+      const { status } = await api('/api/convoy/non-existent-id-12345');
 
-      // Mock server may return 200 with null, or 404
-      expect([200, 404]).toContain(status);
+      expect(status).toBe(404);
     });
   });
 
@@ -130,25 +127,21 @@ describe('API Endpoint Tests', () => {
     it('should include mail message details', async () => {
       const { data } = await api('/api/mail');
 
-      if (data.length > 0) {
-        const mail = data[0];
-        expect(mail).toHaveProperty('id');
-        expect(mail).toHaveProperty('from');
-        expect(mail).toHaveProperty('subject');
-      }
+      expect(data.length).toBeGreaterThan(0);
+      const mail = data[0];
+      expect(mail).toHaveProperty('id');
+      expect(mail).toHaveProperty('from');
+      expect(mail).toHaveProperty('subject');
     });
   });
 
   describe('GET /api/rigs', () => {
-    it('should return array of rigs or 404 if not mocked', async () => {
-      const { status, data } = await api('/api/rigs');
+    it('should return array of rigs', async () => {
+      const { status, data, ok } = await api('/api/rigs');
 
-      // Mock server may not implement this endpoint
-      if (status === 200) {
-        expect(Array.isArray(data)).toBe(true);
-      } else {
-        expect(status).toBe(404);
-      }
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
+      expect(Array.isArray(data)).toBe(true);
     });
   });
 
@@ -168,24 +161,20 @@ describe('API Endpoint Tests', () => {
       const { data } = await api('/api/agents');
       const allAgents = [...data.agents, ...data.rigAgents];
 
-      if (allAgents.length > 0) {
-        const agent = allAgents[0];
-        expect(agent).toHaveProperty('name');
-        expect(agent).toHaveProperty('role');
-      }
+      expect(allAgents.length).toBeGreaterThan(0);
+      const agent = allAgents[0];
+      expect(agent).toHaveProperty('name');
+      expect(agent).toHaveProperty('role');
     });
   });
 
   describe('GET /api/beads', () => {
-    it('should return array of beads/work items or 404 if not mocked', async () => {
-      const { status, data } = await api('/api/beads');
+    it('should return array of beads/work items', async () => {
+      const { status, data, ok } = await api('/api/beads');
 
-      // Mock server may not implement this endpoint
-      if (status === 200) {
-        expect(Array.isArray(data)).toBe(true);
-      } else {
-        expect(status).toBe(404);
-      }
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
+      expect(Array.isArray(data)).toBe(true);
     });
   });
 
@@ -199,8 +188,8 @@ describe('API Endpoint Tests', () => {
         }),
       });
 
-      // May succeed (201) or fail if mock doesn't support POST
-      expect([200, 201, 400, 500]).toContain(status);
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
     });
 
     it('should handle missing required fields', async () => {
@@ -209,14 +198,13 @@ describe('API Endpoint Tests', () => {
         body: JSON.stringify({}),
       });
 
-      // Should either reject with 400 or handle gracefully
-      expect([200, 201, 400, 500]).toContain(status);
+      expect(status).toBe(400);
     });
   });
 
   describe('POST /api/nudge', () => {
     it('should send a nudge message', async () => {
-      const { status } = await api('/api/nudge', {
+      const { status, ok } = await api('/api/nudge', {
         method: 'POST',
         body: JSON.stringify({
           target: 'agent-1',
@@ -224,25 +212,26 @@ describe('API Endpoint Tests', () => {
         }),
       });
 
-      expect([200, 201, 400, 500]).toContain(status);
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
     });
   });
 
   describe('GET /api/doctor', () => {
-    it('should return diagnostic information or 404 if not mocked', async () => {
-      const { status } = await api('/api/doctor');
+    it('should return diagnostic information', async () => {
+      const { status, ok } = await api('/api/doctor');
 
-      // Mock server may not implement this endpoint
-      expect([200, 404]).toContain(status);
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
     });
   });
 
   describe('GET /api/setup/status', () => {
-    it('should return setup status or 404 if not mocked', async () => {
-      const { status } = await api('/api/setup/status');
+    it('should return setup status', async () => {
+      const { status, ok } = await api('/api/setup/status');
 
-      // Mock server may not implement this endpoint
-      expect([200, 404]).toContain(status);
+      expect(ok).toBe(true);
+      expect(status).toBe(200);
     });
   });
 
@@ -336,12 +325,11 @@ describe('GET /api/targets', () => {
   it('should include target details', async () => {
     const { data } = await api('/api/targets');
 
-    if (data.length > 0) {
-      const target = data[0];
-      expect(target).toHaveProperty('id');
-      expect(target).toHaveProperty('name');
-      expect(target).toHaveProperty('type');
-    }
+    expect(data.length).toBeGreaterThan(0);
+    const target = data[0];
+    expect(target).toHaveProperty('id');
+    expect(target).toHaveProperty('name');
+    expect(target).toHaveProperty('type');
   });
 });
 
@@ -374,11 +362,10 @@ describe('GET /api/github/repos', () => {
   it('should include repo details', async () => {
     const { data } = await api('/api/github/repos');
 
-    if (data.length > 0) {
-      const repo = data[0];
-      expect(repo).toHaveProperty('name');
-      expect(repo).toHaveProperty('url');
-    }
+    expect(data.length).toBeGreaterThan(0);
+    const repo = data[0];
+    expect(repo).toHaveProperty('name');
+    expect(repo).toHaveProperty('url');
   });
 });
 
@@ -401,7 +388,7 @@ describe('Rig Management', () => {
     });
 
     expect(ok).toBe(true);
-    expect([200, 201]).toContain(status);
+    expect(status).toBe(201);
     expect(data).toHaveProperty('success', true);
   });
 
@@ -556,12 +543,11 @@ describe('Mayor Management', () => {
   it('should include message details', async () => {
     const { data } = await api('/api/mayor/messages');
 
-    if (data.length > 0) {
-      const message = data[0];
-      expect(message).toHaveProperty('id');
-      expect(message).toHaveProperty('type');
-      expect(message).toHaveProperty('content');
-    }
+    expect(data.length).toBeGreaterThan(0);
+    const message = data[0];
+    expect(message).toHaveProperty('id');
+    expect(message).toHaveProperty('type');
+    expect(message).toHaveProperty('content');
   });
 });
 

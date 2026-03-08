@@ -83,7 +83,7 @@ describe('Comprehensive Integration Tests', () => {
   describe('API Endpoints Integration', () => {
     it('should fetch and display convoys', async () => {
       // Navigate to convoys view
-      await page.click('[data-view="convoys"], .tab[data-view="convoys"], button:has-text("Convoys")').catch(() => {});
+      await page.click('[data-view="convoys"]');
       await sleep(500);
 
       // Check if convoys are rendered
@@ -99,7 +99,7 @@ describe('Comprehensive Integration Tests', () => {
 
     it('should fetch agents from API', async () => {
       // Navigate to agents view
-      await page.click('[data-view="agents"], .tab[data-view="agents"]').catch(() => {});
+      await page.click('[data-view="agents"]');
       await sleep(500);
 
       // Check if agents section exists
@@ -240,11 +240,11 @@ describe('Comprehensive Integration Tests', () => {
   describe('Convoy Management', () => {
     it('should expand convoy card when clicking expand button', async () => {
       // Navigate to convoys
-      await page.click('[data-view="convoys"]').catch(() => {});
-      await sleep(500);
+      await page.click('[data-view="convoys"]');
+      await page.waitForSelector('.convoy-card', { timeout: 5000 });
 
       // Click expand button
-      await page.click('.convoy-expand-btn, .convoy-card button[title*="Expand"]').catch(() => {});
+      await page.click('.convoy-expand-btn');
       await sleep(500);
 
       // Check if detail section appeared
@@ -257,30 +257,14 @@ describe('Comprehensive Integration Tests', () => {
 
     it('should show issue tree in expanded convoy', async () => {
       // Navigate and expand convoy
-      await page.click('[data-view="convoys"]').catch(() => {});
-      await sleep(500);
+      await page.click('[data-view="convoys"]');
+      await page.waitForSelector('.convoy-card', { timeout: 5000 });
 
-      // Wait for convoy cards to load
-      await page.waitForSelector('.convoy-card', { timeout: 5000 }).catch(() => {});
-
-      // Try to expand convoy
-      const expanded = await page.evaluate(async () => {
-        const btn = document.querySelector('.convoy-expand-btn');
-        if (btn) {
-          btn.click();
-          return true;
-        }
-        return false;
-      });
-
-      if (!expanded) {
-        // Skip if no convoy to expand
-        return;
-      }
-
+      // Expand convoy
+      await page.click('.convoy-expand-btn');
       await sleep(1000);
 
-      // Check for issue tree (more lenient - check for any convoy detail content)
+      // Check for issue tree (convoy detail content)
       const hasIssueTree = await page.evaluate(() => {
         const tree = document.querySelector('.issue-tree, .convoy-detail, .issue-item, .convoy-card.expanded');
         return tree !== null;
@@ -292,7 +276,7 @@ describe('Comprehensive Integration Tests', () => {
   describe('Mail System', () => {
     it('should display mail list', async () => {
       // Navigate to mail view
-      await page.click('[data-view="mail"], .tab[data-view="mail"]').catch(() => {});
+      await page.click('[data-view="mail"]');
       await sleep(500);
 
       // Check for mail list
@@ -305,9 +289,9 @@ describe('Comprehensive Integration Tests', () => {
 
     it('should open compose modal', async () => {
       // Navigate to mail and click compose
-      await page.click('[data-view="mail"]').catch(() => {});
+      await page.click('[data-view="mail"]');
       await sleep(300);
-      await page.click('#compose-btn, [data-modal-open="mail-compose"], button:has-text("Compose")').catch(() => {});
+      await page.click('#compose-btn');
       await sleep(300);
 
       // Check compose modal
@@ -332,7 +316,7 @@ describe('Comprehensive Integration Tests', () => {
       });
 
       // Click theme toggle
-      await page.click('#theme-toggle, button[title*="Theme"], .theme-toggle').catch(() => {});
+      await page.click('#theme-toggle');
       await sleep(200);
 
       // Get new theme
@@ -343,7 +327,7 @@ describe('Comprehensive Integration Tests', () => {
       });
 
       // Theme should have changed
-      expect(newTheme !== initialTheme || newTheme === 'light').toBe(true);
+      expect(newTheme).not.toBe(initialTheme);
     });
 
     it('should respond to keyboard shortcuts', async () => {
@@ -373,7 +357,7 @@ describe('Comprehensive Integration Tests', () => {
 
   describe('New Convoy Creation', () => {
     it('should open new convoy modal', async () => {
-      await page.click('#new-convoy-btn, [data-modal-open="new-convoy"], button:has-text("New Convoy")').catch(() => {});
+      await page.click('#new-convoy-btn');
       await sleep(300);
 
       const modalVisible = await page.evaluate(() => {
@@ -385,11 +369,11 @@ describe('Comprehensive Integration Tests', () => {
 
     it('should validate required fields on convoy creation', async () => {
       // Open modal
-      await page.click('#new-convoy-btn, [data-modal-open="new-convoy"]').catch(() => {});
+      await page.click('#new-convoy-btn');
       await sleep(200);
 
       // Try to submit empty form
-      await page.click('#new-convoy-modal button[type="submit"], .modal button[type="submit"]').catch(() => {});
+      await page.click('#new-convoy-modal button[type="submit"]');
       await sleep(300);
 
       // Check for validation (either native or toast)

@@ -71,3 +71,53 @@ describe('Convoy routes (real Express app)', () => {
   });
 });
 
+describe('Convoy routes error handling', () => {
+  let server;
+  let baseUrl;
+
+  beforeAll(async () => {
+    const convoyService = {
+      list: async () => { throw new Error('CLI not available'); },
+      get: async () => { throw new Error('CLI not available'); },
+      create: async () => { throw new Error('CLI not available'); },
+    };
+
+    const app = createApp({ allowedOrigins: ['*'] });
+    registerConvoyRoutes(app, { convoyService });
+
+    server = createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('GET /api/convoys returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/convoys`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'CLI not available');
+  });
+
+  it('GET /api/convoy/:id returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/convoy/convoy-1`);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'CLI not available');
+  });
+
+  it('POST /api/convoy returns 500 when service throws', async () => {
+    const res = await fetch(`${baseUrl}/api/convoy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Test', issues: ['one'] }),
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toHaveProperty('error', 'CLI not available');
+  });
+});
+

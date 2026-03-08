@@ -158,18 +158,18 @@ describe('Gas Town GUI E2E Tests', () => {
       const refineryItem = serviceData.find(s => s.service === 'refinery');
 
       // Witness is running in mock data, so it should have stop/restart buttons with rig
-      if (witnessItem && witnessItem.buttons.length > 0) {
-        witnessItem.buttons.forEach(btn => {
-          expect(btn.rig).toBe('my-rig');
-        });
-      }
+      expect(witnessItem).toBeDefined();
+      expect(witnessItem.buttons.length).toBeGreaterThan(0);
+      witnessItem.buttons.forEach(btn => {
+        expect(btn.rig).toBe('my-rig');
+      });
 
       // Refinery is stopped in mock data, so it should have start button with rig
-      if (refineryItem && refineryItem.buttons.length > 0) {
-        refineryItem.buttons.forEach(btn => {
-          expect(btn.rig).toBe('my-rig');
-        });
-      }
+      expect(refineryItem).toBeDefined();
+      expect(refineryItem.buttons.length).toBeGreaterThan(0);
+      refineryItem.buttons.forEach(btn => {
+        expect(btn.rig).toBe('my-rig');
+      });
     });
 
     it('should pass rig param when clicking service start button', async () => {
@@ -209,49 +209,42 @@ describe('Gas Town GUI E2E Tests', () => {
       });
 
       // Verify the request was made with rig in the body
-      if (!requestCapture.error) {
-        expect(requestCapture.method).toBe('POST');
-        expect(requestCapture.body).toHaveProperty('rig', 'my-rig');
-        expect(requestCapture.status).toBe(200);
-      }
+      expect(requestCapture.error).toBeUndefined();
+      expect(requestCapture.method).toBe('POST');
+      expect(requestCapture.body).toHaveProperty('rig', 'my-rig');
+      expect(requestCapture.status).toBe(200);
     });
 
     it('should expand and collapse tree nodes', async () => {
       await navigateToApp(page);
+      await waitForConnection(page);
+      await sleep(1000);
 
-      // Find expandable node if any
+      // Find expandable node — mock data should provide one
       const expandableNode = await page.$('.tree-node.expandable');
-      if (expandableNode) {
-        // Check initial state
-        const initialExpanded = await expandableNode.evaluate(el => el.classList.contains('expanded'));
+      expect(expandableNode).not.toBeNull();
 
-        // Click the toggle icon within the node (not the node itself)
-        const toggleIcon = await page.$('.tree-node.expandable .tree-toggle');
-        if (toggleIcon) {
-          await toggleIcon.click();
-          await sleep(300); // Wait for animation
+      // Check initial state
+      const initialExpanded = await expandableNode.evaluate(el => el.classList.contains('expanded'));
 
-          // Check if class changed
-          const afterFirstClick = await expandableNode.evaluate(el => el.classList.contains('expanded'));
+      // Click the toggle icon within the node
+      const toggleIcon = await page.$('.tree-node.expandable .tree-toggle');
+      expect(toggleIcon).not.toBeNull();
 
-          // Second click to toggle back
-          await toggleIcon.click();
-          await sleep(300); // Wait for animation
+      await toggleIcon.click();
+      await sleep(300);
 
-          const afterSecondClick = await expandableNode.evaluate(el => el.classList.contains('expanded'));
+      const afterFirstClick = await expandableNode.evaluate(el => el.classList.contains('expanded'));
 
-          // At least one of the clicks should have toggled the state
-          const toggledOnce = (initialExpanded !== afterFirstClick) || (afterFirstClick !== afterSecondClick);
-          expect(toggledOnce).toBe(true);
-        } else {
-          // Expandable node exists but no toggle icon - maybe it has no children in mock data
-          // Test passes - structure exists even if not interactive
-          expect(true).toBe(true);
-        }
-      } else {
-        // No expandable nodes - test passes (tree might be empty in mock data)
-        expect(true).toBe(true);
-      }
+      // Second click to toggle back
+      await toggleIcon.click();
+      await sleep(300);
+
+      const afterSecondClick = await expandableNode.evaluate(el => el.classList.contains('expanded'));
+
+      // At least one of the clicks should have toggled the state
+      const toggledOnce = (initialExpanded !== afterFirstClick) || (afterFirstClick !== afterSecondClick);
+      expect(toggledOnce).toBe(true);
     });
   });
 
@@ -320,8 +313,9 @@ describe('Gas Town GUI E2E Tests', () => {
         }));
       });
 
-      // The handler should trigger refresh
-      // This test verifies the keyboard handler is attached
+      // The handler should trigger refresh and show a toast
+      const toastMessage = await waitForToast(page, 'info');
+      expect(toastMessage).toContain('Refresh');
     });
   });
 
