@@ -161,6 +161,14 @@ export function renderMailList(container, mail, options = {}) {
       }
     });
   });
+
+  container.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const mailId = btn.dataset.mailId;
+      await handleDeleteMail(mailId, btn);
+    });
+  });
 }
 
 /**
@@ -179,6 +187,31 @@ async function handleToggleRead(mailId, markAsRead, btn) {
     if (result.success) {
       showToast(`Mail marked as ${markAsRead ? 'read' : 'unread'}`, 'success');
       // Trigger mail refresh
+      document.dispatchEvent(new CustomEvent(MAIL_REFRESH));
+    } else {
+      showToast(`Failed: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  } finally {
+    btn.innerHTML = originalIcon;
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Handle delete mail
+ */
+async function handleDeleteMail(mailId, btn) {
+  const originalIcon = btn.innerHTML;
+  btn.innerHTML = '<span class="material-icons spinning">sync</span>';
+  btn.disabled = true;
+
+  try {
+    const result = await api.deleteMail(mailId);
+
+    if (result.success) {
+      showToast('Mail deleted', 'success');
       document.dispatchEvent(new CustomEvent(MAIL_REFRESH));
     } else {
       showToast(`Failed: ${result.error}`, 'error');

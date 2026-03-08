@@ -107,6 +107,12 @@ export class GTGateway {
     return { ...result, raw };
   }
 
+  async mailDelete(id) {
+    const result = await this.exec(['mail', 'delete', id], { timeoutMs: 30000 });
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw };
+  }
+
   async nudge(target, message) {
     const result = await this.exec(['nudge', target, message], { timeoutMs: 10000 });
     const raw = (result.stdout || '').trim();
