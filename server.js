@@ -746,9 +746,10 @@ app.get('/api/bead/:beadId/links', async (req, res) => {
 
     console.log(`[Links] Found rigs: ${rigNames.join(', ')}`);
 
-    // Get repo URL for each rig by checking git remote
-    for (const rigName of rigNames) {
+    // Parallelize per-rig lookups (git remote + gh pr list) to avoid N+1 sequential subprocess calls
+    const rigResults = await Promise.all(rigNames.map(async (rigName) => {
       const rigPath = path.join(GT_ROOT, rigName, 'mayor', 'rig');
+      const rigPrs = [];
 
       try {
         const { stdout } = await execFileAsync('git', ['-C', rigPath, 'remote', 'get-url', 'origin'], { timeout: 5000 });
@@ -756,7 +757,7 @@ app.get('/api/bead/:beadId/links', async (req, res) => {
 
         // Extract owner/repo from GitHub URL
         const repoMatch = repoUrl.match(/github\.com[/:]([^/]+\/[^/.\s]+)/);
-        if (!repoMatch) continue;
+        if (!repoMatch) return rigPrs;
         const repo = repoMatch[1].replace(/\.git$/, '');
 
         // Search for PRs (title, body, branch containing bead ID, or polecat PRs near close time)
@@ -786,7 +787,7 @@ app.get('/api/bead/:beadId/links', async (req, res) => {
             }
 
             if (isRelated) {
-              links.prs.push({
+              rigPrs.push({
                 repo,
                 number: pr.number,
                 title: pr.title,
@@ -803,6 +804,13 @@ app.get('/api/bead/:beadId/links', async (req, res) => {
         // Skip rigs without git repos
         console.log(`[Links] Could not get repo for ${rigName}: ${gitErr.message}`);
       }
+
+      return rigPrs;
+    }));
+
+    // Flatten results from all rigs into the links object
+    for (const rigPrs of rigResults) {
+      links.prs.push(...rigPrs);
     }
 
     res.json(links);
