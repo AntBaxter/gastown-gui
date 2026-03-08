@@ -349,7 +349,9 @@ function showAgentQuickActions(nodeEl, agentId) {
 
   const rect = nodeEl.getBoundingClientRect();
   const agentName = nodeEl.querySelector('.tree-label')?.textContent || agentId;
-  const agentStatus = nodeEl.querySelector('.tree-icon')?.classList.contains('status-working') ? 'working' : 'idle';
+  const statusEl = nodeEl.querySelector('.tree-icon');
+  const agentStatus = ['running', 'working', 'waiting', 'error', 'complete', 'stopped']
+    .find(s => statusEl?.classList.contains(`status-${s}`)) || 'idle';
   const currentTask = nodeEl.querySelector('.tree-task')?.textContent || 'No active task';
 
   const popover = document.createElement('div');
