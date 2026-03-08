@@ -1605,16 +1605,10 @@ app.get('/api/service/:name/status', async (req, res) => {
 
 // ============= Formula Management =============
 
-const formulaCache = {
-  get: (key) => getCached(key),
-  set: (key, value, ttlMs) => setCache(key, value, ttlMs),
-  delete: (key) => cache.delete(key),
-};
-
 const formulaService = new FormulaService({
   gtGateway,
   bdGateway,
-  cache: formulaCache,
+  cache: backendCache,
   emit: (type, data) => broadcast({ type, data }),
 });
 
