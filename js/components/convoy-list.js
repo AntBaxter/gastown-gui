@@ -5,7 +5,7 @@
  * Phase 3: Added expandable detail view, issue tree, worker panel.
  */
 
-import { escapeHtml, escapeAttr, truncate } from '../utils/html.js';
+import { escapeHtml, escapeAttr } from '../utils/html.js';
 import { formatTimeAgoOrDate } from '../utils/formatting.js';
 import { TIMING_MS } from '../shared/timing.js';
 import { AGENT_NUDGE, BEAD_DETAIL, CONVOY_DETAIL, CONVOY_ESCALATE, SLING_OPEN } from '../shared/events.js';
@@ -128,17 +128,6 @@ function setupConvoyEventListeners(container) {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const issueId = item.dataset.issueId;
-      if (issueId) {
-        showIssueDetail(issueId);
-      }
-    });
-  });
-
-  // Issue chip clicks (collapsed chip view)
-  container.querySelectorAll('.issue-chip[data-issue-id]').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const issueId = chip.dataset.issueId;
       if (issueId) {
         showIssueDetail(issueId);
       }
@@ -268,8 +257,6 @@ function renderConvoyCard(convoy, index) {
         </div>
       </div>
 
-      ${convoy.issues?.length ? renderIssueChips(convoy.issues) : ''}
-
       <div class="convoy-progress">
         <div class="progress-bar">
           <div class="progress-fill animate-progress" style="width: ${progress}%"></div>
@@ -365,34 +352,6 @@ function renderProgressBreakdown(convoy) {
         <span class="legend-item in-progress"><span class="legend-dot"></span> In Progress (${inProgress})</span>
         <span class="legend-item pending"><span class="legend-dot"></span> Pending (${pending})</span>
       </div>
-    </div>
-  `;
-}
-
-/**
- * Render issue chips (collapsed view)
- */
-function renderIssueChips(issues) {
-  const maxVisible = 3;
-  const visible = issues.slice(0, maxVisible);
-  const remaining = issues.length - maxVisible;
-
-  return `
-    <div class="convoy-issues">
-      ${visible.map(issue => {
-        const issueObj = typeof issue === 'string' ? { title: issue } : issue;
-        const status = issueObj.status || 'open';
-        return `
-          <div class="issue-chip status-${status}" title="${escapeHtml(issueObj.title || issueObj)}"
-               ${issueObj.id ? `data-issue-id="${escapeAttr(issueObj.id)}"` : ''}>
-            <span class="material-icons">${ISSUE_STATUS_ICONS[status] || 'assignment'}</span>
-            ${escapeHtml(truncate(issueObj.title || issueObj, 20))}
-          </div>
-        `;
-      }).join('')}
-      ${remaining > 0 ? `
-        <div class="issue-chip more">+${remaining} more</div>
-      ` : ''}
     </div>
   `;
 }

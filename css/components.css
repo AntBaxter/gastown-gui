@@ -1745,25 +1745,6 @@ select {
   border: 1px solid var(--border-default);
 }
 
-/* === Issue Chips (with status) === */
-.issue-chip.status-open {
-  border-left: 2px solid var(--text-muted);
-}
-
-.issue-chip.status-in-progress {
-  border-left: 2px solid var(--status-working);
-}
-
-.issue-chip.status-done {
-  border-left: 2px solid var(--status-done);
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.issue-chip.status-blocked {
-  border-left: 2px solid var(--status-stuck);
-}
-
 /* === Animated Progress Fill === */
 .animate-progress {
   animation: progress-fill 0.5s ease-out;
@@ -1835,43 +1816,6 @@ select {
 
 .convoy-stats .material-icons {
   font-size: 14px;
-}
-
-/* === Convoy Issues (chips) === */
-.convoy-issues {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  padding: 0 var(--space-md) var(--space-sm);
-}
-
-.issue-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xxs);
-  padding: var(--space-xxs) var(--space-sm);
-  font-size: var(--text-xs);
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-}
-
-.issue-chip[data-issue-id] {
-  cursor: pointer;
-}
-
-.issue-chip[data-issue-id]:hover {
-  background: var(--bg-hover);
-}
-
-.issue-chip .material-icons {
-  font-size: 12px;
-}
-
-.issue-chip.more {
-  background: var(--bg-hover);
-  color: var(--text-muted);
-  cursor: pointer;
 }
 
 /* === Convoy Progress Bar === */
