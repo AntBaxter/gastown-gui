@@ -150,7 +150,7 @@ export class GTGateway {
   }
 
   async crewList() {
-    const result = await this.exec(['crew', 'list', '--json'], { timeoutMs: 30000 });
+    const result = await this.exec(['crew', 'list', '--all', '--json'], { timeoutMs: 30000 });
     const raw = (result.stdout || '').trim();
     return { ...result, raw, data: parseJsonOrNull(raw) };
   }
