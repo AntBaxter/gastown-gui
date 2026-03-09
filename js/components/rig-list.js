@@ -4,7 +4,7 @@
  * Renders the list of rigs (git projects) with their agents and status.
  */
 
-import { AGENT_TYPES, STATUS_ICONS, STATUS_COLORS, getAgentConfig } from '../shared/agent-types.js';
+import { AGENT_TYPES, STATUS_ICONS, STATUS_COLORS, getAgentConfig, getDisplayStatus } from '../shared/agent-types.js';
 import { api } from '../api.js';
 import { showToast } from './toast.js';
 import { AGENT_PEEK, RIGS_REFRESH, STATUS_REFRESH } from '../shared/events.js';
@@ -217,9 +217,9 @@ function renderRigCard(rig, index) {
  */
 function renderRigAgent(agent, rigName) {
   const config = getAgentConfig(agent.address, agent.role);
-  const status = agent.running ? 'running' : 'stopped';
-  const statusColor = STATUS_COLORS[status];
-  const statusIcon = STATUS_ICONS[status];
+  const status = getDisplayStatus(agent);
+  const statusColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
+  const statusIcon = STATUS_ICONS[status] || STATUS_ICONS.idle;
 
   return `
     <div class="rig-agent" data-agent-id="${agent.address}" data-rig="${rigName}" data-name="${agent.name}">
@@ -229,7 +229,6 @@ function renderRigAgent(agent, rigName) {
       <span class="agent-status">
         <span class="material-icons" style="color: ${statusColor}">${statusIcon}</span>
       </span>
-      ${agent.has_work ? '<span class="agent-work-badge" title="Has work hooked">⚡</span>' : ''}
       <div class="agent-controls">
         ${agent.running ? `
           <button class="btn btn-icon btn-xs btn-danger-ghost" data-action="stop" data-rig="${rigName}" data-name="${agent.name}" title="Stop agent">

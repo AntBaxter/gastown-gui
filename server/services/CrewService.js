@@ -29,9 +29,11 @@ export class CrewService {
       return result.data;
     }
 
-    // Parse non-JSON output
+    // Parse non-JSON output — skip status/info lines like "No crews found"
     const crews = [];
     for (const line of result.raw.split('\n').filter(Boolean)) {
+      // Skip lines that look like status messages rather than crew entries
+      if (/^(No |no |Error|error|Warning|warning|Usage|usage)/.test(line)) continue;
       const match = line.match(/^(\S+)\s+/);
       if (match) crews.push({ name: match[1] });
     }
