@@ -383,12 +383,15 @@ function formatMessage(event) {
   switch (event.type) {
     case 'work_slung': {
       // Service-emitted events have explicit bead and target fields.
-      // Feed-stream events have target (the entity/bead) and action (descriptive text).
-      const beadId = event.bead || event.target || 'work';
+      // Feed-stream events: target is the actor, action is "slung <bead> to <dest>".
+      let beadId = event.bead || 'work';
       let slingTarget = event.bead ? event.target : null;
-      if (!slingTarget && event.action) {
-        const m = event.action.match(/(?:to|→)\s+(\S+)/);
-        if (m) slingTarget = m[1];
+      if (!event.bead && event.action) {
+        const m = event.action.match(/^slung\s+(\S+)\s+(?:to|→)\s+(\S+)/);
+        if (m) {
+          beadId = m[1];
+          slingTarget = m[2];
+        }
       }
       return `Slung <strong>${escapeHtml(beadId)}</strong> to ${formatAgentBadge(slingTarget)}`;
     }
