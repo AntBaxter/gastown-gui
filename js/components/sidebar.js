@@ -4,7 +4,7 @@
  * Renders the agent tree and quick status in the sidebar.
  */
 
-import { AGENT_TYPES, STATUS_ICONS, getAgentType, getAgentConfig, formatAgentName } from '../shared/agent-types.js';
+import { AGENT_TYPES, STATUS_ICONS, getAgentType, getAgentConfig, formatAgentName, getDisplayStatus } from '../shared/agent-types.js';
 import { api } from '../api.js';
 import { showToast } from './toast.js';
 import { escapeHtml, escapeAttr, truncate, capitalize } from '../utils/html.js';
@@ -150,7 +150,7 @@ function renderAgentTree(agentsByRole) {
  * Render a single agent node
  */
 function renderAgentNode(agent) {
-  const status = agent.running ? 'running' : (agent.status || 'idle');
+  const status = getDisplayStatus(agent);
   const statusIcon = STATUS_ICONS[status] || 'help';
   const config = getAgentConfig(agent.address || agent.id, agent.role);
 
@@ -350,7 +350,7 @@ function showAgentQuickActions(nodeEl, agentId) {
   const rect = nodeEl.getBoundingClientRect();
   const agentName = nodeEl.querySelector('.tree-label')?.textContent || agentId;
   const statusEl = nodeEl.querySelector('.tree-icon');
-  const agentStatus = ['running', 'working', 'waiting', 'error', 'complete', 'stopped']
+  const agentStatus = ['has_work', 'running', 'working', 'waiting', 'error', 'complete', 'stopped']
     .find(s => statusEl?.classList.contains(`status-${s}`)) || 'idle';
   const currentTask = nodeEl.querySelector('.tree-task')?.textContent || 'No active task';
 
@@ -360,7 +360,7 @@ function showAgentQuickActions(nodeEl, agentId) {
   popover.innerHTML = `
     <div class="agent-popover-header">
       <span class="agent-popover-name">${escapeHtml(agentName)}</span>
-      <span class="agent-popover-status status-${escapeAttr(agentStatus)}">${escapeHtml(agentStatus)}</span>
+      <span class="agent-popover-status status-${escapeAttr(agentStatus)}">${escapeHtml(agentStatus === 'has_work' ? 'working' : agentStatus)}</span>
     </div>
     <div class="agent-popover-task">${escapeHtml(currentTask)}</div>
     <div class="agent-popover-actions">
