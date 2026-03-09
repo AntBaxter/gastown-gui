@@ -191,6 +191,16 @@ function parseActivityLine(line) {
     '📦': 'convoy_updated',
   };
 
+  // Build a real timestamp from the HH:MM:SS in the feed line
+  const today = new Date();
+  const [hh, mm, ss] = time.split(':').map(Number);
+  const eventDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hh, mm, ss);
+  // If the parsed time is in the future (e.g. feed line from just before midnight),
+  // assume it was yesterday
+  if (eventDate > today) {
+    eventDate.setDate(eventDate.getDate() - 1);
+  }
+
   return {
     id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     time,
@@ -199,7 +209,7 @@ function parseActivityLine(line) {
     action: action.trim(),
     message: descParts.join(' · ').trim(),
     summary: `${action.trim()}${descParts.length ? ': ' + descParts.join(' · ').trim() : ''}`,
-    timestamp: new Date().toISOString(),
+    timestamp: eventDate.toISOString(),
   };
 }
 
