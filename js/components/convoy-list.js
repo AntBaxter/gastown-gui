@@ -185,6 +185,17 @@ function toggleConvoyExpand(card, convoyId) {
       footer.insertAdjacentHTML('beforebegin', detailHtml);
       const detail = card.querySelector('.convoy-detail');
       if (detail) {
+        // Attach click handlers to dynamically added issue items
+        detail.querySelectorAll('.issue-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const issueId = item.dataset.issueId;
+            if (issueId) {
+              showIssueDetail(issueId);
+            }
+          });
+        });
+
         // Trigger animation
         requestAnimationFrame(() => {
           detail.style.maxHeight = detail.scrollHeight + 'px';
