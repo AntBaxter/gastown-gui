@@ -157,8 +157,17 @@ function formatMessage(event) {
 
   // Add special formatting for certain event types
   switch (event.type) {
-    case 'work_slung':
-      return `Slung <strong>${escapeHtml(event.bead || 'work')}</strong> to ${formatAgentBadge(event.target)}`;
+    case 'work_slung': {
+      // Service-emitted events have explicit bead and target fields.
+      // Feed-stream events have target (the entity/bead) and action (descriptive text).
+      const beadId = event.bead || event.target || 'work';
+      let slingTarget = event.bead ? event.target : null;
+      if (!slingTarget && event.action) {
+        const m = event.action.match(/(?:to|→)\s+(\S+)/);
+        if (m) slingTarget = m[1];
+      }
+      return `Slung <strong>${escapeHtml(beadId)}</strong> to ${formatAgentBadge(slingTarget)}`;
+    }
 
     case 'agent_spawned':
       return `${formatAgentBadge(event.agent_id || event.agent_name, event.role)} joined`;
