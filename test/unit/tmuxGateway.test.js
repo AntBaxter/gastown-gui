@@ -28,7 +28,7 @@ describe('TmuxGateway', () => {
 
     expect(running).toBe(true);
     expect(runner.calls[0].command).toBe('tmux');
-    expect(runner.calls[0].args).toEqual(['has-session', '-t', 'gt-mayor']);
+    expect(runner.calls[0].args).toEqual(['-L', 'gt', 'has-session', '-t', 'gt-mayor']);
     expect(runner.calls[0].options.allowExitCodes).toEqual([0, 1]);
   });
 

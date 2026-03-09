@@ -1,11 +1,16 @@
 export class TmuxGateway {
-  constructor({ runner }) {
+  constructor({ runner, socketName = 'gt' }) {
     if (!runner?.exec) throw new Error('TmuxGateway requires a runner with exec()');
     this._runner = runner;
+    this._socketName = socketName;
+  }
+
+  _args(...args) {
+    return ['-L', this._socketName, ...args];
   }
 
   async hasSession(sessionName) {
-    const result = await this._runner.exec('tmux', ['has-session', '-t', sessionName], {
+    const result = await this._runner.exec('tmux', this._args('has-session', '-t', sessionName), {
       timeoutMs: 5000,
       allowExitCodes: [0, 1],
     });
@@ -13,7 +18,7 @@ export class TmuxGateway {
   }
 
   async listSessions() {
-    const result = await this._runner.exec('tmux', ['ls'], {
+    const result = await this._runner.exec('tmux', this._args('ls'), {
       timeoutMs: 5000,
       allowExitCodes: [0, 1],
     });
@@ -21,7 +26,7 @@ export class TmuxGateway {
   }
 
   async capturePane({ sessionName, lines } = {}) {
-    const result = await this._runner.exec('tmux', ['capture-pane', '-t', sessionName, '-p'], {
+    const result = await this._runner.exec('tmux', this._args('capture-pane', '-t', sessionName, '-p'), {
       timeoutMs: 5000,
     });
 
@@ -38,7 +43,7 @@ export class TmuxGateway {
   }
 
   async killSession(sessionName) {
-    const result = await this._runner.exec('tmux', ['kill-session', '-t', sessionName], {
+    const result = await this._runner.exec('tmux', this._args('kill-session', '-t', sessionName), {
       timeoutMs: 5000,
       allowExitCodes: [0, 1],
     });
