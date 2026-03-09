@@ -96,12 +96,28 @@ export class StatusService {
     const rigs = Array.isArray(data.rigs) ? data.rigs : [];
     const runningPolecats = parseTmuxPolecatSessions(sessionsText, rigs.map(rig => rig?.name));
 
+    // Set running flags on town-level agents from tmux sessions
+    for (const agent of data.agents || []) {
+      const addr = agent.address?.replace(/\/$/, '');
+      if (!agent.running && addr) {
+        agent.running = runningPolecats.has(addr);
+      }
+    }
+
     for (const rig of rigs) {
       if (!rig?.name) continue;
 
       if (!rig.git_url) {
         const rigConfig = await this._getRigConfig(rig.name);
         rig.git_url = rigConfig?.git_url || null;
+      }
+
+      // Set running flags on rig agents from tmux sessions
+      for (const agent of rig.agents || []) {
+        const addr = (agent.address || `${rig.name}/${agent.name}`)?.replace(/\/$/, '');
+        if (!agent.running && addr) {
+          agent.running = runningPolecats.has(addr);
+        }
       }
 
       for (const hook of rig.hooks || []) {
