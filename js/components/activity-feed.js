@@ -6,7 +6,7 @@
  */
 
 import { AGENT_TYPES, getAgentConfig, formatAgentName } from '../shared/agent-types.js';
-import { escapeHtml, truncate } from '../utils/html.js';
+import { escapeHtml, escapeAttr, truncate } from '../utils/html.js';
 import { formatActivityFeedTime } from '../utils/formatting.js';
 
 // Event type configuration (uses shared agent colors where applicable)
@@ -316,7 +316,7 @@ function renderGroupedItem(group) {
   return `
     <div class="feed-group"
          data-group-type="${group.type}"
-         data-group-target="${escapeHtml(group.target || '')}"
+         data-group-target="${escapeAttr(group.target || '')}"
          style="--event-color: ${config.color}">
       <div class="feed-icon">
         <span class="material-icons" style="color: ${config.color}">${config.icon}</span>
@@ -343,10 +343,10 @@ function renderFeedItem(event, index, isNew) {
 
   return `
     <div class="feed-item ${isNew ? 'new-event' : ''}"
-         data-event-id="${event.id || index}"
-         data-event-type="${type}"
-         data-event-target="${escapeHtml(event.target || '')}"
-         data-event-time="${event.timestamp || ''}"
+         data-event-id="${escapeAttr(event.id || index)}"
+         data-event-type="${escapeAttr(type)}"
+         data-event-target="${escapeAttr(event.target || '')}"
+         data-event-time="${escapeAttr(event.timestamp || '')}"
          style="--event-color: ${config.color}">
       <div class="feed-icon">
         <span class="material-icons" style="color: ${config.color}">${config.icon}</span>
