@@ -167,6 +167,12 @@ export function createStateStore(options = {}) {
       }
     },
 
+    // Remove mail from local store
+    removeMail(id) {
+      store.mail = store.mail.filter(m => m.id !== id);
+      notify('mail');
+    },
+
     // Rig filter
     getSelectedRig() {
       return store.selectedRig;
