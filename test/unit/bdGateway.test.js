@@ -19,7 +19,7 @@ class FakeRunner {
 }
 
 describe('BDGateway', () => {
-  it('sets BEADS_DIR and cwd for exec', async () => {
+  it('sets cwd for exec and does not force BEADS_DIR', async () => {
     const runner = new FakeRunner();
     const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
 
@@ -27,7 +27,7 @@ describe('BDGateway', () => {
 
     expect(runner.calls[0].command).toBe('bd');
     expect(runner.calls[0].options.cwd).toBe('/tmp/gt');
-    expect(runner.calls[0].options.env).toEqual({ BEADS_DIR: '/tmp/gt/.beads' });
+    expect(runner.calls[0].options.env).toEqual({});
   });
 
   it('list() builds args and parses JSON', async () => {

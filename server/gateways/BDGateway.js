@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 function parseJsonOrNull(text) {
   try {
     return JSON.parse(text);
@@ -14,11 +12,10 @@ export class BDGateway {
     if (!gtRoot) throw new Error('BDGateway requires gtRoot');
     this._runner = runner;
     this._gtRoot = gtRoot;
-    this._beadsDir = path.join(gtRoot, '.beads');
   }
 
   async exec(args, options = {}) {
-    const env = { BEADS_DIR: this._beadsDir, ...(options.env ?? {}) };
+    const env = options.env ?? {};
     return this._runner.exec('bd', args, { cwd: this._gtRoot, ...options, env });
   }
 
