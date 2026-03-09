@@ -283,7 +283,7 @@ export function renderFeedFilterBar(headerContainer) {
       <div class="feed-filter-dropdown">
         <button class="icon-btn-sm feed-filter-btn" id="feed-filter-btn"
                 title="Filter activity">
-          <span class="material-icons">${activeFilter === 'all' ? 'filter_list' : 'filter_list'}</span>
+          <span class="material-icons">${activeFilter === 'all' ? 'filter_list' : 'filter_alt'}</span>
           ${activeFilter !== 'all' ? `<span class="filter-active-dot"></span>` : ''}
         </button>
         <div class="feed-filter-menu" id="feed-filter-menu">
