@@ -316,13 +316,6 @@ function handleWebSocketMessage(message) {
 
     case 'work_slung':
       showToast(`Work slung: ${message.data?.bead || 'unknown'}`, 'success');
-      state.addEvent({
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        type: 'work_slung',
-        timestamp: new Date().toISOString(),
-        bead: message.data?.bead,
-        target: message.data?.target,
-      });
       loadConvoys();
       break;
 
