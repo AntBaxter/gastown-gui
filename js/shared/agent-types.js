@@ -28,6 +28,7 @@ export const STATUS_ICONS = {
   complete: 'check_circle',
   running: 'play_circle',
   stopped: 'stop_circle',
+  has_work: 'engineering',
 };
 
 // Status colors
@@ -39,7 +40,19 @@ export const STATUS_COLORS = {
   complete: '#22c55e',
   running: '#22c55e',
   stopped: '#6b7280',
+  has_work: '#f59e0b',
 };
+
+/**
+ * Derive display status from agent data.
+ * Agents that are running AND have work hooked get the 'has_work' status,
+ * which renders a distinct icon so operators can tell at a glance.
+ */
+export function getDisplayStatus(agent) {
+  const base = agent.running ? 'running' : (agent.status || 'idle');
+  if (agent.running && agent.has_work) return 'has_work';
+  return base;
+}
 
 /**
  * Detect agent type from agent path or role

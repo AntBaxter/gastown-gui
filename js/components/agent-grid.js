@@ -4,7 +4,7 @@
  * Renders agents in a responsive grid layout with status and actions.
  */
 
-import { AGENT_TYPES, STATUS_ICONS, STATUS_COLORS, getAgentConfig, formatAgentName } from '../shared/agent-types.js';
+import { AGENT_TYPES, STATUS_ICONS, STATUS_COLORS, getAgentConfig, formatAgentName, getDisplayStatus } from '../shared/agent-types.js';
 import { AGENT_DETAIL, AGENT_NUDGE, AGENT_PEEK, POLECAT_ACTION } from '../shared/events.js';
 import { escapeHtml, truncate } from '../utils/html.js';
 import { getStaggerClass } from '../shared/animations.js';
@@ -93,7 +93,7 @@ export function renderAgentGrid(container, agents) {
 function renderAgentCard(agent, index) {
   const role = agent.role?.toLowerCase() || 'polecat';
   const agentConfig = getAgentConfig(agent.address || agent.id, role);
-  const status = agent.running ? 'running' : (agent.status || 'idle');
+  const status = getDisplayStatus(agent);
   const statusIcon = STATUS_ICONS[status] || STATUS_ICONS.idle;
   const statusColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
 
