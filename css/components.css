@@ -220,6 +220,11 @@ select {
   background: var(--status-dead);
 }
 
+.agent-status-dot.has_work {
+  background: var(--status-has-work);
+  animation: pulse 1.5s infinite;
+}
+
 /* === Convoy Card === */
 .convoy-card {
   background: var(--bg-secondary);
@@ -550,6 +555,11 @@ select {
 .agent-card-status.stuck {
   color: var(--status-stuck);
   background: rgba(248, 81, 73, 0.15);
+}
+
+.agent-card-status.has_work {
+  color: var(--status-has-work);
+  background: rgba(210, 153, 34, 0.15);
 }
 
 .agent-card-work {
@@ -2578,6 +2588,10 @@ select {
 
 .status-error {
   color: var(--status-stuck);
+}
+
+.status-has_work {
+  color: var(--status-has-work);
 }
 
 /* Sidebar Section Styling */
