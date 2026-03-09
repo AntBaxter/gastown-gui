@@ -12,6 +12,7 @@ import { MAIL_DETAIL, MAIL_READ, MAIL_REFRESH } from '../shared/events.js';
 import { TIME_MS } from '../utils/formatting.js';
 import { debounce } from '../utils/performance.js';
 import { getStaggerClass } from '../shared/animations.js';
+import { state } from '../state.js';
 
 // Priority icons and colors
 const PRIORITY_CONFIG = {
@@ -212,13 +213,15 @@ async function handleDeleteMail(mailId, btn) {
 
     if (result.success) {
       showToast('Mail deleted', 'success');
-      document.dispatchEvent(new CustomEvent(MAIL_REFRESH));
+      // Optimistically remove from local state instead of full reload
+      state.removeMail(mailId);
     } else {
       showToast(`Failed: ${result.error}`, 'error');
+      btn.innerHTML = originalIcon;
+      btn.disabled = false;
     }
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
-  } finally {
     btn.innerHTML = originalIcon;
     btn.disabled = false;
   }
