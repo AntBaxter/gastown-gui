@@ -10,7 +10,7 @@ import { state, subscribe } from './state.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
-import { renderActivityFeed, addEventToFeed } from './components/activity-feed.js';
+import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderMailList } from './components/mail-list.js';
 import { renderRigList } from './components/rig-list.js';
@@ -57,6 +57,7 @@ const elements = {
   workList: document.getElementById('work-list'),
   agentGrid: document.getElementById('agent-grid'),
   feedList: document.getElementById('feed-list'),
+  feedHeader: document.getElementById('feed-header'),
   mailList: document.getElementById('mail-list'),
   rigList: document.getElementById('rig-list'),
 };
@@ -127,6 +128,9 @@ async function init() {
 
   // Set up mail filters
   setupMailFilters();
+
+  // Set up activity feed filter bar
+  setupFeedFilters();
 
   // Set up keyboard shortcuts
   setupKeyboardShortcuts();
@@ -593,6 +597,52 @@ function setupMailFilters() {
       mineBtn.classList.add('btn-ghost');
       if (title) title.textContent = 'All System Mail';
       loadMail();
+    });
+  }
+}
+
+function setupFeedFilters() {
+  renderFeedFilterBar(elements.feedHeader);
+
+  // Wire up filter dropdown toggle
+  const filterBtn = document.getElementById('feed-filter-btn');
+  const filterMenu = document.getElementById('feed-filter-menu');
+
+  if (filterBtn && filterMenu) {
+    filterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      filterMenu.classList.toggle('open');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', () => {
+      filterMenu.classList.remove('open');
+    });
+
+    filterMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Filter option clicks
+    filterMenu.querySelectorAll('.feed-filter-option[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        setFeedFilter(filter);
+        filterMenu.classList.remove('open');
+        // Re-render filter bar to update active state
+        setupFeedFilters();
+        // Re-render feed with new filter
+        renderActivityFeed(elements.feedList, state.get('events'));
+      });
+    });
+  }
+
+  // Wire up clear button
+  const clearBtn = document.getElementById('feed-clear-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      state.clearEvents();
+      filterMenu?.classList.remove('open');
     });
   }
 }
