@@ -341,6 +341,13 @@ function showStep(stepIndex) {
     }
   } else {
     hideHighlight();
+    // Reset modal to default position (bottom-right)
+    if (tutorialModal) {
+      tutorialModal.style.top = '';
+      tutorialModal.style.left = '';
+      tutorialModal.style.bottom = '';
+      tutorialModal.style.right = '';
+    }
   }
 
   // Run action if specified
@@ -362,8 +369,41 @@ function highlightElement(el) {
   highlightOverlay.style.width = `${rect.width + padding * 2}px`;
   highlightOverlay.style.height = `${rect.height + padding * 2}px`;
 
-  // Scroll element into view if needed
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Position the tutorial modal near the highlighted element so both are visible.
+  // Avoid scrollIntoView — it pushes the top pane off-screen and breaks the layout.
+  if (tutorialModal) {
+    const modalContent = tutorialModal.querySelector('.tutorial-content');
+    const modalRect = modalContent ? modalContent.getBoundingClientRect() : { height: 300, width: 420 };
+    const viewportH = window.innerHeight;
+    const viewportW = window.innerWidth;
+    const margin = 16;
+
+    // Try to position modal below the highlight, or above if no room below
+    let top, left;
+    const belowSpace = viewportH - (rect.bottom + padding + margin);
+    const aboveSpace = rect.top - padding - margin;
+
+    if (belowSpace >= modalRect.height) {
+      top = rect.bottom + padding + margin;
+    } else if (aboveSpace >= modalRect.height) {
+      top = rect.top - padding - margin - modalRect.height;
+    } else {
+      // Not enough room above or below — position at bottom-right (default)
+      tutorialModal.style.top = '';
+      tutorialModal.style.bottom = '';
+      tutorialModal.style.left = '';
+      tutorialModal.style.right = '';
+      return;
+    }
+
+    // Horizontal: align with highlight, clamped to viewport
+    left = Math.max(margin, Math.min(rect.left, viewportW - (modalRect.width || 420) - margin));
+
+    tutorialModal.style.bottom = 'auto';
+    tutorialModal.style.right = 'auto';
+    tutorialModal.style.top = `${top}px`;
+    tutorialModal.style.left = `${left}px`;
+  }
 }
 
 /**
@@ -409,6 +449,8 @@ function closeTutorial() {
     highlightOverlay.remove();
     highlightOverlay = null;
   }
+  // Mark as complete so it doesn't show again on reload
+  localStorage.setItem('gastown-tutorial-complete', 'true');
 }
 
 /**
