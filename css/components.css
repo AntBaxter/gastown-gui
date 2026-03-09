@@ -344,6 +344,7 @@ select {
   padding: var(--space-sm);
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
+  cursor: pointer;
   transition: background var(--transition-fast);
 }
 
