@@ -601,9 +601,22 @@ function setupMailFilters() {
   }
 }
 
+let _feedFilterOutsideClickRegistered = false;
+
 function setupFeedFilters() {
   renderFeedFilterBar(elements.feedHeader);
+  _attachFeedFilterMenuListeners();
 
+  // Close the dropdown when clicking anywhere outside — registered once
+  if (!_feedFilterOutsideClickRegistered) {
+    _feedFilterOutsideClickRegistered = true;
+    document.addEventListener('click', () => {
+      document.getElementById('feed-filter-menu')?.classList.remove('open');
+    });
+  }
+}
+
+function _attachFeedFilterMenuListeners() {
   // Wire up filter dropdown toggle
   const filterBtn = document.getElementById('feed-filter-btn');
   const filterMenu = document.getElementById('feed-filter-menu');
@@ -612,11 +625,6 @@ function setupFeedFilters() {
     filterBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       filterMenu.classList.toggle('open');
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', () => {
-      filterMenu.classList.remove('open');
     });
 
     filterMenu.addEventListener('click', (e) => {
@@ -629,8 +637,9 @@ function setupFeedFilters() {
         const filter = btn.dataset.filter;
         setFeedFilter(filter);
         filterMenu.classList.remove('open');
-        // Re-render filter bar to update active state
-        setupFeedFilters();
+        // Re-render filter bar to update active state and re-wire menu listeners
+        renderFeedFilterBar(elements.feedHeader);
+        _attachFeedFilterMenuListeners();
         // Re-render feed with new filter
         renderActivityFeed(elements.feedList, state.get('events'));
       });
@@ -642,7 +651,7 @@ function setupFeedFilters() {
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       state.clearEvents();
-      filterMenu?.classList.remove('open');
+      document.getElementById('feed-filter-menu')?.classList.remove('open');
     });
   }
 }
