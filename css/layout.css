@@ -776,6 +776,15 @@ kbd {
     gap: 0;
   }
 
+  .main {
+    flex-direction: column;
+  }
+
+  .content {
+    width: 100%;
+    min-width: 0;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;
@@ -824,11 +833,23 @@ kbd {
     min-width: 0;
   }
 
-  .mayor-command-bar {
-    display: none;
+  .view-header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
   }
 
-  .town-name {
-    display: none;
+  .view-header h1 {
+    font-size: var(--text-lg);
+  }
+
+  .view-actions {
+    flex-wrap: wrap;
+  }
+
+  .view-filters {
+    flex-wrap: wrap;
+    margin-left: 0;
+    width: 100%;
   }
 }
