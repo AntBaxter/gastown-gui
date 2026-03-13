@@ -7,10 +7,19 @@ body {
   overflow: hidden;
 }
 
+/* Allow mobile viewports to scroll content naturally */
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+    overflow: overlay;
+  }
+}
+
 #app {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* === Header === */
@@ -20,6 +29,9 @@ body {
   justify-content: space-between;
   height: var(--header-height);
   padding: 0 var(--space-md);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-default);
   z-index: var(--z-sticky);
@@ -510,6 +522,9 @@ body {
   justify-content: space-between;
   height: var(--status-bar-height);
   padding: 0 var(--space-md);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
   background: var(--bg-tertiary);
   border-top: 1px solid var(--border-default);
   font-size: var(--text-xs);
@@ -598,6 +613,7 @@ kbd {
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow: hidden;
   transform: translateY(0);
   transition: transform var(--transition-base);
@@ -648,8 +664,8 @@ kbd {
 /* === Toast Container === */
 .toast-container {
   position: fixed;
-  top: calc(var(--header-height) + var(--space-md));
-  right: var(--space-md);
+  top: calc(var(--header-height) + var(--space-md) + env(safe-area-inset-top, 0px));
+  right: max(var(--space-md), env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -841,8 +857,8 @@ kbd {
   .sidebar {
     position: fixed;
     left: 0;
-    top: var(--header-height);
-    bottom: var(--status-bar-height);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+    bottom: calc(var(--status-bar-height) + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-dropdown);
     transform: translateX(-100%);
     transition: transform var(--transition-base);
@@ -933,5 +949,38 @@ kbd {
     left: 0;
     transform: none;
     resize: none;
+  }
+
+  /* Mobile content areas need to scroll */
+  .content {
+    overflow-y: auto;
+  }
+
+  .view.active {
+    overflow-y: auto;
+  }
+}
+
+/* === Landscape on small screens === */
+@media (max-width: 768px) and (orientation: landscape) {
+  .header {
+    height: 40px;
+    padding-left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right, 0px));
+  }
+
+  .status-bar {
+    height: 24px;
+    padding-left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right, 0px));
+  }
+
+  .sidebar.open {
+    top: calc(40px + env(safe-area-inset-top, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .nav-tabs {
+    max-height: 50vh;
   }
 }
