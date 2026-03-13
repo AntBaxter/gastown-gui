@@ -255,3 +255,30 @@
 | Convoy CLI commands may be unstable/changing | Breaks convoy endpoints | Pin to known-working command signatures; add integration tests |
 | Performance with large bead sets (> 500) | Slow kanban/graph rendering | Paginate kanban; limit graph to 200 nodes with "show more" |
 | WebSocket event format changes upstream | Breaks real-time updates | Event parsing is already defensive; add version detection |
+| Pre-push hook not configured on existing rigs | Safety Layer 2 inactive | Check via `gt doctor` status; warn in Health Check view |
+| Custom branch templates bypass hook detection | Reduced safety for non-default templates | Warn in UI; recommend keeping `integration/` prefix |
+| `gt mq integration status --json` output shape changes | Breaks integration branch status panel | Pin expected fields; defensive parsing with fallbacks |
+| N+1 CLI calls for dependency graph data | Slow graph loading for large bead sets | Server-side caching with TTL; batch `bd deps` if available |
+| Integration branch auto-land enabled without awareness | Work lands unexpectedly | Show prominent auto-land indicator on convoy dashboard |
+
+---
+
+## CLI Command Audit
+
+Commands needed for full implementation (verify availability before building endpoints):
+
+| Command | JSON flag | Needed for | Status |
+|---------|-----------|-----------|--------|
+| `bd list --json` | Yes | Kanban board, bead type | Likely available |
+| `bd create --type <type>` | N/A | Bead type creation | Verify `--type` flag exists |
+| `bd deps <id>` | Verify | Dependency graph | Check if returns structured data |
+| `bd blocked --json` | Verify | Blocked chain triage | Check availability |
+| `gt convoy create` | N/A | Convoy creation wizard | Available per docs |
+| `gt convoy list --json` | Verify | Convoy dashboard | Check JSON output |
+| `gt convoy status --json` | Verify | Convoy detail view | Check JSON output |
+| `gt mq integration create` | N/A | Integration branch creation | Available per docs |
+| `gt mq integration status --json` | Yes | Integration branch status | Available per docs |
+| `gt mq integration land` | N/A | Land action | Available per docs |
+| `gt mq integration land --dry-run` | Verify | Preview land | Check flag availability |
+
+**Action:** Before starting Phase 3+ implementation, run each command to verify flags and output format. File beads for any missing `--json` support.

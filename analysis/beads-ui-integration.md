@@ -1,6 +1,6 @@
 # Beads UI Integration Analysis
 
-**Date:** 2026-03-13
+**Date:** 2026-03-13 (updated 2026-03-13)
 **Context:** Investigating how to enhance the gastownui beads interface with kanban boards, dependency graphs, bead type creation, and patterns from [BeadBoard](https://github.com/zenchantlive/beadboard).
 
 ---
@@ -24,26 +24,65 @@ The gastownui frontend displays beads as a **flat card list** with status filter
 - No convoy management UI
 - No integration branch UI
 - No blocked-chain visibility
+- No agent pool monitor / "needs agent" queue
+- No message acknowledgment tracking
+- No project scope switching (single vs aggregate workspace)
 
 ---
 
 ## BeadBoard Reference Analysis
 
-[BeadBoard](https://github.com/zenchantlive/beadboard) is a Next.js/React/TypeScript dashboard built on the same `bd` CLI. Key features relevant to us:
+[BeadBoard](https://github.com/zenchantlive/beadboard) is a Next.js 15 / React 19 / TypeScript dashboard built on the same `bd` CLI. Its full technology stack includes Tailwind CSS, Radix UI, Framer Motion, XYFlow + Dagre, Zod validation, and Chokidar file watchers.
 
-### Directly Relevant Patterns
+### Complete Feature Inventory
+
+| Category | Feature | Description |
+|----------|---------|-------------|
+| **Work Management** | Kanban board | Columns per status with drag/drop |
+| | DAG graph | XYFlow + Dagre for dependency visualization |
+| | Cycle detection | Graph analysis catches circular dependencies |
+| | Task/dependency tabs | Toggle between task-centric and dependency-centric views |
+| **Agent Coordination** | Social view | Agent session cards with liveness indicators |
+| | Agent Pool Monitor | Archetypes, templates, capacity overview |
+| | "Needs Agent" queue | Unassigned work surfaced for dispatch |
+| | Pre-assigned queue | Reserved tasks waiting for specific agents |
+| | Squad roster | Active team member display |
+| **Communication** | Conversation threading | Thread builder merging events + mail per bead |
+| | Message lifecycle | Unread → read → acked state tracking |
+| | Acknowledgment flow | High-signal messages require explicit ack |
+| | Activity timeline | Chronological event stream with type filters |
+| **Coordination** | Blocked triage | Modal with full blocker chain + unblock actions |
+| | Swarm panel | Archetype/template pickers, convoy stepper |
+| | Project scope switching | Single-project vs aggregate workspace toggle |
+| | Project registry | Scanner-backed project discovery |
+| **Real-time** | SSE updates | Server-Sent Events from Chokidar file watchers |
+| | Mutation feedback | Writeback confirmation in operational surface |
+
+### Directly Relevant Patterns (What to Adopt)
 
 | Feature | BeadBoard Approach | Our Adaptation |
 |---------|-------------------|----------------|
-| **Kanban board** | React components with columns per status | Vanilla JS, CSS grid columns per status |
-| **DAG graph** | XYFlow + Dagre for automatic layout | Lightweight vanilla JS graph library or SVG-based |
-| **Agent session cards** | Social view with liveness indicators | Extend existing agent-grid component |
-| **Blocked triage** | Dedicated modal surfacing blocker context | Add to existing modal system |
-| **Activity timeline** | Chronological event stream with filters | Already have activity-feed.js (enhance filters) |
-| **Conversation threading** | Thread builder merging events + mail | New component, data from existing endpoints |
-| **Swarm coordination** | Archetype/template pickers, convoy stepper | New convoy management panel |
+| **Kanban board** | React columns per status | Vanilla JS, CSS grid columns per status |
+| **DAG graph** | XYFlow + Dagre auto-layout | Dagre for layout, SVG for rendering (no React dep) |
+| **Agent session cards** | Social view with liveness | Extend existing `agent-grid.js` component |
+| **Blocked triage** | Modal with blocker context | Add to existing modal system in `modals.js` |
+| **Activity timeline** | Filtered event stream | Enhance existing `activity-feed.js` with filter chips |
+| **Conversation threading** | Thread builder (events + mail) | New component, data from existing mail + feed endpoints |
+| **Swarm coordination** | Convoy stepper | New convoy management panel (see `convoy-integration-branches.md`) |
+| **Needs Agent queue** | Unassigned work surface | Add "unassigned" filter to kanban board view |
+| **Cycle detection** | Graph analysis | Add to dependency graph (Dagre detects cycles natively) |
 
-### Key Architectural Difference
+### What NOT to Adopt from BeadBoard
+
+| Feature | Why Skip |
+|---------|----------|
+| **Project registry + scanner** | Gas Town uses rigs (already discoverable via `gt rig list`) |
+| **Message ack workflow** | Adds protocol complexity; our nudge system is lighter-weight |
+| **Agent archetypes/templates** | Gas Town formulas serve this purpose already |
+| **Global project scope switching** | Our rig filter already handles this; full aggregate view is premature |
+| **Framer Motion animations** | CSS animations + `animations.css` are sufficient for our needs |
+
+### Key Architectural Differences
 
 BeadBoard is a full Next.js app that directly accesses Dolt and the filesystem. We are a vanilla JS SPA talking to Express endpoints wrapping CLI commands. This means:
 
@@ -51,6 +90,8 @@ BeadBoard is a full Next.js app that directly accesses Dolt and the filesystem. 
 - **Our data access is more constrained** -- everything goes through `bd` CLI, which is actually more secure (SafeSegment validation)
 - **Their SSE approach vs our WebSocket** -- both work; our WebSocket is already implemented and bidirectional
 - **Their Tailwind + Radix UI** -- we use plain CSS with custom properties; visual patterns are transferable
+- **Their direct Dolt queries** -- we avoid this for security; CLI wrapping adds latency but prevents injection
+- **Their Chokidar watchers** -- we use `gt feed --json` piped through WebSocket; same real-time effect, different mechanism
 
 ---
 
