@@ -896,6 +896,7 @@ kbd {
     width: 100%;
     justify-content: flex-start;
     padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
   }
 
   .header-left {
@@ -921,6 +922,23 @@ kbd {
     flex-wrap: wrap;
     margin-left: 0;
     width: 100%;
+  }
+
+  /* Hide non-essential status bar elements on mobile */
+  .keyboard-hint,
+  .status-center {
+    display: none;
+  }
+
+  /* Touch-friendly icon buttons (44px / 36px minimum) */
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .icon-btn-sm {
+    width: 36px;
+    height: 36px;
   }
 }
 
