@@ -754,6 +754,51 @@ kbd {
   }
 }
 
+/* === Mobile Sidebar Toggle Button === */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--status-bar-height) + var(--space-md));
+  left: var(--space-md);
+  z-index: calc(var(--z-dropdown) + 1);
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.sidebar-toggle:hover {
+  background: #4a90e2;
+}
+
+.sidebar-toggle:active {
+  transform: scale(0.95);
+}
+
+/* === Sidebar Backdrop (mobile) === */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-dropdown) - 1);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 768px) {
   .header {
     padding: 0 var(--space-sm);
@@ -785,6 +830,14 @@ kbd {
     min-width: 0;
   }
 
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;
@@ -792,6 +845,7 @@ kbd {
     bottom: var(--status-bar-height);
     z-index: var(--z-dropdown);
     transform: translateX(-100%);
+    transition: transform var(--transition-base);
   }
 
   .sidebar.open {

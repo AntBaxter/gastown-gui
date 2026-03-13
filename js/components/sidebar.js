@@ -311,6 +311,34 @@ async function handleServiceAction(action, service, btn, rig) {
   }
 }
 
+// === Mobile sidebar toggle and backdrop ===
+const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+const sidebarEl = document.getElementById('sidebar');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+function openSidebar() {
+  sidebarEl?.classList.add('open');
+  sidebarBackdrop?.classList.add('visible');
+}
+
+function closeSidebar() {
+  sidebarEl?.classList.remove('open');
+  sidebarBackdrop?.classList.remove('visible');
+}
+
+sidebarToggleBtn?.addEventListener('click', () => {
+  if (sidebarEl?.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+});
+
+sidebarBackdrop?.addEventListener('click', closeSidebar);
+
+// Also wire up the existing collapse button for mobile close
+document.getElementById('collapse-sidebar')?.addEventListener('click', closeSidebar);
+
 // Tree node toggle functionality and agent click handling
 document.addEventListener('click', (e) => {
   const nodeContent = e.target.closest('.tree-node-content');
