@@ -6415,6 +6415,19 @@ select {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
   }
+
+  .convoy-header {
+    flex-wrap: wrap;
+  }
+
+  .convoy-meta {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .issue-item {
+    padding: var(--space-xs);
+  }
 }
 
 @media (max-width: 480px) {
