@@ -770,32 +770,14 @@ kbd {
   }
 }
 
-/* === Mobile Sidebar Toggle Button === */
+/* === Mobile Sidebar Toggle Button (floating, hidden when header button available) === */
 .sidebar-toggle {
   display: none;
-  position: fixed;
-  bottom: calc(var(--status-bar-height) + var(--space-md));
-  left: var(--space-md);
-  z-index: calc(var(--z-dropdown) + 1);
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
-.sidebar-toggle:hover {
-  background: #4a90e2;
-}
-
-.sidebar-toggle:active {
-  transform: scale(0.95);
+/* === Mobile Sidebar Menu Button (in header) === */
+.sidebar-menu-btn {
+  display: none;
 }
 
 /* === Sidebar Backdrop (mobile) === */
@@ -821,7 +803,7 @@ kbd {
   }
 
   .header-center {
-    display: none;
+    position: relative;
   }
 
   .mayor-command-bar {
@@ -846,7 +828,7 @@ kbd {
     min-width: 0;
   }
 
-  .sidebar-toggle {
+  .sidebar-menu-btn {
     display: flex;
   }
 

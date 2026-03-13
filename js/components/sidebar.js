@@ -313,6 +313,7 @@ async function handleServiceAction(action, service, btn, rig) {
 
 // === Mobile sidebar toggle and backdrop ===
 const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+const sidebarMenuBtn = document.getElementById('sidebar-menu-btn');
 const sidebarEl = document.getElementById('sidebar');
 const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
@@ -326,13 +327,16 @@ function closeSidebar() {
   sidebarBackdrop?.classList.remove('visible');
 }
 
-sidebarToggleBtn?.addEventListener('click', () => {
+function handleSidebarToggle() {
   if (sidebarEl?.classList.contains('open')) {
     closeSidebar();
   } else {
     openSidebar();
   }
-});
+}
+
+sidebarToggleBtn?.addEventListener('click', handleSidebarToggle);
+sidebarMenuBtn?.addEventListener('click', handleSidebarToggle);
 
 sidebarBackdrop?.addEventListener('click', closeSidebar);
 
