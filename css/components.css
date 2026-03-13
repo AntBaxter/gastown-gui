@@ -2469,6 +2469,11 @@ select {
   .workflow-step {
     max-width: none;
   }
+
+  /* Touch-friendly tree items (44px min-height) */
+  .tree-item {
+    min-height: 44px;
+  }
 }
 
 .workflow-tip {
