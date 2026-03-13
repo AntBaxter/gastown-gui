@@ -7,10 +7,19 @@ body {
   overflow: hidden;
 }
 
+/* Allow mobile viewports to scroll content naturally */
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+    overflow: overlay;
+  }
+}
+
 #app {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* === Header === */
@@ -20,6 +29,9 @@ body {
   justify-content: space-between;
   height: var(--header-height);
   padding: 0 var(--space-md);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-default);
   z-index: var(--z-sticky);
@@ -258,6 +270,26 @@ body {
   align-items: center;
 }
 
+/* Hamburger button - hidden on desktop, visible on mobile */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.hamburger-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
 .nav-tabs {
   display: flex;
   gap: var(--space-xs);
@@ -490,6 +522,9 @@ body {
   justify-content: space-between;
   height: var(--status-bar-height);
   padding: 0 var(--space-md);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(var(--space-md), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-md), env(safe-area-inset-right, 0px));
   background: var(--bg-tertiary);
   border-top: 1px solid var(--border-default);
   font-size: var(--text-xs);
@@ -578,6 +613,7 @@ kbd {
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow: hidden;
   transform: translateY(0);
   transition: transform var(--transition-base);
@@ -628,8 +664,8 @@ kbd {
 /* === Toast Container === */
 .toast-container {
   position: fixed;
-  top: calc(var(--header-height) + var(--space-md));
-  right: var(--space-md);
+  top: calc(var(--header-height) + var(--space-md) + env(safe-area-inset-top, 0px));
+  right: max(var(--space-md), env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -734,17 +770,217 @@ kbd {
   }
 }
 
+/* === Mobile Sidebar Toggle Button === */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--status-bar-height) + var(--space-md));
+  left: var(--space-md);
+  z-index: calc(var(--z-dropdown) + 1);
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.sidebar-toggle:hover {
+  background: #4a90e2;
+}
+
+.sidebar-toggle:active {
+  transform: scale(0.95);
+}
+
+/* === Sidebar Backdrop (mobile) === */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-dropdown) - 1);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 768px) {
+  .header {
+    padding: 0 var(--space-sm);
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  .mayor-command-bar {
+    display: none;
+  }
+
+  .town-name {
+    display: none;
+  }
+
+  .connection-status {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .main {
+    flex-direction: column;
+  }
+
+  .content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;
-    top: var(--header-height);
-    bottom: var(--status-bar-height);
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+    bottom: calc(var(--status-bar-height) + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-dropdown);
     transform: translateX(-100%);
+    transition: transform var(--transition-base);
   }
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .nav-tabs {
+    display: none;
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-sm);
+    z-index: var(--z-dropdown);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .nav-tabs.open {
+    display: flex;
+  }
+
+  .nav-tab {
+    width: 100%;
+    justify-content: flex-start;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .view-header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .view-header h1 {
+    font-size: var(--text-lg);
+  }
+
+  .view-actions {
+    flex-wrap: wrap;
+  }
+
+  .view-filters {
+    flex-wrap: wrap;
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .mayor-output-panel {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+    resize: none;
+  }
+
+  /* Mobile content areas need to scroll */
+  .content {
+    overflow-y: auto;
+  }
+
+  .view.active {
+    overflow-y: auto;
+  }
+}
+
+/* === Landscape on small screens === */
+@media (max-width: 768px) and (orientation: landscape) {
+  .header {
+    height: 40px;
+    padding-left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right, 0px));
+  }
+
+  .status-bar {
+    height: 24px;
+    padding-left: max(var(--space-sm), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right, 0px));
+  }
+
+  .sidebar.open {
+    top: calc(40px + env(safe-area-inset-top, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .nav-tabs {
+    max-height: 50vh;
   }
 }

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Gas Town - Multi-Agent Orchestrator</title>
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/variables.css">
@@ -58,6 +58,9 @@
         </div>
       </div>
       <div class="header-center">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation">
+          <span class="material-icons">menu</span>
+        </button>
         <div class="nav-tabs">
           <button class="nav-tab active" data-view="dashboard" data-tooltip="System overview - health, metrics, and quick actions.">
             <span class="material-icons">dashboard</span>
@@ -125,6 +128,14 @@
 
     <!-- Main Content -->
     <main class="main">
+      <!-- Sidebar Backdrop (mobile) -->
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+      <!-- Mobile Sidebar Toggle -->
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">
+        <span class="material-icons">menu</span>
+      </button>
+
       <!-- Sidebar (Agent Tree) -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">

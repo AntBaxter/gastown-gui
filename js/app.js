@@ -99,6 +99,9 @@ async function init() {
   // Set up navigation
   setupNavigation();
 
+  // Set up mobile hamburger menu
+  setupHamburgerMenu();
+
   // Set up modals
   initModals();
 
@@ -219,6 +222,32 @@ async function init() {
     }
   });
 
+}
+
+// Mobile hamburger menu
+function setupHamburgerMenu() {
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const navTabsEl = document.querySelector('.nav-tabs');
+  if (!hamburgerBtn || !navTabsEl) return;
+
+  hamburgerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navTabsEl.classList.toggle('open');
+  });
+
+  // Close menu when a nav tab is clicked
+  navTabsEl.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-tab')) {
+      navTabsEl.classList.remove('open');
+    }
+  });
+
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!hamburgerBtn.contains(e.target) && !navTabsEl.contains(e.target)) {
+      navTabsEl.classList.remove('open');
+    }
+  });
 }
 
 // Navigation setup
