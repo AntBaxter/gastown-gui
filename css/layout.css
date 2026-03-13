@@ -258,6 +258,26 @@ body {
   align-items: center;
 }
 
+/* Hamburger button - hidden on desktop, visible on mobile */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.hamburger-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
 .nav-tabs {
   display: flex;
   gap: var(--space-xs);
@@ -767,5 +787,48 @@ kbd {
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .nav-tabs {
+    display: none;
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-sm);
+    z-index: var(--z-dropdown);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .nav-tabs.open {
+    display: flex;
+  }
+
+  .nav-tab {
+    width: 100%;
+    justify-content: flex-start;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mayor-command-bar {
+    display: none;
+  }
+
+  .town-name {
+    display: none;
   }
 }
