@@ -203,6 +203,7 @@ scripts/extract_user_prompts.mjs - Sanitized prompt log builder
 
 ```
 CLI-COMPATIBILITY.md - gt/bd CLI command compatibility audit
+analysis/mobile-friendly-ui.md - Mobile responsiveness audit, library evaluation, implementation plan
 refactoring-analysis/ - Refactor plans, reports, and analysis docs
 refactoring-analysis/trace/ - Sanitized prompt/trace exports
 ```
