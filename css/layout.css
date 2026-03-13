@@ -735,6 +735,27 @@ kbd {
 }
 
 @media (max-width: 768px) {
+  .header {
+    padding: 0 var(--space-sm);
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  .mayor-command-bar {
+    display: none;
+  }
+
+  .town-name {
+    display: none;
+  }
+
+  .connection-status {
+    font-size: 0;
+    gap: 0;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;
