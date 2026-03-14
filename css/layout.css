@@ -515,6 +515,72 @@ body {
   padding: var(--space-sm);
 }
 
+/* === App Footer === */
+.app-footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-default);
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.footer-branding {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.footer-logo {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.footer-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  font-size: 11px;
+}
+
+.footer-tagline {
+  color: var(--text-muted);
+}
+
+.footer-separator {
+  color: var(--border-default);
+  margin: 0 var(--space-xs);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  background: none;
+  border: none;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color var(--transition-fast);
+}
+
+.footer-link:hover {
+  color: var(--accent-primary);
+}
+
 /* === Status Bar === */
 .status-bar {
   display: flex;
@@ -904,6 +970,13 @@ kbd {
     flex-wrap: wrap;
     margin-left: 0;
     width: 100%;
+  }
+
+  /* Stack footer on mobile */
+  .footer-content {
+    flex-direction: column;
+    gap: var(--space-xs);
+    text-align: center;
   }
 
   /* Hide non-essential status bar elements on mobile */
