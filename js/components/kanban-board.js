@@ -27,7 +27,7 @@ function groupByStatus(beads) {
   }
 
   for (const bead of beads) {
-    if (HIDDEN_BEAD_TYPES.includes(bead.issue_type)) continue;
+    if (HIDDEN_BEAD_TYPES.includes(bead.issue_type) || bead.ephemeral) continue;
 
     let status = bead.status || 'open';
     // Normalize in-progress variants

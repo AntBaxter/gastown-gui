@@ -46,7 +46,7 @@ export function renderWorkList(container, beads) {
   if (!container) return;
 
   // Show all work types except internal/ephemeral ones
-  const tasks = beads.filter(b => !HIDDEN_BEAD_TYPES.includes(b.issue_type));
+  const tasks = beads.filter(b => !HIDDEN_BEAD_TYPES.includes(b.issue_type) && !b.ephemeral);
 
   if (!tasks || tasks.length === 0) {
     container.innerHTML = `
