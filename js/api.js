@@ -77,6 +77,22 @@ export const api = {
     return this.post('/api/convoy', { name, issues, notify });
   },
 
+  getIntegrationBranchStatus(convoyId) {
+    return this.get(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/status`);
+  },
+
+  createIntegrationBranch(convoyId, branch) {
+    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch`, { branch });
+  },
+
+  landIntegrationBranch(convoyId, dryRun = false) {
+    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/land`, { dryRun });
+  },
+
+  feedConvoy(convoyId) {
+    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/feed`);
+  },
+
   // === Work ===
   sling(bead, target, options = {}) {
     return this.post('/api/sling', {

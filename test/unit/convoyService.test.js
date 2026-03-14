@@ -51,6 +51,51 @@ describe('ConvoyService', () => {
     expect(result[0].tracked).toEqual(['bd-1', 'bd-2']);
   });
 
+  it('returns integration branch status', async () => {
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      integrationBranchStatus: async (id) => ({
+        ok: true,
+        data: { branch: 'integration/auth', commits_ahead: 5, ready_to_land: false },
+      }),
+    };
+
+    const service = new ConvoyService({ gtGateway });
+    const result = await service.integrationBranchStatus('convoy-1');
+    expect(result).toEqual({ branch: 'integration/auth', commits_ahead: 5, ready_to_land: false });
+  });
+
+  it('feeds convoy by slinging ready issues', async () => {
+    const slingCalls = [];
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({
+        ok: true,
+        data: {
+          id: 'convoy-1',
+          issues: [
+            { id: 'bd-1', status: 'open' },
+            { id: 'bd-2', status: 'closed' },
+            { id: 'bd-3', status: 'open' },
+          ],
+        },
+      }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      sling: async ({ bead }) => {
+        slingCalls.push(bead);
+        return { ok: true, raw: 'slung' };
+      },
+    };
+
+    const service = new ConvoyService({ gtGateway });
+    const result = await service.feed('convoy-1');
+    expect(result.ok).toBe(true);
+    expect(result.slung).toBe(2);
+    expect(slingCalls).toEqual(['bd-1', 'bd-3']);
+  });
+
   it('creates a convoy and emits convoy_created', async () => {
     const events = [];
     const gtGateway = {

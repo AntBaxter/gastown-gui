@@ -145,6 +145,17 @@ function setupConvoyEventListeners(container) {
     });
   });
 
+  // Land integration branch buttons
+  container.querySelectorAll('[data-action="land-branch"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
+      if (convoyId) {
+        document.dispatchEvent(new CustomEvent(CONVOY_DETAIL, { detail: { convoyId, action: 'land' } }));
+      }
+    });
+  });
+
   // Escalate buttons
   container.querySelectorAll('[data-action="escalate"]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -196,6 +207,17 @@ function toggleConvoyExpand(card, convoyId) {
           });
         });
 
+        // Attach land button handler
+        detail.querySelectorAll('[data-action="land-branch"]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const cId = btn.dataset.convoyId;
+            if (cId) {
+              document.dispatchEvent(new CustomEvent(CONVOY_DETAIL, { detail: { convoyId: cId, action: 'land' } }));
+            }
+          });
+        });
+
         // Trigger animation
         requestAnimationFrame(() => {
           detail.style.maxHeight = detail.scrollHeight + 'px';
@@ -216,12 +238,17 @@ function toggleConvoyExpand(card, convoyId) {
  */
 function getConvoyDataFromCard(card) {
   // Parse data from card's data attributes
+  const integrationBranch = card.dataset.integrationBranch
+    ? JSON.parse(card.dataset.integrationBranch)
+    : null;
   return {
     id: card.dataset.convoyId,
     name: card.querySelector('.convoy-name')?.textContent || '',
     issues: JSON.parse(card.dataset.issues || '[]'),
     workers: JSON.parse(card.dataset.workers || '[]'),
     status: card.dataset.status || 'pending',
+    integration_branch: integrationBranch,
+    agent_count: parseInt(card.dataset.agentCount || '0', 10),
   };
 }
 
@@ -240,7 +267,9 @@ function renderConvoyCard(convoy, index) {
          data-convoy-id="${escapeAttr(convoy.id)}"
          data-status="${escapeAttr(status)}"
          data-issues='${escapeAttr(JSON.stringify(convoy.issues || []))}'
-         data-workers='${escapeAttr(JSON.stringify(convoy.workers || []))}'>
+         data-workers='${escapeAttr(JSON.stringify(convoy.workers || []))}'
+         data-agent-count="${convoy.agent_count ?? convoy.workers?.length ?? 0}"
+         ${convoy.integration_branch ? `data-integration-branch='${escapeAttr(JSON.stringify(convoy.integration_branch))}'` : ''}>
       <div class="convoy-header">
         <button class="btn btn-icon convoy-expand-btn" title="Expand">
           <span class="material-icons">${isExpanded ? 'expand_less' : 'expand_more'}</span>
@@ -267,6 +296,13 @@ function renderConvoyCard(convoy, index) {
           </button>
         </div>
       </div>
+
+      ${isStranded(convoy) ? `
+        <div class="convoy-stranded-indicator">
+          <span class="material-icons">warning</span>
+          <span>Stranded — ready work with no assigned workers</span>
+        </div>
+      ` : ''}
 
       <div class="convoy-progress">
         <div class="progress-bar">
@@ -305,6 +341,67 @@ function renderConvoyDetail(convoy) {
       <div class="convoy-detail-section">
         <h4><span class="material-icons">analytics</span> Progress Breakdown</h4>
         ${renderProgressBreakdown(convoy)}
+      </div>
+
+      ${renderIntegrationBranchPanel(convoy)}
+    </div>
+  `;
+}
+
+/**
+ * Render integration branch status panel
+ */
+function renderIntegrationBranchPanel(convoy) {
+  const branch = convoy.integration_branch;
+  if (!branch) {
+    return `
+      <div class="convoy-detail-section integration-branch-panel">
+        <h4><span class="material-icons">account_tree</span> Integration Branch</h4>
+        <p class="empty-hint">No integration branch configured</p>
+      </div>
+    `;
+  }
+
+  const branchName = branch.branch || branch.name || 'unknown';
+  const commitsAhead = branch.commits_ahead ?? 0;
+  const commitsBehind = branch.commits_behind ?? 0;
+  const mergedMRs = branch.merged_mrs ?? branch.merged ?? 0;
+  const pendingMRs = branch.pending_mrs ?? branch.pending ?? 0;
+  const totalMRs = mergedMRs + pendingMRs;
+  const readyToLand = branch.ready_to_land ?? false;
+  const autoLand = branch.auto_land ?? false;
+
+  return `
+    <div class="convoy-detail-section integration-branch-panel">
+      <h4><span class="material-icons">account_tree</span> Integration Branch</h4>
+      <div class="integration-branch-info">
+        <div class="branch-name-row">
+          <span class="material-icons branch-icon">fork_right</span>
+          <code class="branch-name">${escapeHtml(branchName)}</code>
+          ${readyToLand
+            ? '<span class="badge badge-success">Ready to land</span>'
+            : '<span class="badge badge-pending">In progress</span>'}
+        </div>
+        <div class="branch-stats">
+          <span class="branch-stat" title="Commits ahead of main">
+            <span class="material-icons">arrow_upward</span>${commitsAhead} ahead
+          </span>
+          ${commitsBehind > 0 ? `
+            <span class="branch-stat branch-stat-warning" title="Commits behind main">
+              <span class="material-icons">arrow_downward</span>${commitsBehind} behind
+            </span>
+          ` : ''}
+          <span class="branch-stat" title="Merge requests">
+            <span class="material-icons">merge</span>${mergedMRs}/${totalMRs} MRs merged
+          </span>
+        </div>
+        <div class="branch-actions">
+          ${autoLand
+            ? '<span class="branch-auto-land"><span class="material-icons">auto_mode</span> Auto-land enabled</span>'
+            : `<button class="btn btn-sm" data-action="land-branch" data-convoy-id="${escapeAttr(convoy.id)}" ${!readyToLand ? 'disabled title="Not ready to land — all children must be closed and MRs merged"' : 'title="Land integration branch to main"'}>
+                <span class="material-icons">merge_type</span> Land
+              </button>`}
+        </div>
       </div>
     </div>
   `;
@@ -386,6 +483,20 @@ function renderConvoyStats(convoy) {
   }
 
   return stats.join('');
+}
+
+/**
+ * Check if a convoy is stranded (has ready work but no assigned workers)
+ */
+function isStranded(convoy) {
+  if (convoy.stranded) return true;
+  const issues = convoy.issues || [];
+  const hasReadyWork = issues.some(i => {
+    const status = typeof i === 'string' ? 'open' : (i.status || 'open');
+    return status === 'open';
+  });
+  const workerCount = convoy.agent_count ?? convoy.workers?.length ?? 0;
+  return hasReadyWork && workerCount === 0 && convoy.status !== 'complete';
 }
 
 /**

@@ -56,5 +56,50 @@ export class ConvoyService {
 
     return { ok: true, convoyId, raw: result.raw };
   }
+
+  async integrationBranchStatus(convoyId) {
+    const result = await this._gt.integrationBranchStatus(convoyId);
+    if (!result.ok) throw new Error(result.error || 'Failed to get integration branch status');
+    return result.data || { raw: result.raw };
+  }
+
+  async createIntegrationBranch(convoyId, { branch } = {}) {
+    const result = await this._gt.createIntegrationBranch(convoyId, { branch });
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to create integration branch' };
+    return { ok: true, raw: result.raw };
+  }
+
+  async landIntegrationBranch(convoyId, { dryRun = false } = {}) {
+    const result = await this._gt.landIntegrationBranch(convoyId, { dryRun });
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to land integration branch' };
+    return { ok: true, raw: result.raw };
+  }
+
+  async feed(convoyId) {
+    const convoy = await this.get(convoyId);
+    const issues = convoy.issues || convoy.tracked || [];
+    const ready = issues.filter(i => {
+      const status = typeof i === 'string' ? 'open' : (i.status || 'open');
+      return status === 'open';
+    });
+
+    if (ready.length === 0) {
+      return { ok: true, slung: 0, message: 'No ready issues to feed' };
+    }
+
+    const results = [];
+    for (const issue of ready) {
+      const beadId = typeof issue === 'string' ? issue : issue.id;
+      if (!beadId) continue;
+      try {
+        const r = await this._gt.sling({ bead: beadId });
+        results.push({ beadId, ok: r.ok, raw: r.raw });
+      } catch (err) {
+        results.push({ beadId, ok: false, error: err.message });
+      }
+    }
+
+    return { ok: true, slung: results.filter(r => r.ok).length, total: results.length, results };
+  }
 }
 

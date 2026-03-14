@@ -136,6 +136,61 @@ app.post('/api/convoy', (req, res) => {
   });
 });
 
+// Integration branch status
+app.get('/api/convoy/:id/integration-branch/status', (req, res) => {
+  const convoy = mockData.convoys.find(c => c.id === req.params.id);
+  if (!convoy) {
+    return res.status(404).json({ error: 'Convoy not found' });
+  }
+  res.json({
+    branch: `integration/${convoy.name?.toLowerCase().replace(/\s+/g, '-') || req.params.id}`,
+    commits_ahead: 12,
+    commits_behind: 0,
+    merged_mrs: 3,
+    pending_mrs: 1,
+    ready_to_land: false,
+    auto_land: false,
+    created_at: convoy.created_at,
+  });
+});
+
+// Create integration branch
+app.post('/api/convoy/:id/integration-branch', (req, res) => {
+  const convoy = mockData.convoys.find(c => c.id === req.params.id);
+  if (!convoy) {
+    return res.status(404).json({ error: 'Convoy not found' });
+  }
+  const branchName = req.body.branch || `integration/${convoy.name?.toLowerCase().replace(/\s+/g, '-') || req.params.id}`;
+  res.json({ success: true, raw: `Created integration branch: ${branchName}` });
+});
+
+// Land integration branch
+app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
+  const convoy = mockData.convoys.find(c => c.id === req.params.id);
+  if (!convoy) {
+    return res.status(404).json({ error: 'Convoy not found' });
+  }
+  if (req.body.dryRun) {
+    return res.json({ success: true, raw: 'Dry run: would land integration branch to main' });
+  }
+  res.json({ success: true, raw: 'Landed integration branch to main' });
+});
+
+// Feed convoy
+app.post('/api/convoy/:id/feed', (req, res) => {
+  const convoy = mockData.convoys.find(c => c.id === req.params.id);
+  if (!convoy) {
+    return res.status(404).json({ error: 'Convoy not found' });
+  }
+  const readyIssues = (convoy.issues || []).filter(i => !i.status || i.status === 'open');
+  res.json({
+    ok: true,
+    slung: readyIssues.length,
+    total: readyIssues.length,
+    message: readyIssues.length === 0 ? 'No ready issues to feed' : `Slung ${readyIssues.length} issues`,
+  });
+});
+
 app.post('/api/sling', (req, res) => {
   const { bead, target, molecule } = req.body;
   const result = {

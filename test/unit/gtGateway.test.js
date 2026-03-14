@@ -119,6 +119,35 @@ describe('GTGateway', () => {
     expect(result.data).toBeNull();
   });
 
+  it('integrationBranchStatus() builds correct args', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: '{"branch":"integration/auth"}', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.integrationBranchStatus('epic-123');
+    expect(runner.calls[0].args).toEqual(['mq', 'integration', 'status', 'epic-123', '--json']);
+    expect(result.data).toEqual({ branch: 'integration/auth' });
+  });
+
+  it('createIntegrationBranch() passes optional branch flag', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'Created', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.createIntegrationBranch('epic-123', { branch: 'integration/custom' });
+    expect(runner.calls[0].args).toEqual(['mq', 'integration', 'create', 'epic-123', '--branch', 'integration/custom']);
+  });
+
+  it('landIntegrationBranch() supports dry-run', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'Dry run OK', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.landIntegrationBranch('epic-123', { dryRun: true });
+    expect(runner.calls[0].args).toEqual(['mq', 'integration', 'land', 'epic-123', '--dry-run']);
+    expect(result.raw).toBe('Dry run OK');
+  });
+
   it('listConvoys() handles invalid JSON in stdout', async () => {
     const runner = new FakeRunner();
     runner.queue({ ok: true, exitCode: 0, stdout: 'broken', stderr: '', error: null, signal: null });

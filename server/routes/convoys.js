@@ -38,5 +38,49 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
       res.status(500).json({ error: err.message });
     }
   });
+
+  // Integration branch status
+  app.get('/api/convoy/:id/integration-branch/status', async (req, res) => {
+    try {
+      const data = await convoyService.integrationBranchStatus(req.params.id);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Create integration branch
+  app.post('/api/convoy/:id/integration-branch', async (req, res) => {
+    try {
+      const { branch } = req.body || {};
+      const result = await convoyService.createIntegrationBranch(req.params.id, { branch });
+      if (!result.ok) return res.status(500).json({ error: result.error });
+      res.json({ success: true, raw: result.raw });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Land integration branch
+  app.post('/api/convoy/:id/integration-branch/land', async (req, res) => {
+    try {
+      const { dryRun } = req.body || {};
+      const result = await convoyService.landIntegrationBranch(req.params.id, { dryRun });
+      if (!result.ok) return res.status(500).json({ error: result.error });
+      res.json({ success: true, raw: result.raw });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Feed convoy (sling ready issues)
+  app.post('/api/convoy/:id/feed', async (req, res) => {
+    try {
+      const result = await convoyService.feed(req.params.id);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 }
 
