@@ -12,6 +12,7 @@ import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
+import { renderKanbanBoard } from './components/kanban-board.js';
 import { renderMailList } from './components/mail-list.js';
 import { renderRigList } from './components/rig-list.js';
 import { renderCrewList, loadCrews, showNewCrewModal } from './components/crew-list.js';
@@ -125,6 +126,9 @@ async function init() {
 
   // Set up work filters
   setupWorkFilters();
+
+  // Set up work view toggle (list/board)
+  setupWorkViewToggle();
 
   // Set up rig filter
   setupRigFilter();
@@ -759,6 +763,7 @@ async function loadRigs() {
 
 // Track work filter state
 let workFilter = 'closed'; // Default to showing completed work
+let workViewMode = localStorage.getItem('gastown-work-view') || 'list'; // 'list' or 'board'
 
 async function loadWork() {
   showLoadingState(elements.workList, 'Loading work...');
@@ -769,7 +774,11 @@ async function loadWork() {
     if (selectedRig) params.set('rig', selectedRig);
     const query = params.toString();
     const beads = await api.get(`/api/beads${query ? '?' + query : ''}`);
-    renderWorkList(elements.workList, beads || []);
+    if (workViewMode === 'board') {
+      renderKanbanBoard(elements.workList, beads || []);
+    } else {
+      renderWorkList(elements.workList, beads || []);
+    }
   } catch (err) {
     console.error('[App] Failed to load work:', err);
     elements.workList.innerHTML = `
@@ -815,6 +824,81 @@ function setupWorkFilters() {
   if (closedBtn) {
     closedBtn.addEventListener('click', () => setActiveFilter(closedBtn, 'closed', 'Completed Work'));
   }
+}
+
+// Work view toggle (list vs board)
+function setupWorkViewToggle() {
+  const toggleContainer = document.getElementById('work-view-toggle');
+  if (!toggleContainer) return;
+
+  const buttons = toggleContainer.querySelectorAll('.toggle-btn');
+
+  // Set initial active state from stored preference
+  buttons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.workView === workViewMode);
+  });
+
+  // When board mode is active and filter is a specific status, switch to 'all'
+  // since the board already shows columns by status
+  if (workViewMode === 'board' && workFilter !== 'all') {
+    workFilter = 'all';
+    const title = document.getElementById('work-view-title');
+    if (title) title.textContent = 'All Work';
+    // Update filter button states
+    const filterBtns = [
+      document.getElementById('work-filter-all'),
+      document.getElementById('work-filter-open'),
+      document.getElementById('work-filter-closed'),
+    ];
+    filterBtns.forEach(btn => {
+      if (btn) {
+        btn.classList.remove('btn-secondary', 'filter-active');
+        btn.classList.add('btn-ghost');
+      }
+    });
+    const allBtn = document.getElementById('work-filter-all');
+    if (allBtn) {
+      allBtn.classList.remove('btn-ghost');
+      allBtn.classList.add('btn-secondary', 'filter-active');
+    }
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.workView;
+      if (mode === workViewMode) return;
+
+      workViewMode = mode;
+      localStorage.setItem('gastown-work-view', mode);
+
+      buttons.forEach(b => b.classList.toggle('active', b === btn));
+
+      // When switching to board, show all beads (board has its own columns)
+      if (mode === 'board' && workFilter !== 'all') {
+        workFilter = 'all';
+        const title = document.getElementById('work-view-title');
+        if (title) title.textContent = 'All Work';
+        const filterBtns = [
+          document.getElementById('work-filter-all'),
+          document.getElementById('work-filter-open'),
+          document.getElementById('work-filter-closed'),
+        ];
+        filterBtns.forEach(b => {
+          if (b) {
+            b.classList.remove('btn-secondary', 'filter-active');
+            b.classList.add('btn-ghost');
+          }
+        });
+        const allBtn = document.getElementById('work-filter-all');
+        if (allBtn) {
+          allBtn.classList.remove('btn-ghost');
+          allBtn.classList.add('btn-secondary', 'filter-active');
+        }
+      }
+
+      loadWork();
+    });
+  });
 }
 
 // Rig filter in footer bar

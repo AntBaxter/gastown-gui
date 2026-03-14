@@ -117,7 +117,7 @@ export function renderWorkList(container, beads) {
 /**
  * Handle work action (done, park, release, reassign)
  */
-async function handleWorkAction(action, beadId, btn) {
+export async function handleWorkAction(action, beadId, btn) {
   const originalIcon = btn.innerHTML;
   btn.innerHTML = '<span class="material-icons spinning">sync</span>';
   btn.disabled = true;
@@ -184,7 +184,7 @@ async function handleWorkAction(action, beadId, btn) {
 /**
  * Render a single bead card
  */
-function renderBeadCard(bead, index) {
+export function renderBeadCard(bead, index) {
   const status = bead.status || 'open';
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.open;
   const typeIcon = TYPE_ICONS[bead.issue_type] || 'assignment';

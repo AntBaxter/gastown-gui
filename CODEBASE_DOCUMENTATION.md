@@ -123,7 +123,8 @@ js/components/issue-list.js - Beads/issues list with search
 js/components/pr-list.js - GitHub PR list
 js/components/formula-list.js - Formula editor/executor
 js/components/greeting.js - Time-of-day greeting banner on dashboard
-js/components/work-list.js - Active work items display
+js/components/work-list.js - Active work items display (list view)
+js/components/kanban-board.js - Kanban board view for beads (columns by status)
 js/components/rig-list.js - Rig management + polecat spawn/stop
 js/components/crew-list.js - Crew CRUD operations
 js/components/health-check.js - System health display (doctor)
