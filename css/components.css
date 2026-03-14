@@ -1813,6 +1813,156 @@ select {
   font-size: 16px;
 }
 
+/* === Integration Branch Panel === */
+.integration-branch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-muted);
+}
+
+.integration-branch-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.ib-branch-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.ib-branch-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--bg-tertiary);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.ib-branch-name .material-icons {
+  font-size: 14px;
+}
+
+.ib-base-branch {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ib-stats-row {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.ib-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.ib-stat .material-icons {
+  font-size: 14px;
+}
+
+.ib-stat-warn {
+  color: var(--status-stuck);
+}
+
+.ib-gates {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.ib-gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.ib-gate .material-icons {
+  font-size: 14px;
+}
+
+.ib-gate.gate-pass {
+  color: var(--status-done);
+}
+
+.ib-gate.gate-fail {
+  color: var(--status-stuck);
+}
+
+.ib-gate.gate-pending {
+  color: var(--text-muted);
+}
+
+.ib-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.ib-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--status-done);
+}
+
+.ib-ready .material-icons {
+  font-size: 16px;
+}
+
+.ib-not-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.ib-not-ready .material-icons {
+  font-size: 16px;
+}
+
+.ib-auto-land {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ib-auto-land .material-icons {
+  font-size: 14px;
+}
+
+.ib-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 /* === Progress Breakdown === */
 .progress-breakdown {
   padding: var(--space-sm);

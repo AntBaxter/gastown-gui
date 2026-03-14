@@ -8,7 +8,7 @@
 import { escapeHtml, escapeAttr } from '../utils/html.js';
 import { formatTimeAgoOrDate } from '../utils/formatting.js';
 import { TIMING_MS } from '../shared/timing.js';
-import { AGENT_NUDGE, BEAD_DETAIL, CONVOY_DETAIL, CONVOY_ESCALATE, SLING_OPEN } from '../shared/events.js';
+import { AGENT_NUDGE, BEAD_DETAIL, CONVOY_DETAIL, CONVOY_ESCALATE, SLING_OPEN, dispatchEvent } from '../shared/events.js';
 import { getStaggerClass } from '../shared/animations.js';
 
 // Status icons for convoys
@@ -150,8 +150,30 @@ function setupConvoyEventListeners(container) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const convoyId = btn.dataset.convoyId;
+      if (convoyId && !btn.disabled) {
+        landIntegrationBranch(convoyId);
+      }
+    });
+  });
+
+  // Create integration branch buttons
+  container.querySelectorAll('[data-action="create-ib"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
       if (convoyId) {
-        document.dispatchEvent(new CustomEvent(CONVOY_DETAIL, { detail: { convoyId, action: 'land' } }));
+        createIntegrationBranch(convoyId);
+      }
+    });
+  });
+
+  // Refresh integration branch status buttons
+  container.querySelectorAll('[data-action="refresh-ib"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
+      if (convoyId) {
+        refreshIntegrationBranchStatus(convoyId);
       }
     });
   });
@@ -207,16 +229,8 @@ function toggleConvoyExpand(card, convoyId) {
           });
         });
 
-        // Attach land button handler
-        detail.querySelectorAll('[data-action="land-branch"]').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const cId = btn.dataset.convoyId;
-            if (cId) {
-              document.dispatchEvent(new CustomEvent(CONVOY_DETAIL, { detail: { convoyId: cId, action: 'land' } }));
-            }
-          });
-        });
+        // Attach integration branch action handlers
+        attachIntegrationBranchListeners(detail);
 
         // Trigger animation
         requestAnimationFrame(() => {
@@ -330,6 +344,7 @@ function renderConvoyCard(convoy, index) {
  */
 function renderConvoyDetail(convoy) {
   const issues = convoy.issues || [];
+  const ib = convoy.integration_branch || null;
 
   return `
     <div class="convoy-detail" style="max-height: ${expandedConvoys.has(convoy.id) ? 'none' : '0'}">
@@ -343,7 +358,10 @@ function renderConvoyDetail(convoy) {
         ${renderProgressBreakdown(convoy)}
       </div>
 
-      ${renderIntegrationBranchPanel(convoy)}
+      <div class="convoy-detail-section">
+        <h4><span class="material-icons">merge_type</span> Integration Branch</h4>
+        ${ib ? renderIntegrationBranchPanel(convoy.id, ib) : renderNoIntegrationBranch(convoy.id)}
+      </div>
     </div>
   `;
 }
@@ -351,58 +369,111 @@ function renderConvoyDetail(convoy) {
 /**
  * Render integration branch status panel
  */
-function renderIntegrationBranchPanel(convoy) {
-  const branch = convoy.integration_branch;
-  if (!branch) {
-    return `
-      <div class="convoy-detail-section integration-branch-panel">
-        <h4><span class="material-icons">account_tree</span> Integration Branch</h4>
-        <p class="empty-hint">No integration branch configured</p>
-      </div>
-    `;
-  }
-
-  const branchName = branch.branch || branch.name || 'unknown';
-  const commitsAhead = branch.commits_ahead ?? 0;
-  const commitsBehind = branch.commits_behind ?? 0;
-  const mergedMRs = branch.merged_mrs ?? branch.merged ?? 0;
-  const pendingMRs = branch.pending_mrs ?? branch.pending ?? 0;
+function renderIntegrationBranchPanel(convoyId, ib) {
+  const branchName = ib.branch || ib.name || 'unknown';
+  const baseBranch = ib.base_branch || 'main';
+  const commitsAhead = ib.commits_ahead ?? 0;
+  const commitsBehind = ib.commits_behind ?? null;
+  const mergedMRs = ib.merged_mrs ?? ib.merged ?? 0;
+  const pendingMRs = ib.pending_mrs ?? ib.pending ?? 0;
   const totalMRs = mergedMRs + pendingMRs;
-  const readyToLand = branch.ready_to_land ?? false;
-  const autoLand = branch.auto_land ?? false;
+  const readyToLand = ib.ready_to_land === true;
+  const autoLand = ib.auto_land === true;
+
+  const gateResults = ib.gates || null;
 
   return `
-    <div class="convoy-detail-section integration-branch-panel">
-      <h4><span class="material-icons">account_tree</span> Integration Branch</h4>
-      <div class="integration-branch-info">
-        <div class="branch-name-row">
-          <span class="material-icons branch-icon">fork_right</span>
-          <code class="branch-name">${escapeHtml(branchName)}</code>
-          ${readyToLand
-            ? '<span class="badge badge-success">Ready to land</span>'
-            : '<span class="badge badge-pending">In progress</span>'}
-        </div>
-        <div class="branch-stats">
-          <span class="branch-stat" title="Commits ahead of main">
-            <span class="material-icons">arrow_upward</span>${commitsAhead} ahead
-          </span>
-          ${commitsBehind > 0 ? `
-            <span class="branch-stat branch-stat-warning" title="Commits behind main">
-              <span class="material-icons">arrow_downward</span>${commitsBehind} behind
-            </span>
-          ` : ''}
-          <span class="branch-stat" title="Merge requests">
-            <span class="material-icons">merge</span>${mergedMRs}/${totalMRs} MRs merged
-          </span>
-        </div>
-        <div class="branch-actions">
-          ${autoLand
-            ? '<span class="branch-auto-land"><span class="material-icons">auto_mode</span> Auto-land enabled</span>'
-            : `<button class="btn btn-sm" data-action="land-branch" data-convoy-id="${escapeAttr(convoy.id)}" ${!readyToLand ? 'disabled title="Not ready to land — all children must be closed and MRs merged"' : 'title="Land integration branch to main"'}>
-                <span class="material-icons">merge_type</span> Land
-              </button>`}
-        </div>
+    <div class="integration-branch-panel">
+      <div class="ib-branch-info">
+        <span class="ib-branch-name" title="${escapeAttr(branchName)}">
+          <span class="material-icons">account_tree</span>
+          ${escapeHtml(branchName)}
+        </span>
+        <span class="ib-base-branch">from ${escapeHtml(baseBranch)}</span>
       </div>
+
+      <div class="ib-stats-row">
+        <span class="ib-stat" title="Commits ahead of ${escapeAttr(baseBranch)}">
+          <span class="material-icons">arrow_upward</span>
+          ${commitsAhead} ahead
+        </span>
+        ${commitsBehind !== null ? `
+          <span class="ib-stat ${commitsBehind > 0 ? 'ib-stat-warn' : ''}" title="Commits behind ${escapeAttr(baseBranch)}">
+            <span class="material-icons">arrow_downward</span>
+            ${commitsBehind} behind
+          </span>
+        ` : ''}
+        <span class="ib-stat" title="Merge requests">
+          <span class="material-icons">merge</span>
+          ${mergedMRs}/${totalMRs} MRs merged
+        </span>
+      </div>
+
+      ${gateResults ? renderGateResults(gateResults) : ''}
+
+      <div class="ib-status-row">
+        ${readyToLand
+          ? '<span class="ib-ready"><span class="material-icons">check_circle</span> Ready to land</span>'
+          : '<span class="ib-not-ready"><span class="material-icons">schedule</span> Not ready to land</span>'
+        }
+        ${autoLand
+          ? '<span class="ib-auto-land"><span class="material-icons">autorenew</span> Auto-land enabled</span>'
+          : ''
+        }
+      </div>
+
+      <div class="ib-actions">
+        ${readyToLand ? `
+          <button class="btn btn-sm btn-primary" data-action="land-branch" data-convoy-id="${escapeAttr(convoyId)}" title="Land integration branch to ${escapeAttr(baseBranch)}">
+            <span class="material-icons">merge</span> Land
+          </button>
+        ` : `
+          <button class="btn btn-sm" data-action="land-branch" data-convoy-id="${escapeAttr(convoyId)}" disabled title="All children must be closed and MRs merged before landing">
+            <span class="material-icons">merge</span> Land
+          </button>
+        `}
+        <button class="btn btn-sm" data-action="refresh-ib" data-convoy-id="${escapeAttr(convoyId)}" title="Refresh integration branch status">
+          <span class="material-icons">refresh</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render gate results for integration branch
+ */
+function renderGateResults(gates) {
+  const gateNames = ['build', 'typecheck', 'lint', 'test'];
+  const configured = gateNames.filter(g => gates[g] !== undefined);
+  if (configured.length === 0) return '';
+
+  return `
+    <div class="ib-gates">
+      ${configured.map(name => {
+        const result = gates[name];
+        const passed = result === 'pass' || result === true;
+        const failed = result === 'fail' || result === false;
+        const icon = passed ? 'check_circle' : failed ? 'cancel' : 'radio_button_unchecked';
+        const cls = passed ? 'gate-pass' : failed ? 'gate-fail' : 'gate-pending';
+        return `<span class="ib-gate ${cls}" title="${escapeAttr(name)}: ${result}">
+          <span class="material-icons">${icon}</span> ${escapeHtml(name)}
+        </span>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Render placeholder when no integration branch exists
+ */
+function renderNoIntegrationBranch(convoyId) {
+  return `
+    <div class="integration-branch-empty">
+      <p class="empty-hint">No integration branch configured</p>
+      <button class="btn btn-sm" data-action="create-ib" data-convoy-id="${escapeAttr(convoyId)}" title="Create an integration branch for this convoy">
+        <span class="material-icons">add</span> Create Integration Branch
+      </button>
     </div>
   `;
 }
@@ -560,5 +631,102 @@ function openEscalationModal(convoyId, convoyName) {
     detail: { convoyId, convoyName }
   });
   document.dispatchEvent(event);
+}
+
+/**
+ * Attach event listeners to integration branch buttons within a container
+ */
+function attachIntegrationBranchListeners(container) {
+  container.querySelectorAll('[data-action="land-branch"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
+      if (convoyId && !btn.disabled) landIntegrationBranch(convoyId);
+    });
+  });
+  container.querySelectorAll('[data-action="create-ib"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
+      if (convoyId) createIntegrationBranch(convoyId);
+    });
+  });
+  container.querySelectorAll('[data-action="refresh-ib"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const convoyId = btn.dataset.convoyId;
+      if (convoyId) refreshIntegrationBranchStatus(convoyId);
+    });
+  });
+}
+
+/**
+ * Land integration branch for a convoy
+ */
+async function landIntegrationBranch(convoyId) {
+  if (!confirm('Land integration branch to main? This merges all convoy work.')) return;
+
+  try {
+    const res = await fetch(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/land`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`Failed to land: ${data.error || 'Unknown error'}`);
+      return;
+    }
+    dispatchEvent(CONVOY_DETAIL, { convoyId, refresh: true });
+  } catch (err) {
+    alert(`Failed to land: ${err.message}`);
+  }
+}
+
+/**
+ * Create integration branch for a convoy
+ */
+async function createIntegrationBranch(convoyId) {
+  try {
+    const res = await fetch(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`Failed to create integration branch: ${data.error || 'Unknown error'}`);
+      return;
+    }
+    dispatchEvent(CONVOY_DETAIL, { convoyId, refresh: true });
+  } catch (err) {
+    alert(`Failed to create integration branch: ${err.message}`);
+  }
+}
+
+/**
+ * Refresh integration branch status for a convoy
+ */
+async function refreshIntegrationBranchStatus(convoyId) {
+  try {
+    const res = await fetch(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/status`);
+    const data = await res.json();
+    if (!res.ok) return;
+
+    // Update the panel in-place if visible
+    const card = document.querySelector(`.convoy-card[data-convoy-id="${CSS.escape(convoyId)}"]`);
+    if (!card) return;
+
+    const section = card.querySelector('.integration-branch-panel, .integration-branch-empty');
+    if (section) {
+      const parent = section.parentElement;
+      const newHtml = data.branch
+        ? renderIntegrationBranchPanel(convoyId, data)
+        : renderNoIntegrationBranch(convoyId);
+      parent.innerHTML = `<h4><span class="material-icons">merge_type</span> Integration Branch</h4>${newHtml}`;
+    }
+  } catch {
+    // Silently ignore refresh failures
+  }
 }
 

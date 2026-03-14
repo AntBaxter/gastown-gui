@@ -43,6 +43,43 @@ export class ConvoyService {
     return result.data || { id: convoyId, raw: result.raw };
   }
 
+  async integrationBranchStatus(convoyId) {
+    if (!this._gt.integrationBranchStatus) {
+      throw new Error('Gateway does not support integrationBranchStatus');
+    }
+    const result = await this._gt.integrationBranchStatus(convoyId);
+    if (!result.ok) throw new Error(result.error || 'Failed to get integration branch status');
+    return result.data || { raw: result.raw };
+  }
+
+  async createIntegrationBranch(convoyId, { branch } = {}) {
+    if (!this._gt.integrationBranchCreate) {
+      throw new Error('Gateway does not support integrationBranchCreate');
+    }
+    const result = await this._gt.integrationBranchCreate(convoyId, { branch });
+    if (!result.ok) throw new Error(result.error || 'Failed to create integration branch');
+
+    if (this._emit) {
+      this._emit('integration_branch_created', { convoy_id: convoyId, branch });
+    }
+
+    return { ok: true, raw: result.raw };
+  }
+
+  async landIntegrationBranch(convoyId, { dryRun = false } = {}) {
+    if (!this._gt.integrationBranchLand) {
+      throw new Error('Gateway does not support integrationBranchLand');
+    }
+    const result = await this._gt.integrationBranchLand(convoyId, { dryRun });
+    if (!result.ok) throw new Error(result.error || 'Failed to land integration branch');
+
+    if (!dryRun && this._emit) {
+      this._emit('integration_branch_landed', { convoy_id: convoyId });
+    }
+
+    return { ok: true, raw: result.raw };
+  }
+
   async create({ name, issues = [], notify } = {}) {
     if (!name) return { ok: false, error: 'Name is required' };
 
@@ -55,24 +92,6 @@ export class ConvoyService {
     }
 
     return { ok: true, convoyId, raw: result.raw };
-  }
-
-  async integrationBranchStatus(convoyId) {
-    const result = await this._gt.integrationBranchStatus(convoyId);
-    if (!result.ok) throw new Error(result.error || 'Failed to get integration branch status');
-    return result.data || { raw: result.raw };
-  }
-
-  async createIntegrationBranch(convoyId, { branch } = {}) {
-    const result = await this._gt.createIntegrationBranch(convoyId, { branch });
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to create integration branch' };
-    return { ok: true, raw: result.raw };
-  }
-
-  async landIntegrationBranch(convoyId, { dryRun = false } = {}) {
-    const result = await this._gt.landIntegrationBranch(convoyId, { dryRun });
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to land integration branch' };
-    return { ok: true, raw: result.raw };
   }
 
   async feed(convoyId) {

@@ -51,7 +51,7 @@ describe('ConvoyService', () => {
     expect(result[0].tracked).toEqual(['bd-1', 'bd-2']);
   });
 
-  it('returns integration branch status', async () => {
+  it('gets integration branch status', async () => {
     const gtGateway = {
       listConvoys: async () => ({ ok: true, data: [] }),
       convoyStatus: async () => ({ ok: true, data: {} }),
@@ -65,6 +65,69 @@ describe('ConvoyService', () => {
     const service = new ConvoyService({ gtGateway });
     const result = await service.integrationBranchStatus('convoy-1');
     expect(result).toEqual({ branch: 'integration/auth', commits_ahead: 5, ready_to_land: false });
+  });
+
+  it('creates integration branch and emits event', async () => {
+    const events = [];
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      integrationBranchCreate: async () => ({ ok: true, raw: 'Created' }),
+    };
+
+    const service = new ConvoyService({
+      gtGateway,
+      emit: (type, data) => events.push({ type, data }),
+    });
+
+    const result = await service.createIntegrationBranch('epic-1', { branch: 'integration/custom' });
+    expect(result.ok).toBe(true);
+    expect(events).toEqual([{
+      type: 'integration_branch_created',
+      data: { convoy_id: 'epic-1', branch: 'integration/custom' },
+    }]);
+  });
+
+  it('lands integration branch and emits event', async () => {
+    const events = [];
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      integrationBranchLand: async () => ({ ok: true, raw: 'Landed' }),
+    };
+
+    const service = new ConvoyService({
+      gtGateway,
+      emit: (type, data) => events.push({ type, data }),
+    });
+
+    const result = await service.landIntegrationBranch('epic-1');
+    expect(result.ok).toBe(true);
+    expect(events).toEqual([{
+      type: 'integration_branch_landed',
+      data: { convoy_id: 'epic-1' },
+    }]);
+  });
+
+  it('lands integration branch with dry-run does not emit event', async () => {
+    const events = [];
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      integrationBranchLand: async () => ({ ok: true, raw: 'Dry run' }),
+    };
+
+    const service = new ConvoyService({
+      gtGateway,
+      emit: (type, data) => events.push({ type, data }),
+    });
+
+    const result = await service.landIntegrationBranch('epic-1', { dryRun: true });
+    expect(result.ok).toBe(true);
+    expect(events).toEqual([]);
   });
 
   it('feeds convoy by slinging ready issues', async () => {
@@ -115,4 +178,3 @@ describe('ConvoyService', () => {
     expect(events).toEqual([{ type: 'convoy_created', data: { convoy_id: 'convoy-abc', name: 'Test' } }]);
   });
 });
-

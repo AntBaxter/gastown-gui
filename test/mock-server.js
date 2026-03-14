@@ -43,6 +43,17 @@ const mockData = {
       created_at: new Date(Date.now() - 3600000).toISOString(),
       agent_count: 2,
       task_count: 5,
+      integration_branch: {
+        branch: 'integration/feature-implementation',
+        base_branch: 'main',
+        commits_ahead: 12,
+        commits_behind: 3,
+        merged_mrs: 3,
+        pending_mrs: 2,
+        ready_to_land: false,
+        auto_land: false,
+        gates: { build: 'pass', typecheck: 'pass', lint: 'pass', test: 'fail' },
+      },
     },
     {
       id: 'convoy-def456',
@@ -142,39 +153,45 @@ app.get('/api/convoy/:id/integration-branch/status', (req, res) => {
   if (!convoy) {
     return res.status(404).json({ error: 'Convoy not found' });
   }
-  res.json({
-    branch: `integration/${convoy.name?.toLowerCase().replace(/\s+/g, '-') || req.params.id}`,
-    commits_ahead: 12,
-    commits_behind: 0,
-    merged_mrs: 3,
-    pending_mrs: 1,
-    ready_to_land: false,
-    auto_land: false,
-    created_at: convoy.created_at,
-  });
+  if (convoy.integration_branch) {
+    res.json(convoy.integration_branch);
+  } else {
+    res.json({ branch: null });
+  }
 });
 
-// Create integration branch
 app.post('/api/convoy/:id/integration-branch', (req, res) => {
   const convoy = mockData.convoys.find(c => c.id === req.params.id);
   if (!convoy) {
     return res.status(404).json({ error: 'Convoy not found' });
   }
-  const branchName = req.body.branch || `integration/${convoy.name?.toLowerCase().replace(/\s+/g, '-') || req.params.id}`;
-  res.json({ success: true, raw: `Created integration branch: ${branchName}` });
+  const branch = req.body.branch || `integration/${convoy.name?.toLowerCase().replace(/\s+/g, '-') || req.params.id}`;
+  convoy.integration_branch = {
+    branch,
+    base_branch: 'main',
+    commits_ahead: 0,
+    commits_behind: 0,
+    merged_mrs: 0,
+    pending_mrs: 0,
+    ready_to_land: false,
+    auto_land: false,
+    gates: {},
+  };
+  res.json({ ok: true, raw: `Created integration branch: ${branch}` });
 });
 
-// Land integration branch
 app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
   const convoy = mockData.convoys.find(c => c.id === req.params.id);
   if (!convoy) {
     return res.status(404).json({ error: 'Convoy not found' });
   }
-  if (req.body.dryRun) {
-    return res.json({ success: true, raw: 'Dry run: would land integration branch to main' });
+  if (!convoy.integration_branch) {
+    return res.status(400).json({ error: 'No integration branch configured' });
   }
-  res.json({ success: true, raw: 'Landed integration branch to main' });
-});
+  if (req.body.dryRun) {
+    return res.json({ ok: true, raw: 'Dry run: would land integration branch' });
+  }
+  res.json({ ok: true, raw: 'Landed integration branch to main' });
 
 // Feed convoy
 app.post('/api/convoy/:id/feed', (req, res) => {

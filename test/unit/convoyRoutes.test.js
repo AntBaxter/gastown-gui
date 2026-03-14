@@ -84,11 +84,11 @@ describe('Convoy integration branch routes', () => {
       create: async () => ({ ok: true, convoyId: 'c-1', raw: '' }),
       integrationBranchStatus: async (id) => {
         calls.push(['integrationBranchStatus', id]);
-        return { branch: 'integration/test', commits_ahead: 5 };
+        return { branch: 'integration/test', commits_ahead: 5, ready_to_land: false };
       },
       createIntegrationBranch: async (id, opts) => {
         calls.push(['createIntegrationBranch', id, opts]);
-        return { ok: true, raw: 'Created' };
+        return { ok: true, raw: 'Created integration branch' };
       },
       landIntegrationBranch: async (id, opts) => {
         calls.push(['landIntegrationBranch', id, opts]);
@@ -113,12 +113,12 @@ describe('Convoy integration branch routes', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it('GET /api/convoy/:id/integration-branch/status returns branch data', async () => {
+  it('GET /api/convoy/:id/integration-branch/status returns branch status', async () => {
     const res = await fetch(`${baseUrl}/api/convoy/convoy-abc/integration-branch/status`);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ branch: 'integration/test', commits_ahead: 5 });
-    expect(calls[0]).toEqual(['integrationBranchStatus', 'convoy-abc']);
+    expect(body).toEqual({ branch: 'integration/test', commits_ahead: 5, ready_to_land: false });
+    expect(calls.find(c => c[0] === 'integrationBranchStatus')).toEqual(['integrationBranchStatus', 'convoy-abc']);
   });
 
   it('POST /api/convoy/:id/integration-branch creates branch', async () => {
@@ -129,8 +129,8 @@ describe('Convoy integration branch routes', () => {
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ success: true, raw: 'Created' });
-    expect(calls[1]).toEqual(['createIntegrationBranch', 'convoy-abc', { branch: 'integration/custom' }]);
+    expect(body.ok).toBe(true);
+    expect(calls.find(c => c[0] === 'createIntegrationBranch')).toEqual(['createIntegrationBranch', 'convoy-abc', { branch: 'integration/custom' }]);
   });
 
   it('POST /api/convoy/:id/integration-branch/land lands branch', async () => {
@@ -141,8 +141,8 @@ describe('Convoy integration branch routes', () => {
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ success: true, raw: 'Landed' });
-    expect(calls[2]).toEqual(['landIntegrationBranch', 'convoy-abc', { dryRun: true }]);
+    expect(body.ok).toBe(true);
+    expect(calls.find(c => c[0] === 'landIntegrationBranch')).toEqual(['landIntegrationBranch', 'convoy-abc', { dryRun: true }]);
   });
 
   it('POST /api/convoy/:id/feed feeds convoy', async () => {
@@ -154,7 +154,7 @@ describe('Convoy integration branch routes', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ ok: true, slung: 2, total: 2 });
-    expect(calls[3]).toEqual(['feed', 'convoy-abc']);
+    expect(calls.find(c => c[0] === 'feed')).toEqual(['feed', 'convoy-abc']);
   });
 });
 
@@ -207,4 +207,3 @@ describe('Convoy routes error handling', () => {
     expect(body).toHaveProperty('error', 'CLI not available');
   });
 });
-

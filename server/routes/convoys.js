@@ -23,6 +23,35 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
     }
   });
 
+  app.get('/api/convoy/:id/integration-branch/status', async (req, res) => {
+    try {
+      const status = await convoyService.integrationBranchStatus(req.params.id);
+      res.json(status);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/convoy/:id/integration-branch', async (req, res) => {
+    try {
+      const { branch } = req.body || {};
+      const result = await convoyService.createIntegrationBranch(req.params.id, { branch });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/convoy/:id/integration-branch/land', async (req, res) => {
+    try {
+      const { dryRun } = req.body || {};
+      const result = await convoyService.landIntegrationBranch(req.params.id, { dryRun: dryRun === true });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/convoy', async (req, res) => {
     try {
       const { name, issues, notify } = req.body;
@@ -34,40 +63,6 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
         convoy_id: result.convoyId,
         raw: result.raw,
       });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Integration branch status
-  app.get('/api/convoy/:id/integration-branch/status', async (req, res) => {
-    try {
-      const data = await convoyService.integrationBranchStatus(req.params.id);
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Create integration branch
-  app.post('/api/convoy/:id/integration-branch', async (req, res) => {
-    try {
-      const { branch } = req.body || {};
-      const result = await convoyService.createIntegrationBranch(req.params.id, { branch });
-      if (!result.ok) return res.status(500).json({ error: result.error });
-      res.json({ success: true, raw: result.raw });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Land integration branch
-  app.post('/api/convoy/:id/integration-branch/land', async (req, res) => {
-    try {
-      const { dryRun } = req.body || {};
-      const result = await convoyService.landIntegrationBranch(req.params.id, { dryRun });
-      if (!result.ok) return res.status(500).json({ error: result.error });
-      res.json({ success: true, raw: result.raw });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

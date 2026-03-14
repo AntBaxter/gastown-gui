@@ -54,31 +54,6 @@ export class GTGateway {
     return { ...result, raw, convoyId };
   }
 
-  async integrationBranchStatus(epicId) {
-    const result = await this.exec(
-      ['mq', 'integration', 'status', epicId, '--json'],
-      { timeoutMs: 30000 },
-    );
-    const raw = (result.stdout || '').trim();
-    return { ...result, raw, data: parseJsonOrNull(raw) };
-  }
-
-  async createIntegrationBranch(epicId, { branch } = {}) {
-    const args = ['mq', 'integration', 'create', epicId];
-    if (branch) args.push('--branch', branch);
-    const result = await this.exec(args, { timeoutMs: 60000 });
-    const raw = (result.stdout || '').trim();
-    return { ...result, raw };
-  }
-
-  async landIntegrationBranch(epicId, { dryRun = false } = {}) {
-    const args = ['mq', 'integration', 'land', epicId];
-    if (dryRun) args.push('--dry-run');
-    const result = await this.exec(args, { timeoutMs: 120000 });
-    const raw = (result.stdout || '').trim();
-    return { ...result, raw };
-  }
-
   async sling({ bead, target, molecule, args: slingArgs } = {}) {
     const cmdArgs = ['sling', bead];
     if (target) cmdArgs.push(target);
@@ -216,6 +191,31 @@ export class GTGateway {
 
   async doctorFix() {
     const result = await this.exec(['doctor', '--fix'], { timeoutMs: 60000 });
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw };
+  }
+
+  async integrationBranchStatus(epicId) {
+    const result = await this.exec(
+      ['mq', 'integration', 'status', epicId, '--json'],
+      { timeoutMs: 30000 }
+    );
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw, data: parseJsonOrNull(raw) };
+  }
+
+  async integrationBranchCreate(epicId, { branch } = {}) {
+    const args = ['mq', 'integration', 'create', epicId];
+    if (branch) args.push('--branch', branch);
+    const result = await this.exec(args, { timeoutMs: 60000 });
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw };
+  }
+
+  async integrationBranchLand(epicId, { dryRun = false } = {}) {
+    const args = ['mq', 'integration', 'land', epicId];
+    if (dryRun) args.push('--dry-run');
+    const result = await this.exec(args, { timeoutMs: 120000 });
     const raw = (result.stdout || '').trim();
     return { ...result, raw };
   }
