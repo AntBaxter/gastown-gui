@@ -704,7 +704,7 @@ app.get('/api/beads', (req, res) => {
 });
 
 app.post('/api/beads', (req, res) => {
-  const { title, description, priority, labels } = req.body;
+  const { title, description, type, priority, labels } = req.body;
   if (!title) {
     return res.status(400).json({ error: 'Title is required' });
   }
@@ -714,7 +714,7 @@ app.post('/api/beads', (req, res) => {
     description: description || '',
     status: 'open',
     priority: priority || 2,
-    issue_type: 'task',
+    issue_type: type || 'task',
     created_at: new Date().toISOString(),
     assignee: null,
     labels: labels || [],

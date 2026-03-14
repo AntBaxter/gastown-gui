@@ -138,6 +138,7 @@ export const api = {
     return this.post('/api/beads', {
       title,
       description: options.description,
+      type: options.type,
       priority: options.priority,
       labels: options.labels,
       rig: options.rig,

@@ -40,8 +40,9 @@ export class BDGateway {
     return { ...result, raw, data: parseJsonOrNull(raw) };
   }
 
-  async create({ title, description, priority, labels, rig } = {}) {
+  async create({ title, description, type, priority, labels, rig } = {}) {
     const args = ['create', title];
+    if (type) args.push('--type', type);
     if (description) args.push('--description', description);
     if (priority) args.push('--priority', priority);
     if (Array.isArray(labels) && labels.length > 0) {
