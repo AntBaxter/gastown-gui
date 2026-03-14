@@ -192,6 +192,7 @@ app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
     return res.json({ ok: true, raw: 'Dry run: would land integration branch' });
   }
   res.json({ ok: true, raw: 'Landed integration branch to main' });
+});
 
 // Feed convoy
 app.post('/api/convoy/:id/feed', (req, res) => {
