@@ -7,6 +7,7 @@
 
 import { renderBeadCard } from './work-list.js';
 import { BEAD_DETAIL } from '../shared/events.js';
+import { HIDDEN_BEAD_TYPES } from '../shared/beads.js';
 
 const KANBAN_COLUMNS = [
   { key: 'open', label: 'Open', icon: 'radio_button_unchecked', colorVar: '--accent-warning' },
@@ -25,10 +26,8 @@ function groupByStatus(beads) {
     groups[col.key] = [];
   }
 
-  const hiddenTypes = ['message', 'convoy', 'agent', 'gate', 'role', 'event', 'slot'];
-
   for (const bead of beads) {
-    if (hiddenTypes.includes(bead.issue_type)) continue;
+    if (HIDDEN_BEAD_TYPES.includes(bead.issue_type)) continue;
 
     let status = bead.status || 'open';
     // Normalize in-progress variants
@@ -65,8 +64,7 @@ function groupByStatus(beads) {
 export function renderKanbanBoard(container, beads) {
   if (!container) return;
 
-  const hiddenTypes = ['message', 'convoy', 'agent', 'gate', 'role', 'event', 'slot'];
-  const tasks = beads.filter(b => !hiddenTypes.includes(b.issue_type));
+  const tasks = beads.filter(b => !HIDDEN_BEAD_TYPES.includes(b.issue_type));
 
   if (!tasks || tasks.length === 0) {
     container.innerHTML = `
