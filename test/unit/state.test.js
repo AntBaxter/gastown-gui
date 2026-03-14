@@ -325,6 +325,37 @@ describe('State Management', () => {
     });
   });
 
+  describe('markMailUnread()', () => {
+    it('should mark mail as unread', () => {
+      state.setMail([
+        { id: 'mail-1', subject: 'Test', read: true },
+      ]);
+
+      state.markMailUnread('mail-1');
+
+      expect(state.get('mail')[0].read).toBe(false);
+    });
+
+    it('should notify subscribers', () => {
+      state.setMail([{ id: 'mail-1', read: true }]);
+
+      const callback = vi.fn();
+      subscribe('mail', callback);
+
+      state.markMailUnread('mail-1');
+
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it('should do nothing for non-existent mail', () => {
+      state.setMail([{ id: 'mail-1', read: true }]);
+
+      state.markMailUnread('mail-999');
+
+      expect(state.get('mail')[0].read).toBe(true);
+    });
+  });
+
   describe('selectedRig', () => {
     it('should default to "all" without storage', () => {
       expect(state.getSelectedRig()).toBe('all');

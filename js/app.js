@@ -573,6 +573,7 @@ function setupConvoyFilters() {
 
 // Track mail filter state
 let mailFilter = 'mine'; // 'mine' = my inbox, 'all' = all system mail
+let mailUnreadOnly = false; // true = show only unread messages
 
 async function loadMail() {
   showLoadingState(elements.mailList, 'Loading mail...');
@@ -602,6 +603,7 @@ async function loadMail() {
 function setupMailFilters() {
   const mineBtn = document.getElementById('mail-filter-mine');
   const allBtn = document.getElementById('mail-filter-all');
+  const unreadBtn = document.getElementById('mail-filter-unread');
   const title = document.getElementById('mail-view-title');
 
   if (mineBtn && allBtn) {
@@ -623,6 +625,19 @@ function setupMailFilters() {
       mineBtn.classList.add('btn-ghost');
       if (title) title.textContent = 'All System Mail';
       loadMail();
+    });
+  }
+
+  if (unreadBtn) {
+    unreadBtn.addEventListener('click', () => {
+      mailUnreadOnly = !mailUnreadOnly;
+      unreadBtn.classList.toggle('btn-ghost', !mailUnreadOnly);
+      unreadBtn.classList.toggle('btn-secondary', mailUnreadOnly);
+      unreadBtn.classList.toggle('filter-active', mailUnreadOnly);
+      // Re-render from current state (no API call needed)
+      const mail = state.get('mail') || [];
+      const displayMail = mailUnreadOnly ? mail.filter(m => !m.read) : mail;
+      renderMailList(elements.mailList, displayMail, { isAllMail: mailFilter === 'all' });
     });
   }
 }
@@ -1004,7 +1019,8 @@ function subscribeToState() {
 
   // Mail updates
   subscribe('mail', (mail) => {
-    renderMailList(elements.mailList, mail, { isAllMail: mailFilter === 'all' });
+    const displayMail = mailUnreadOnly ? mail.filter(m => !m.read) : mail;
+    renderMailList(elements.mailList, displayMail, { isAllMail: mailFilter === 'all' });
 
     // Update badge
     const unread = mail.filter(m => !m.read).length;
@@ -1211,6 +1227,7 @@ function showMailDetailModal(mail) {
   // Mark as read when viewing
   if (!mail.read && !mail.feedEvent) {
     api.markMailRead(mail.id).catch(err => console.warn('Failed to mark mail as read:', err));
+    state.markMailRead(mail.id);
   }
 
   document.getElementById('modal-overlay').classList.remove('hidden');

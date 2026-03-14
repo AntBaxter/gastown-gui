@@ -167,6 +167,15 @@ export function createStateStore(options = {}) {
       }
     },
 
+    // Mark mail as unread
+    markMailUnread(id) {
+      const mail = store.mail.find(m => m.id === id);
+      if (mail) {
+        mail.read = false;
+        notify('mail');
+      }
+    },
+
     // Remove mail from local store
     removeMail(id) {
       store.mail = store.mail.filter(m => m.id !== id);

@@ -187,8 +187,12 @@ async function handleToggleRead(mailId, markAsRead, btn) {
 
     if (result.success) {
       showToast(`Mail marked as ${markAsRead ? 'read' : 'unread'}`, 'success');
-      // Trigger mail refresh
-      document.dispatchEvent(new CustomEvent(MAIL_REFRESH));
+      // Optimistic local state update instead of full reload
+      if (markAsRead) {
+        state.markMailRead(mailId);
+      } else {
+        state.markMailUnread(mailId);
+      }
     } else {
       showToast(`Failed: ${result.error}`, 'error');
     }
