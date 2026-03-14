@@ -12,6 +12,7 @@ import { AGENT_TYPES, STATUS_COLORS, getAgentConfig } from '../shared/agent-type
 import { BEAD_DETAIL, STATUS_UPDATED } from '../shared/events.js';
 import { escapeHtml } from '../utils/html.js';
 import { formatTimeAgoCompact } from '../utils/formatting.js';
+import { renderGreeting } from './greeting.js';
 
 /**
  * Calculate agent work status from an array of agents
@@ -187,6 +188,9 @@ function renderDashboard(status, health) {
   const healthStatus = calculateHealthStatus(health);
 
   container.innerHTML = `
+    <!-- Greeting -->
+    ${renderGreeting()}
+
     <!-- Health Banner -->
     ${renderHealthBanner(healthStatus)}
 

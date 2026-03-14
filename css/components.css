@@ -5777,6 +5777,26 @@ select {
   color: var(--text-secondary);
 }
 
+/* Greeting Banner */
+.greeting-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.greeting-icon {
+  font-size: 28px;
+  color: var(--accent-primary);
+}
+
+.greeting-text {
+  line-height: 1.2;
+}
+
 /* Health Banner - Balanced design */
 .health-banner {
   display: flex;
