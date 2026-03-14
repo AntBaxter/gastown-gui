@@ -23,8 +23,8 @@ export function registerBeadRoutes(app, { beadService } = {}) {
 
   app.post('/api/beads', async (req, res) => {
     try {
-      const { title, description, priority, labels, rig } = req.body;
-      const result = await beadService.create({ title, description, priority, labels, rig });
+      const { title, description, type, priority, labels, rig } = req.body;
+      const result = await beadService.create({ title, description, type, priority, labels, rig });
 
       if (!result.ok) {
         return res.status(result.statusCode || 500).json({ success: false, error: result.error });

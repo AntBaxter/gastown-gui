@@ -391,6 +391,7 @@ function initNewBeadModal(element, data) {
 async function handleNewBeadSubmit(form) {
   const title = form.querySelector('[name="title"]')?.value;
   const description = form.querySelector('[name="description"]')?.value || '';
+  const type = form.querySelector('[name="type"]')?.value || 'task';
   const rig = form.querySelector('[name="rig"]')?.value || '';
   const priority = form.querySelector('[name="priority"]')?.value || 'normal';
   const labelsText = form.querySelector('[name="labels"]')?.value || '';
@@ -412,7 +413,7 @@ async function handleNewBeadSubmit(form) {
   closeAllModals();
 
   // Run in background (non-blocking)
-  api.createBead(title, { description, priority, labels, rig: rig || undefined }).then(result => {
+  api.createBead(title, { description, type, priority, labels, rig: rig || undefined }).then(result => {
     if (result.success) {
       showToast(`Work item created: ${result.bead_id}`, 'success');
 

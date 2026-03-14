@@ -46,6 +46,7 @@ describe('BeadService', () => {
     expect(calls[0]).toEqual({
       title: 'Fix login',
       description: 'Steps…',
+      type: null,
       priority: 'P1',
       labels: ['bug', ' ui '],
       rig: null,
