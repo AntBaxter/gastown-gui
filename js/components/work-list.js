@@ -189,9 +189,12 @@ export function renderBeadCard(bead, index) {
   const typeIcon = TYPE_ICONS[bead.issue_type] || 'assignment';
   const assignee = bead.assignee ? bead.assignee.split('/').pop() : null;
   const priority = getBeadPriority(bead);
+  const isGate = bead._isGate || bead.issue_type === 'gate' ||
+    (bead.title || '').toLowerCase().includes('review gate');
+  const gateClass = isGate ? ' bead-gate' : '';
 
   return `
-	    <div class="bead-card ${statusConfig.class} animate-spawn ${getStaggerClass(index)}"
+	    <div class="bead-card ${statusConfig.class}${gateClass} animate-spawn ${getStaggerClass(index)}"
 	         data-bead-id="${bead.id}">
       <div class="bead-header">
         <div class="bead-status">

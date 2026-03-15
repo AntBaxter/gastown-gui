@@ -788,10 +788,31 @@ async function loadWork() {
     const selectedRig = state.getSelectedRig();
     if (selectedRig) params.set('rig', selectedRig);
     const query = params.toString();
-    const beads = await api.get(`/api/beads${query ? '?' + query : ''}`);
+
     if (workViewMode === 'board') {
-      renderKanbanBoard(elements.workList, beads || []);
+      // Fetch beads, epics, and blocked data in parallel for kanban
+      const epicFilter = state.getEpicFilter();
+      const [beads, epics, blockedBeads, epicChildren] = await Promise.all([
+        api.get(`/api/beads${query ? '?' + query : ''}`),
+        api.getEpics(selectedRig).catch(() => []),
+        api.getBlockedBeads(selectedRig).catch(() => []),
+        epicFilter && epicFilter !== 'all'
+          ? api.getBeadChildren(epicFilter).then(r => r?.children || []).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+
+      renderKanbanBoard(elements.workList, beads || [], {
+        epics,
+        epicFilter,
+        epicChildren,
+        blockedBeads,
+        onEpicFilterChange: (epicId) => {
+          state.setEpicFilter(epicId);
+          loadWork();
+        },
+      });
     } else {
+      const beads = await api.get(`/api/beads${query ? '?' + query : ''}`);
       renderWorkList(elements.workList, beads || []);
     }
   } catch (err) {

@@ -27,6 +27,7 @@ export function createStateStore(options = {}) {
     events: [],
     mail: [],
     selectedRig: stg?.getItem('gastownui-rig-filter') || 'all',
+    epicFilter: stg?.getItem('gastownui-epic-filter') || 'all',
   };
 
   // Subscribers by key
@@ -191,6 +192,17 @@ export function createStateStore(options = {}) {
       store.selectedRig = rig;
       stg?.setItem('gastownui-rig-filter', rig);
       notify('selectedRig');
+    },
+
+    // Epic filter
+    getEpicFilter() {
+      return store.epicFilter;
+    },
+
+    setEpicFilter(epicId) {
+      store.epicFilter = epicId;
+      stg?.setItem('gastownui-epic-filter', epicId);
+      notify('epicFilter');
     },
   };
 

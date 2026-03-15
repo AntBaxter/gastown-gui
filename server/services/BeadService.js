@@ -125,6 +125,17 @@ export class BeadService {
     return { ok: true, bead: result.data || { id: beadId } };
   }
 
+  async listEpics({ rig } = {}) {
+    const beads = await this.list({ rig });
+    return beads.filter(b => b.issue_type === 'epic');
+  }
+
+  async getBlocked({ rig } = {}) {
+    const result = await this._bd.blocked({ rig: rig && rig !== 'all' && rig !== 'hq' ? rig : undefined });
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
   async getChildren(epicId) {
     const result = await this._bd.children(epicId);
     if (!result.ok) return { ok: false, children: [], epic: null };

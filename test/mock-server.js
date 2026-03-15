@@ -805,6 +805,18 @@ app.get('/api/bead/:beadId', (req, res) => {
   res.json(bead);
 });
 
+app.get('/api/beads/epics', (req, res) => {
+  res.json(mockBeads.filter(b => b.issue_type === 'epic'));
+});
+
+app.get('/api/beads/blocked', (req, res) => {
+  // Return mock blocked beads
+  const blocked = mockBeads
+    .filter(b => b.status === 'blocked')
+    .map(b => ({ ...b, blocked_by_count: 1, blocked_by: ['gt-dep-1'] }));
+  res.json(blocked);
+});
+
 app.get('/api/bead/:beadId/children', (req, res) => {
   const { beadId } = req.params;
   const bead = mockBeads.find(b => b.id === beadId);

@@ -90,6 +90,16 @@ export class BDGateway {
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
+  async blocked({ rig } = {}) {
+    const args = ['blocked'];
+    if (rig) args.push('--rig', rig);
+    args.push('--json');
+
+    const result = await this.exec(args, { timeoutMs: 30000 });
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw, data: parseJsonOrNull(raw) };
+  }
+
   async children(epicId) {
     const result = await this.exec(['show', epicId, '--json'], { timeoutMs: 30000 });
     const raw = (result.stdout || '').trim();
