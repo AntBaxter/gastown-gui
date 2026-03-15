@@ -202,8 +202,10 @@ describe('BeadService', () => {
     expect(result).toEqual([{ id: 'b-1', blocked_by: ['dep-1'] }]);
   });
 
-  it('getBlocked() returns empty array when blocked not available', async () => {
-    const bdGateway = makeBdGateway();
+  it('getBlocked() returns empty array when result not ok', async () => {
+    const bdGateway = makeBdGateway({
+      blocked: async () => ({ ok: false, data: null }),
+    });
     const service = new BeadService({ bdGateway });
     const result = await service.getBlocked();
     expect(result).toEqual([]);
