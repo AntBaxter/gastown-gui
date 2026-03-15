@@ -8312,6 +8312,76 @@ a:focus-visible,
   white-space: nowrap;
 }
 
+/* === Epic Integration Branch === */
+
+.epic-integration-branch {
+  padding: var(--space-md);
+  background: var(--bg-secondary, #1e1e1e);
+  border: 1px solid var(--border-primary, #333);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.epic-integration-branch.ib-ready {
+  border-color: var(--color-success, #4caf50);
+}
+
+.epic-ib-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.epic-ib-header h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.epic-ib-header .material-icons {
+  font-size: 18px;
+  color: var(--text-secondary, #999);
+}
+
+.ib-ready .epic-ib-header .material-icons {
+  color: var(--color-success, #4caf50);
+}
+
+.epic-ib-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.epic-ib-info code {
+  font-size: var(--text-xs);
+  color: var(--text-secondary, #999);
+}
+
+.epic-ib-land {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-primary, #333);
+}
+
+.epic-ib-ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-success, #4caf50);
+}
+
+.epic-ib-ready-badge .material-icons {
+  font-size: 18px;
+}
+
 /* === Kanban Epic Filter === */
 
 .kanban-epic-filter {
