@@ -31,6 +31,14 @@ describe('Bead routes (real Express app)', () => {
         if (beadId === 'missing') return { ok: false };
         return { ok: true, bead: { id: beadId } };
       },
+      getDependencies: async (epicId) => {
+        calls.push(['getDependencies', epicId]);
+        return [{ id: 'dep-1', dependency_type: 'blocks' }];
+      },
+      getBlocked: async () => {
+        calls.push(['getBlocked']);
+        return [{ id: 'blocked-1', blocked_by: ['dep-1'] }];
+      },
     };
 
     const app = createApp({ allowedOrigins: ['*'] });
@@ -82,5 +90,19 @@ describe('Bead routes (real Express app)', () => {
   it('GET /api/bead/:beadId returns 404 when missing', async () => {
     const res = await fetch(`${baseUrl}/api/bead/missing`);
     expect(res.status).toBe(404);
+  });
+
+  it('GET /api/beads/dependencies returns 400 without epic param', async () => {
+    const res = await fetch(`${baseUrl}/api/beads/dependencies`);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('epic query parameter required');
+  });
+
+  it('GET /api/beads/blocked returns array', async () => {
+    const res = await fetch(`${baseUrl}/api/beads/blocked`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
   });
 });

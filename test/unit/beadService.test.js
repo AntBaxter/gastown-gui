@@ -177,6 +177,38 @@ describe('BeadService', () => {
     expect(result[1].rig).toBe('rig1');
   });
 
+  it('getDependencies() calls bdGateway.depList', async () => {
+    const bdGateway = makeBdGateway({
+      depList: async (id) => ({ ok: true, data: [{ id: 'dep-1', dependency_type: 'blocks' }] }),
+    });
+    const service = new BeadService({ bdGateway });
+    const result = await service.getDependencies('epic-1');
+    expect(result).toEqual([{ id: 'dep-1', dependency_type: 'blocks' }]);
+  });
+
+  it('getDependencies() returns empty array when depList not available', async () => {
+    const bdGateway = makeBdGateway();
+    const service = new BeadService({ bdGateway });
+    const result = await service.getDependencies('epic-1');
+    expect(result).toEqual([]);
+  });
+
+  it('getBlocked() calls bdGateway.blocked', async () => {
+    const bdGateway = makeBdGateway({
+      blocked: async () => ({ ok: true, data: [{ id: 'b-1', blocked_by: ['dep-1'] }] }),
+    });
+    const service = new BeadService({ bdGateway });
+    const result = await service.getBlocked();
+    expect(result).toEqual([{ id: 'b-1', blocked_by: ['dep-1'] }]);
+  });
+
+  it('getBlocked() returns empty array when blocked not available', async () => {
+    const bdGateway = makeBdGateway();
+    const service = new BeadService({ bdGateway });
+    const result = await service.getBlocked();
+    expect(result).toEqual([]);
+  });
+
   it('search with rig=all aggregates and filters by query', async () => {
     const bdGateway = makeBdGateway({
       search: async () => ({ ok: true, data: [{ id: 'hq-1', title: 'Login bug' }] }),

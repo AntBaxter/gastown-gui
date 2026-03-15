@@ -160,6 +160,26 @@ describe('BDGateway', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('depList() uses bd dep list with --json', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: '[{"id":"dep-1","dependency_type":"blocks"}]', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.depList('epic-1');
+    expect(runner.calls[0].args).toEqual(['dep', 'list', 'epic-1', '--json']);
+    expect(result.data).toEqual([{ id: 'dep-1', dependency_type: 'blocks' }]);
+  });
+
+  it('blocked() uses bd blocked with --json', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: '[{"id":"blocked-1","blocked_by":["dep-1"]}]', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    const result = await gateway.blocked();
+    expect(runner.calls[0].args).toEqual(['blocked', '--json']);
+    expect(result.data).toEqual([{ id: 'blocked-1', blocked_by: ['dep-1'] }]);
+  });
+
   it('list() handles invalid JSON in stdout', async () => {
     const runner = new FakeRunner();
     runner.queue({ ok: true, exitCode: 0, stdout: 'not json', stderr: '', error: null, signal: null });

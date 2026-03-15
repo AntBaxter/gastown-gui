@@ -45,6 +45,17 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 
+  app.get('/api/beads/dependencies', async (req, res) => {
+    try {
+      const epicId = req.query.epic;
+      if (!epicId) return res.status(400).json({ error: 'epic query parameter required' });
+      const data = await beadService.getDependencies(epicId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/beads/blocked', async (req, res) => {
     try {
       const data = await beadService.getBlocked({ rig: req.query.rig });
@@ -64,6 +75,7 @@ export function registerBeadRoutes(app, { beadService } = {}) {
       return res.status(500).json({ error: err.message });
     }
   });
+
 
   app.get('/api/bead/:beadId', async (req, res) => {
     try {

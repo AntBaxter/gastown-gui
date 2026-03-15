@@ -90,6 +90,12 @@ export class BDGateway {
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
+  async depList(beadId) {
+    const result = await this.exec(['dep', 'list', beadId, '--json'], { timeoutMs: 30000 });
+    const raw = (result.stdout || '').trim();
+    return { ...result, raw, data: parseJsonOrNull(raw) };
+  }
+
   async blocked({ rig } = {}) {
     const args = ['blocked'];
     if (rig) args.push('--rig', rig);

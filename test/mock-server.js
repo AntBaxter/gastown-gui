@@ -368,6 +368,46 @@ app.post('/api/nudge', (req, res) => {
   });
 });
 
+// Dependency graph endpoints
+app.get('/api/beads/dependencies', (req, res) => {
+  const epicId = req.query.epic;
+  if (!epicId) {
+    return res.status(400).json({ error: 'epic query parameter required' });
+  }
+  // Return mock dependency data
+  res.json([
+    {
+      id: 'epic-parent',
+      title: 'Parent Epic',
+      status: 'open',
+      priority: 2,
+      issue_type: 'epic',
+      dependency_type: 'parent-child',
+    },
+    {
+      id: 'task-dep-1',
+      title: 'Blocking task',
+      status: 'closed',
+      priority: 2,
+      issue_type: 'task',
+      dependency_type: 'blocks',
+    },
+  ]);
+});
+
+app.get('/api/beads/blocked', (req, res) => {
+  res.json([
+    {
+      id: 'bead-blocked-1',
+      title: 'Blocked task',
+      status: 'open',
+      priority: 2,
+      blocked_by_count: 1,
+      blocked_by: ['task-dep-1'],
+    },
+  ]);
+});
+
 // Search endpoints
 app.get('/api/beads/search', (req, res) => {
   const query = (req.query.q || '').toLowerCase();

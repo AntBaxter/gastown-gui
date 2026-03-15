@@ -204,6 +204,14 @@ export const api = {
     return this.post(`/api/work/${encodeURIComponent(beadId)}/reassign`, { target });
   },
 
+  getBeadDependencies(epicId) {
+    return this.get(`/api/beads/dependencies?epic=${encodeURIComponent(epicId)}`);
+  },
+
+  getBlockedBeads() {
+    return this.get('/api/beads/blocked');
+  },
+
   searchBeads(query, options = {}) {
     const params = new URLSearchParams({ q: query });
     if (options.rig) params.set('rig', options.rig);

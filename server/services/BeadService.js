@@ -174,4 +174,23 @@ export class BeadService {
 
     return { ok: true, beadId, raw: result.raw };
   }
+
+  async getDependencies(epicId) {
+    if (!this._bd.depList) return [];
+    const result = await this._bd.depList(epicId);
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
+  async getBlocked({ rig } = {}) {
+    const result = await this._bd.blocked({ rig: rig && rig !== 'all' && rig !== 'hq' ? rig : undefined });
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
+  async getChildren(epicId) {
+    const result = await this._bd.children(epicId);
+    if (!result.ok) return { ok: false, children: [], epic: null };
+    return { ok: true, children: result.data || [], epic: result.epic || null };
+  }
 }
