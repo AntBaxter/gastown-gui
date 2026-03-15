@@ -205,13 +205,13 @@ These capabilities are ready to use today for the auth workflow:
 
 ## CLI Commands to Verify Before Implementation
 
-| Command | Needed For | Verify |
-|---------|-----------|--------|
-| `bd show <id> --json` (children field) | WP1: Epic children | Does output include child bead list? |
-| `bd list --parent <id> --json` | WP1: Epic children (alt) | Does this flag exist? |
-| `bd dep list <id> --json` | WP2: Dependency edges | Does this return structured dependency data? |
-| `bd blocked --json` | WP2: Blocked chains | Does this exist and return JSON? |
-| `bd list --rig vsbel --json` | WP4: Cross-rig beads | Can gastownui query vsbel rig beads? |
+| Command | Needed For | Verify | Human Verification |
+|---------|-----------|--------|-----------|
+| `bd show <id> --json` (children field) | WP1: Epic children | Does output include child bead list? | Yes - child beads appear in "dependents": [ with  "dependency_type": "parent-child" |
+| `bd list --parent <id> --json` | WP1: Epic children (alt) | Does this flag exist? | Unsure - the flag exists but I'm not sure what it returns gastown@vmi3125390:~/gt/vsbel$ bd list --parent vs-8ke.7 --json  gastown@vmi3125390:~/gt/vsbel$ bd list --parent vs-8ke --json both return empty arrays |
+| `bd dep list <id> --json` | WP2: Dependency edges | Does this return structured dependency data? | Yes calling that from a child shows the parent |
+| `bd blocked --json` | WP2: Blocked chains | Does this exist and return JSON? | Yes I believe so but it returns an empty array now, nothing is probably blocked though |
+| `bd list --rig vsbel --json` | WP4: Cross-rig beads | Can gastownui query vsbel rig beads? | Yes they can |
 
 **Action:** Verify these commands before dispatching implementation beads. File beads in the beads rig for any missing `--json` support.
 
