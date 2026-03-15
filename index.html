@@ -440,11 +440,19 @@
       </div>
       <div class="status-right">
         <span class="rig-filter" id="rig-filter">
-          <span class="material-icons" style="font-size: 14px;">filter_list</span>
-          <select id="rig-filter-select" title="Filter beads by rig">
-            <option value="all">All Rigs</option>
-            <option value="hq">HQ</option>
-          </select>
+          <button class="rig-filter-toggle" id="rig-filter-toggle" title="Filter beads by rig">
+            <span class="material-icons" style="font-size: 14px;">filter_list</span>
+            <span class="rig-filter-label" id="rig-filter-label">All Rigs</span>
+            <span class="material-icons rig-filter-arrow" style="font-size: 14px;">expand_more</span>
+          </button>
+          <div class="rig-filter-dropdown hidden" id="rig-filter-dropdown">
+            <label class="rig-filter-option">
+              <input type="checkbox" value="all" checked> All Rigs
+            </label>
+            <label class="rig-filter-option">
+              <input type="checkbox" value="hq"> HQ
+            </label>
+          </div>
         </span>
         <span class="keyboard-hint">Press <kbd>?</kbd> for help</span>
       </div>

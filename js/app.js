@@ -721,14 +721,14 @@ async function loadAgents() {
       })),
     ];
 
-    // Filter by selected rig if one is chosen
-    const selectedRig = state.getSelectedRig();
+    // Filter by selected rig(s)
+    const selectedRigs = state.getSelectedRigs();
     let filteredAgents = allAgents;
-    if (selectedRig && selectedRig !== 'all' && selectedRig !== 'hq') {
-      filteredAgents = allAgents.filter(a => a.rig === selectedRig);
-    } else if (selectedRig === 'hq') {
-      // HQ = town-level agents only (mayor, deacon)
-      filteredAgents = allAgents.filter(a => !a.rig);
+    if (!selectedRigs.includes('all')) {
+      filteredAgents = allAgents.filter(a => {
+        if (selectedRigs.includes('hq') && !a.rig) return true;
+        return a.rig && selectedRigs.includes(a.rig);
+      });
     }
 
     state.setAgents(filteredAgents);
@@ -786,7 +786,8 @@ async function loadWork() {
     const params = new URLSearchParams();
     if (workFilter !== 'all') params.set('status', workFilter);
     const selectedRig = state.getSelectedRig();
-    if (selectedRig) params.set('rig', selectedRig);
+    if (selectedRig && selectedRig !== 'all') params.set('rig', selectedRig);
+    else if (selectedRig === 'all') params.set('rig', 'all');
     const query = params.toString();
 
     if (workViewMode === 'board') {
@@ -937,44 +938,148 @@ function setupWorkViewToggle() {
   });
 }
 
-// Rig filter in footer bar
+// Rig filter in footer bar (checkbox multi-select dropdown)
 function setupRigFilter() {
-  const select = document.getElementById('rig-filter-select');
-  if (!select) return;
+  const filterEl = document.getElementById('rig-filter');
+  const toggle = document.getElementById('rig-filter-toggle');
+  const dropdown = document.getElementById('rig-filter-dropdown');
+  if (!filterEl || !toggle || !dropdown) return;
+
+  // Toggle dropdown open/close
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.classList.contains('hidden');
+    dropdown.classList.toggle('hidden', isOpen);
+    filterEl.classList.toggle('open', !isOpen);
+  });
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (!filterEl.contains(e.target)) {
+      dropdown.classList.add('hidden');
+      filterEl.classList.remove('open');
+    }
+  });
+
+  // Handle checkbox changes
+  dropdown.addEventListener('change', (e) => {
+    const checkbox = e.target;
+    if (checkbox.type !== 'checkbox') return;
+
+    const allCheckbox = dropdown.querySelector('input[value="all"]');
+
+    if (checkbox.value === 'all') {
+      // "All Rigs" toggles everything
+      const checked = checkbox.checked;
+      dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = checked;
+      });
+    } else {
+      // Individual rig toggled — update "All" state
+      const rigCheckboxes = [...dropdown.querySelectorAll('input[type="checkbox"]:not([value="all"])')];
+      const allChecked = rigCheckboxes.every(cb => cb.checked);
+      const noneChecked = rigCheckboxes.every(cb => !cb.checked);
+
+      if (allChecked || noneChecked) {
+        allCheckbox.checked = true;
+        rigCheckboxes.forEach(cb => { cb.checked = true; });
+      } else {
+        allCheckbox.checked = false;
+      }
+    }
+
+    applyRigFilter();
+  });
 
   // Restore persisted selection
-  select.value = state.getSelectedRig();
+  restoreRigFilterState();
+}
 
-  select.addEventListener('change', () => {
-    state.setSelectedRig(select.value);
-    loadWork();
-    loadAgents();
+function applyRigFilter() {
+  const dropdown = document.getElementById('rig-filter-dropdown');
+  const label = document.getElementById('rig-filter-label');
+  if (!dropdown) return;
+
+  const allCheckbox = dropdown.querySelector('input[value="all"]');
+  const rigCheckboxes = [...dropdown.querySelectorAll('input[type="checkbox"]:not([value="all"])')];
+  const checked = rigCheckboxes.filter(cb => cb.checked);
+
+  let rigValue;
+  if (allCheckbox?.checked || checked.length === 0 || checked.length === rigCheckboxes.length) {
+    rigValue = 'all';
+    if (label) label.textContent = 'All Rigs';
+  } else if (checked.length === 1) {
+    rigValue = checked[0].value;
+    if (label) label.textContent = checked[0].parentElement.textContent.trim();
+  } else {
+    rigValue = checked.map(cb => cb.value).join(',');
+    if (label) label.textContent = `${checked.length} rigs`;
+  }
+
+  state.setSelectedRig(rigValue);
+  loadWork();
+  loadAgents();
+}
+
+function restoreRigFilterState() {
+  const dropdown = document.getElementById('rig-filter-dropdown');
+  if (!dropdown) return;
+
+  const selected = state.getSelectedRigs();
+  const isAll = selected.includes('all');
+
+  dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = isAll || selected.includes(cb.value);
   });
+
+  // Update label
+  const label = document.getElementById('rig-filter-label');
+  if (label) {
+    if (isAll) {
+      label.textContent = 'All Rigs';
+    } else if (selected.length === 1) {
+      const cb = dropdown.querySelector(`input[value="${selected[0]}"]`);
+      label.textContent = cb?.parentElement.textContent.trim() || selected[0];
+    } else {
+      label.textContent = `${selected.length} rigs`;
+    }
+  }
 }
 
 function populateRigFilterOptions(rigs) {
-  const select = document.getElementById('rig-filter-select');
-  if (!select) return;
+  const dropdown = document.getElementById('rig-filter-dropdown');
+  if (!dropdown) return;
 
-  const current = state.getSelectedRig();
+  const selected = state.getSelectedRigs();
+  const isAll = selected.includes('all');
 
-  // Keep static options (All, HQ), rebuild rig options
-  select.innerHTML = '<option value="all">All Rigs</option><option value="hq">HQ</option>';
-  for (const rig of rigs || []) {
-    if (!rig?.name) continue;
-    const opt = document.createElement('option');
-    opt.value = rig.name;
-    opt.textContent = rig.name;
-    select.appendChild(opt);
+  // Rebuild dropdown: All Rigs + HQ + separator + dynamic rigs
+  let html = `
+    <label class="rig-filter-option">
+      <input type="checkbox" value="all" ${isAll ? 'checked' : ''}> All Rigs
+    </label>
+    <label class="rig-filter-option">
+      <input type="checkbox" value="hq" ${isAll || selected.includes('hq') ? 'checked' : ''}> HQ
+    </label>
+  `;
+
+  if (rigs && rigs.length > 0) {
+    html += '<div class="rig-filter-separator"></div>';
+    for (const rig of rigs) {
+      if (!rig?.name) continue;
+      const checked = isAll || selected.includes(rig.name);
+      html += `
+        <label class="rig-filter-option">
+          <input type="checkbox" value="${rig.name}" ${checked ? 'checked' : ''}> ${rig.name}
+        </label>
+      `;
+    }
   }
 
-  // Restore selection if still valid
-  if (current && [...select.options].some(o => o.value === current)) {
-    select.value = current;
-  } else {
-    select.value = 'all';
-    state.setSelectedRig('all');
-  }
+  dropdown.innerHTML = html;
+
+  // Update label
+  restoreRigFilterState();
 }
 
 // Debounced sidebar render to avoid layout thrashing from rapid status updates

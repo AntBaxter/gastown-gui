@@ -158,6 +158,25 @@ describe('BeadService', () => {
     expect(result).toEqual([{ id: 'hq-1', title: 'HQ' }]);
   });
 
+  it('list with comma-separated rigs aggregates selected rigs only', async () => {
+    const bdGateway = makeBdGateway({
+      list: async ({ rig } = {}) => {
+        if (!rig) return { ok: true, data: [{ id: 'hq-1', title: 'HQ bead' }] };
+        if (rig === 'rig1') return { ok: true, data: [{ id: 'r1-1', title: 'Rig1 bead' }] };
+        if (rig === 'rig2') return { ok: true, data: [{ id: 'r2-1', title: 'Rig2 bead' }] };
+        return { ok: true, data: [] };
+      },
+    });
+
+    const service = new BeadService({ bdGateway });
+    const result = await service.list({ rig: 'hq,rig1' });
+
+    expect(result).toHaveLength(2);
+    expect(result.map(b => b.id)).toEqual(['hq-1', 'r1-1']);
+    expect(result[0].rig).toBe('hq');
+    expect(result[1].rig).toBe('rig1');
+  });
+
   it('search with rig=all aggregates and filters by query', async () => {
     const bdGateway = makeBdGateway({
       search: async () => ({ ok: true, data: [{ id: 'hq-1', title: 'Login bug' }] }),

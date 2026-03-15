@@ -493,6 +493,7 @@ function renderIssueTree(issues) {
           <div class="issue-item status-${status}" data-issue-id="${issueObj.id || ''}">
             <span class="material-icons issue-status-icon">${icon}</span>
             <span class="issue-title">${escapeHtml(issueObj.title || issueObj)}</span>
+            ${issueObj.rig ? `<span class="bead-rig-badge" title="Rig: ${escapeHtml(issueObj.rig)}">${escapeHtml(issueObj.rig)}</span>` : ''}
             ${issueObj.assignee ? `<span class="issue-assignee">→ ${escapeHtml(issueObj.assignee)}</span>` : ''}
           </div>
         `;
