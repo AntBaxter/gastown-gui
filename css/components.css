@@ -3715,6 +3715,231 @@ select {
 }
 
 /* ================================================
+   CONVOY WIZARD STYLES
+   ================================================ */
+
+.convoy-wizard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 80vh;
+}
+
+.convoy-wizard .wizard-body {
+  min-height: 200px;
+}
+
+.convoy-wizard-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Issue tags */
+.convoy-wiz-selected-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  min-height: 36px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.convoy-wiz-issue-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.convoy-wiz-remove-issue {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.convoy-wiz-remove-issue:hover {
+  color: white;
+}
+
+/* Search */
+.convoy-wiz-search-wrap {
+  position: relative;
+}
+
+.convoy-wiz-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.convoy-wiz-search-wrap input {
+  padding-left: 36px;
+}
+
+.convoy-wiz-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: var(--space-xs);
+}
+
+.convoy-wiz-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.convoy-wiz-result-item:hover {
+  background: var(--bg-hover);
+}
+
+.convoy-wiz-result-item.selected {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.convoy-wiz-result-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.convoy-wiz-result-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.convoy-wiz-result-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Integration branch toggle */
+.convoy-wiz-toggle-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.convoy-wiz-toggle-label input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.convoy-wiz-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.convoy-wiz-toggle-text small {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.convoy-wiz-intbranch-config {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.convoy-wiz-intbranch-config.hidden {
+  display: none;
+}
+
+.convoy-wiz-intbranch-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(88, 166, 255, 0.08);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.convoy-wiz-intbranch-info .material-icons {
+  font-size: 18px;
+  color: var(--accent-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.convoy-wiz-intbranch-info p {
+  margin: 0 0 var(--space-xs);
+}
+
+.convoy-wiz-intbranch-info p:last-child {
+  margin-bottom: 0;
+}
+
+/* Review step */
+.convoy-wiz-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.convoy-wiz-review-row {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.convoy-wiz-review-label {
+  min-width: 140px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.convoy-wiz-review-value {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Form hint text */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ================================================
    ONBOARDING STEP CONTENT STYLES
    ================================================ */
 

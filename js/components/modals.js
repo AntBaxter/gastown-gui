@@ -55,7 +55,6 @@ export function initModals() {
   registerModal('new-convoy', {
     element: document.getElementById('new-convoy-modal'),
     onOpen: initNewConvoyModal,
-    onSubmit: handleNewConvoySubmit,
   });
 
   registerModal('new-bead', {
@@ -314,51 +313,448 @@ export function closeModal(modalId) {
   }
 }
 
-// === New Convoy Modal ===
+// === New Convoy Wizard ===
 
-function initNewConvoyModal(element, data) {
-  // Clear any previous state
-  const form = element.querySelector('form');
-  if (form) form.reset();
+// Wizard state (local to modal, not global)
+const convoyWizard = {
+  step: 1,
+  totalSteps: 4,
+  name: '',
+  issues: [],
+  issueSearch: '',
+  notify: '',
+  integrationBranch: false,
+  branchName: '',
+};
+
+function resetConvoyWizard() {
+  convoyWizard.step = 1;
+  convoyWizard.name = '';
+  convoyWizard.issues = [];
+  convoyWizard.issueSearch = '';
+  convoyWizard.notify = '';
+  convoyWizard.integrationBranch = false;
+  convoyWizard.branchName = '';
 }
 
-async function handleNewConvoySubmit(form) {
-  const name = form.querySelector('[name="name"]')?.value;
-  const issuesText = form.querySelector('[name="issues"]')?.value || '';
-  const notify = form.querySelector('[name="notify"]')?.value || null;
+function initNewConvoyModal(element) {
+  resetConvoyWizard();
+  renderConvoyWizardStep(element);
+  wireConvoyWizardNav(element);
+}
 
-  if (!name) {
-    showToast('Please enter a convoy name', 'warning');
+function wireConvoyWizardNav(element) {
+  const nextBtn = element.querySelector('#convoy-wizard-next');
+  const backBtn = element.querySelector('#convoy-wizard-back');
+
+  // Remove old listeners by replacing elements
+  const newNext = nextBtn.cloneNode(true);
+  const newBack = backBtn.cloneNode(true);
+  nextBtn.parentNode.replaceChild(newNext, nextBtn);
+  backBtn.parentNode.replaceChild(newBack, backBtn);
+
+  newNext.addEventListener('click', () => handleConvoyWizardNext(element));
+  newBack.addEventListener('click', () => handleConvoyWizardBack(element));
+}
+
+function handleConvoyWizardNext(element) {
+  // Validate current step before advancing
+  if (!validateConvoyWizardStep(element)) return;
+
+  // Save current step data
+  saveConvoyWizardStepData(element);
+
+  if (convoyWizard.step === convoyWizard.totalSteps) {
+    // Final step — submit
+    handleConvoyWizardSubmit(element);
     return;
   }
 
-  // Parse issues (comma or newline separated)
-  const issues = issuesText
-    .split(/[,\n]/)
-    .map(s => s.trim())
-    .filter(Boolean);
+  convoyWizard.step++;
+  renderConvoyWizardStep(element);
+}
 
-  // Show loading state
-  const submitBtn = form.querySelector('button[type="submit"]');
-  const originalText = submitBtn?.innerHTML;
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="material-icons spinning">sync</span> Creating...';
+function handleConvoyWizardBack(element) {
+  saveConvoyWizardStepData(element);
+  if (convoyWizard.step > 1) {
+    convoyWizard.step--;
+    renderConvoyWizardStep(element);
+  }
+}
+
+function validateConvoyWizardStep(element) {
+  switch (convoyWizard.step) {
+    case 1: {
+      const nameInput = element.querySelector('#convoy-wiz-name');
+      const name = nameInput?.value?.trim();
+      if (!name) {
+        showToast('Please enter a convoy name', 'warning');
+        nameInput?.focus();
+        return false;
+      }
+      return true;
+    }
+    case 2:
+      // Issues are optional
+      return true;
+    case 3:
+      // Integration branch config is optional
+      return true;
+    case 4:
+      // Review step — always valid
+      return true;
+    default:
+      return true;
+  }
+}
+
+function saveConvoyWizardStepData(element) {
+  switch (convoyWizard.step) {
+    case 1: {
+      convoyWizard.name = element.querySelector('#convoy-wiz-name')?.value?.trim() || '';
+      convoyWizard.notify = element.querySelector('#convoy-wiz-notify')?.value || '';
+      break;
+    }
+    case 2: {
+      // Issues are managed via checkboxes + manual input, already saved in real-time
+      const manualInput = element.querySelector('#convoy-wiz-manual-issues');
+      if (manualInput?.value?.trim()) {
+        const manualIds = manualInput.value
+          .split(/[,\n]/)
+          .map(s => s.trim())
+          .filter(Boolean);
+        // Merge manual IDs with checkbox selections (avoid duplicates)
+        for (const id of manualIds) {
+          if (!convoyWizard.issues.includes(id)) {
+            convoyWizard.issues.push(id);
+          }
+        }
+      }
+      break;
+    }
+    case 3: {
+      convoyWizard.integrationBranch = element.querySelector('#convoy-wiz-intbranch')?.checked || false;
+      convoyWizard.branchName = element.querySelector('#convoy-wiz-branchname')?.value?.trim() || '';
+      break;
+    }
+  }
+}
+
+function renderConvoyWizardStep(element) {
+  const body = element.querySelector('#convoy-wizard-body');
+  const title = element.querySelector('#convoy-wizard-title');
+  const subtitle = element.querySelector('#convoy-wizard-subtitle');
+  const indicator = element.querySelector('#convoy-wizard-indicator');
+  const backBtn = element.querySelector('#convoy-wizard-back');
+  const nextBtn = element.querySelector('#convoy-wizard-next');
+
+  // Update progress dots
+  element.querySelectorAll('.progress-step').forEach(step => {
+    const stepNum = parseInt(step.dataset.step);
+    step.classList.toggle('active', stepNum === convoyWizard.step);
+    step.classList.toggle('completed', stepNum < convoyWizard.step);
+  });
+
+  // Update indicator
+  indicator.textContent = `Step ${convoyWizard.step} of ${convoyWizard.totalSteps}`;
+
+  // Show/hide back button
+  backBtn.style.display = convoyWizard.step > 1 ? '' : 'none';
+
+  // Update next button text
+  nextBtn.textContent = convoyWizard.step === convoyWizard.totalSteps ? 'Create Convoy' : 'Next';
+  nextBtn.disabled = false;
+  nextBtn.innerHTML = convoyWizard.step === convoyWizard.totalSteps
+    ? '<span class="material-icons" style="font-size:18px;vertical-align:middle;margin-right:4px">local_shipping</span>Create Convoy'
+    : 'Next <span class="material-icons" style="font-size:18px;vertical-align:middle;margin-left:4px">arrow_forward</span>';
+
+  switch (convoyWizard.step) {
+    case 1:
+      title.textContent = 'Name your convoy';
+      subtitle.textContent = 'Choose a descriptive name and notification settings';
+      body.innerHTML = renderConvoyStep1();
+      break;
+    case 2:
+      title.textContent = 'Select issues';
+      subtitle.textContent = 'Search and select issues to track in this convoy';
+      body.innerHTML = renderConvoyStep2();
+      wireConvoyStep2(element);
+      break;
+    case 3:
+      title.textContent = 'Integration branch';
+      subtitle.textContent = 'Optionally create an integration branch for atomic landing';
+      body.innerHTML = renderConvoyStep3();
+      wireConvoyStep3(element);
+      break;
+    case 4:
+      title.textContent = 'Review & create';
+      subtitle.textContent = 'Confirm your convoy configuration';
+      body.innerHTML = renderConvoyStep4();
+      break;
+  }
+
+  // Focus first input on the step
+  const firstInput = body.querySelector('input:not([type="checkbox"]), textarea, select');
+  if (firstInput) {
+    setTimeout(() => firstInput.focus(), TIMING_MS.FOCUS_DELAY);
+  }
+}
+
+function renderConvoyStep1() {
+  return `
+    <div class="form-group">
+      <label for="convoy-wiz-name">Convoy Name</label>
+      <input type="text" id="convoy-wiz-name" placeholder="e.g., Deploy v2.0, Auth Refactor"
+        value="${escapeAttr(convoyWizard.name)}">
+      <small class="form-hint">A descriptive name for the group of related issues</small>
+    </div>
+    <div class="form-group">
+      <label for="convoy-wiz-notify">Notify on completion</label>
+      <select id="convoy-wiz-notify">
+        <option value="" ${convoyWizard.notify === '' ? 'selected' : ''}>None</option>
+        <option value="mayor/" ${convoyWizard.notify === 'mayor/' ? 'selected' : ''}>Mayor</option>
+        <option value="human" ${convoyWizard.notify === 'human' ? 'selected' : ''}>Human Overseer</option>
+      </select>
+    </div>
+  `;
+}
+
+function renderConvoyStep2() {
+  const selectedHtml = convoyWizard.issues.length > 0
+    ? convoyWizard.issues.map(id => `
+        <span class="convoy-wiz-issue-tag">
+          ${escapeHtml(id)}
+          <button type="button" class="convoy-wiz-remove-issue" data-issue="${escapeAttr(id)}">
+            <span class="material-icons" style="font-size:14px">close</span>
+          </button>
+        </span>
+      `).join('')
+    : '<span class="text-muted">No issues selected yet</span>';
+
+  return `
+    <div class="form-group">
+      <label>Selected Issues</label>
+      <div class="convoy-wiz-selected-issues" id="convoy-wiz-selected">${selectedHtml}</div>
+    </div>
+    <div class="form-group">
+      <label for="convoy-wiz-search">Search issues</label>
+      <div class="convoy-wiz-search-wrap">
+        <span class="material-icons convoy-wiz-search-icon">search</span>
+        <input type="text" id="convoy-wiz-search" placeholder="Search by title or ID..."
+          value="${escapeAttr(convoyWizard.issueSearch)}">
+      </div>
+      <div class="convoy-wiz-search-results" id="convoy-wiz-results"></div>
+    </div>
+    <div class="form-group">
+      <label for="convoy-wiz-manual-issues">Or enter issue IDs manually</label>
+      <textarea id="convoy-wiz-manual-issues" placeholder="Enter issue IDs (comma or newline separated)&#10;e.g., gt-123, bd-456" rows="3"></textarea>
+    </div>
+  `;
+}
+
+function wireConvoyStep2(element) {
+  const searchInput = element.querySelector('#convoy-wiz-search');
+  const resultsDiv = element.querySelector('#convoy-wiz-results');
+
+  // Search handler with debounce
+  const doSearch = debounce(async (query) => {
+    if (!query || query.length < 2) {
+      resultsDiv.innerHTML = '';
+      return;
+    }
+    resultsDiv.innerHTML = '<div class="text-muted">Searching...</div>';
+    try {
+      const results = await api.searchBeads(query);
+      const beads = Array.isArray(results) ? results : (results?.beads || []);
+      if (beads.length === 0) {
+        resultsDiv.innerHTML = '<div class="text-muted">No issues found</div>';
+        return;
+      }
+      resultsDiv.innerHTML = beads.slice(0, 20).map(bead => {
+        const id = bead.id || bead.bead_id || '';
+        const beadTitle = bead.title || bead.name || id;
+        const isSelected = convoyWizard.issues.includes(id);
+        const status = bead.status || '';
+        const type = bead.type || '';
+        return `
+          <label class="convoy-wiz-result-item ${isSelected ? 'selected' : ''}">
+            <input type="checkbox" value="${escapeAttr(id)}" ${isSelected ? 'checked' : ''}>
+            <span class="convoy-wiz-result-id">${escapeHtml(id)}</span>
+            <span class="convoy-wiz-result-title">${escapeHtml(beadTitle)}</span>
+            ${status ? `<span class="badge badge-sm">${escapeHtml(status)}</span>` : ''}
+            ${type ? `<span class="badge badge-sm badge-outline">${escapeHtml(type)}</span>` : ''}
+          </label>
+        `;
+      }).join('');
+
+      // Wire checkbox changes
+      resultsDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const issueId = cb.value;
+          if (cb.checked && !convoyWizard.issues.includes(issueId)) {
+            convoyWizard.issues.push(issueId);
+          } else if (!cb.checked) {
+            convoyWizard.issues = convoyWizard.issues.filter(i => i !== issueId);
+          }
+          cb.closest('.convoy-wiz-result-item')?.classList.toggle('selected', cb.checked);
+          updateSelectedIssuesDisplay(element);
+        });
+      });
+    } catch (err) {
+      resultsDiv.innerHTML = `<div class="text-muted">Search failed: ${escapeHtml(err.message)}</div>`;
+    }
+  }, 300);
+
+  searchInput?.addEventListener('input', (e) => {
+    convoyWizard.issueSearch = e.target.value;
+    doSearch(e.target.value.trim());
+  });
+
+  // Wire remove buttons on selected issues
+  wireRemoveIssueButtons(element);
+}
+
+function wireRemoveIssueButtons(element) {
+  element.querySelectorAll('.convoy-wiz-remove-issue').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.issue;
+      convoyWizard.issues = convoyWizard.issues.filter(i => i !== id);
+      updateSelectedIssuesDisplay(element);
+      // Also uncheck in search results
+      const cb = element.querySelector(`#convoy-wiz-results input[value="${CSS.escape(id)}"]`);
+      if (cb) {
+        cb.checked = false;
+        cb.closest('.convoy-wiz-result-item')?.classList.remove('selected');
+      }
+    });
+  });
+}
+
+function updateSelectedIssuesDisplay(element) {
+  const container = element.querySelector('#convoy-wiz-selected');
+  if (!container) return;
+
+  if (convoyWizard.issues.length === 0) {
+    container.innerHTML = '<span class="text-muted">No issues selected yet</span>';
+  } else {
+    container.innerHTML = convoyWizard.issues.map(id => `
+      <span class="convoy-wiz-issue-tag">
+        ${escapeHtml(id)}
+        <button type="button" class="convoy-wiz-remove-issue" data-issue="${escapeAttr(id)}">
+          <span class="material-icons" style="font-size:14px">close</span>
+        </button>
+      </span>
+    `).join('');
+    wireRemoveIssueButtons(element);
+  }
+}
+
+function renderConvoyStep3() {
+  return `
+    <div class="convoy-wiz-intbranch-section">
+      <label class="convoy-wiz-toggle-label">
+        <input type="checkbox" id="convoy-wiz-intbranch" ${convoyWizard.integrationBranch ? 'checked' : ''}>
+        <span class="convoy-wiz-toggle-text">
+          <strong>Create integration branch</strong>
+          <small>All MRs merge into a shared branch, then land to main atomically</small>
+        </span>
+      </label>
+
+      <div class="convoy-wiz-intbranch-config ${convoyWizard.integrationBranch ? '' : 'hidden'}" id="convoy-wiz-intbranch-config">
+        <div class="form-group">
+          <label for="convoy-wiz-branchname">Branch name (optional)</label>
+          <input type="text" id="convoy-wiz-branchname"
+            placeholder="Auto-generated from convoy name if empty"
+            value="${escapeAttr(convoyWizard.branchName)}">
+          <small class="form-hint">Default: integration/{convoy-name-slug}</small>
+        </div>
+        <div class="convoy-wiz-intbranch-info">
+          <span class="material-icons">info</span>
+          <div>
+            <p>Integration branches batch all child work and land it as a single merge commit.</p>
+            <p>MR targets are auto-detected — polecats don't need to know about the branch.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function wireConvoyStep3(element) {
+  const toggle = element.querySelector('#convoy-wiz-intbranch');
+  const config = element.querySelector('#convoy-wiz-intbranch-config');
+  toggle?.addEventListener('change', () => {
+    convoyWizard.integrationBranch = toggle.checked;
+    config?.classList.toggle('hidden', !toggle.checked);
+  });
+}
+
+function renderConvoyStep4() {
+  const issuesList = convoyWizard.issues.length > 0
+    ? convoyWizard.issues.map(id => `<span class="convoy-wiz-issue-tag">${escapeHtml(id)}</span>`).join(' ')
+    : '<span class="text-muted">None</span>';
+
+  const notifyLabel = convoyWizard.notify === 'mayor/' ? 'Mayor'
+    : convoyWizard.notify === 'human' ? 'Human Overseer'
+    : 'None';
+
+  const branchDisplay = convoyWizard.integrationBranch
+    ? (convoyWizard.branchName || `integration/${convoyWizard.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 60)}`)
+    : 'None';
+
+  return `
+    <div class="convoy-wiz-review">
+      <div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Name</span>
+        <span class="convoy-wiz-review-value">${escapeHtml(convoyWizard.name)}</span>
+      </div>
+      <div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Issues (${convoyWizard.issues.length})</span>
+        <span class="convoy-wiz-review-value">${issuesList}</span>
+      </div>
+      <div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Notify</span>
+        <span class="convoy-wiz-review-value">${escapeHtml(notifyLabel)}</span>
+      </div>
+      <div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Integration Branch</span>
+        <span class="convoy-wiz-review-value">${escapeHtml(branchDisplay)}</span>
+      </div>
+    </div>
+  `;
+}
+
+async function handleConvoyWizardSubmit(element) {
+  const nextBtn = element.querySelector('#convoy-wizard-next');
+  const originalHtml = nextBtn?.innerHTML;
+  if (nextBtn) {
+    nextBtn.disabled = true;
+    nextBtn.innerHTML = '<span class="material-icons spinning">sync</span> Creating...';
   }
 
   try {
-    const result = await api.createConvoy(name, issues, notify);
-    showToast(`Convoy "${name}" created`, 'success');
-    closeAllModals();
+    // Step 1: Create the convoy
+    const result = await api.createConvoy(convoyWizard.name, convoyWizard.issues, convoyWizard.notify || null);
+    const convoyId = result?.convoy_id;
 
-    // Dispatch event for refresh
+    // Step 2: Create integration branch if enabled
+    if (convoyWizard.integrationBranch && convoyId) {
+      try {
+        await api.createIntegrationBranch(convoyId, convoyWizard.branchName || undefined);
+      } catch (branchErr) {
+        showToast(`Convoy created, but integration branch failed: ${branchErr.message}`, 'warning');
+      }
+    }
+
+    showToast(`Convoy "${convoyWizard.name}" created`, 'success');
+    closeAllModals();
     document.dispatchEvent(new CustomEvent(CONVOY_CREATED, { detail: result }));
   } catch (err) {
     showToast(`Failed to create convoy: ${err.message}`, 'error');
   } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalText;
+    if (nextBtn) {
+      nextBtn.disabled = false;
+      nextBtn.innerHTML = originalHtml;
     }
   }
 }

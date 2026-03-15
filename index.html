@@ -452,36 +452,58 @@
 
     <!-- Modals -->
     <div class="modal-overlay hidden" id="modal-overlay">
-      <!-- New Convoy Modal -->
-      <div class="modal hidden" id="new-convoy-modal">
-        <div class="modal-header">
-          <h2>Create Convoy</h2>
-          <button class="modal-close" data-modal-close>
-            <span class="material-icons">close</span>
-          </button>
+      <!-- New Convoy Wizard Modal -->
+      <div class="modal modal-lg hidden" id="new-convoy-modal">
+        <div class="convoy-wizard">
+          <!-- Progress steps -->
+          <div class="wizard-progress" id="convoy-wizard-progress">
+            <div class="progress-step active" data-step="1">
+              <div class="progress-dot"><span class="material-icons">edit</span></div>
+              <span class="progress-label">Name</span>
+            </div>
+            <div class="progress-step" data-step="2">
+              <div class="progress-dot"><span class="material-icons">list_alt</span></div>
+              <span class="progress-label">Issues</span>
+            </div>
+            <div class="progress-step" data-step="3">
+              <div class="progress-dot"><span class="material-icons">account_tree</span></div>
+              <span class="progress-label">Integration</span>
+            </div>
+            <div class="progress-step" data-step="4">
+              <div class="progress-dot"><span class="material-icons">check_circle</span></div>
+              <span class="progress-label">Review</span>
+            </div>
+          </div>
+
+          <!-- Wizard content area -->
+          <div class="wizard-content">
+            <div class="wizard-header">
+              <div class="wizard-icon">
+                <span class="material-icons">local_shipping</span>
+              </div>
+              <div class="wizard-titles">
+                <h2 class="wizard-title" id="convoy-wizard-title">Name your convoy</h2>
+                <p class="wizard-subtitle" id="convoy-wizard-subtitle">Choose a descriptive name for your convoy</p>
+              </div>
+              <button class="wizard-close" data-modal-close>
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+
+            <div class="wizard-body" id="convoy-wizard-body">
+              <!-- Step content rendered dynamically by modals.js -->
+            </div>
+          </div>
+
+          <!-- Footer with nav -->
+          <div class="wizard-footer">
+            <span class="wizard-step-indicator" id="convoy-wizard-indicator">Step 1 of 4</span>
+            <div class="convoy-wizard-actions">
+              <button type="button" class="btn btn-secondary" id="convoy-wizard-back" style="display:none">Back</button>
+              <button type="button" class="btn btn-primary" id="convoy-wizard-next">Next</button>
+            </div>
+          </div>
         </div>
-        <form class="modal-body" id="convoy-form">
-          <div class="form-group">
-            <label for="convoy-name">Convoy Name</label>
-            <input type="text" id="convoy-name" name="name" placeholder="e.g., Deploy v2.0" required>
-          </div>
-          <div class="form-group">
-            <label for="convoy-issues">Tracked Issues</label>
-            <textarea id="convoy-issues" name="issues" placeholder="Enter issue IDs (one per line)&#10;e.g., gt-123&#10;bd-456" rows="4"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="convoy-notify">Notify on completion</label>
-            <select id="convoy-notify" name="notify">
-              <option value="">None</option>
-              <option value="mayor/">Mayor</option>
-              <option value="human">Human Overseer</option>
-            </select>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Convoy</button>
-          </div>
-        </form>
       </div>
 
       <!-- New Bead Modal -->
