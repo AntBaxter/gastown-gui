@@ -158,6 +158,59 @@ describe('BeadService', () => {
     expect(result).toEqual([{ id: 'hq-1', title: 'HQ' }]);
   });
 
+  it('list with comma-separated rigs aggregates selected rigs only', async () => {
+    const bdGateway = makeBdGateway({
+      list: async ({ rig } = {}) => {
+        if (!rig) return { ok: true, data: [{ id: 'hq-1', title: 'HQ bead' }] };
+        if (rig === 'rig1') return { ok: true, data: [{ id: 'r1-1', title: 'Rig1 bead' }] };
+        if (rig === 'rig2') return { ok: true, data: [{ id: 'r2-1', title: 'Rig2 bead' }] };
+        return { ok: true, data: [] };
+      },
+    });
+
+    const service = new BeadService({ bdGateway });
+    const result = await service.list({ rig: 'hq,rig1' });
+
+    expect(result).toHaveLength(2);
+    expect(result.map(b => b.id)).toEqual(['hq-1', 'r1-1']);
+    expect(result[0].rig).toBe('hq');
+    expect(result[1].rig).toBe('rig1');
+  });
+
+  it('getDependencies() calls bdGateway.depList', async () => {
+    const bdGateway = makeBdGateway({
+      depList: async (id) => ({ ok: true, data: [{ id: 'dep-1', dependency_type: 'blocks' }] }),
+    });
+    const service = new BeadService({ bdGateway });
+    const result = await service.getDependencies('epic-1');
+    expect(result).toEqual([{ id: 'dep-1', dependency_type: 'blocks' }]);
+  });
+
+  it('getDependencies() returns empty array when depList not available', async () => {
+    const bdGateway = makeBdGateway();
+    const service = new BeadService({ bdGateway });
+    const result = await service.getDependencies('epic-1');
+    expect(result).toEqual([]);
+  });
+
+  it('getBlocked() calls bdGateway.blocked', async () => {
+    const bdGateway = makeBdGateway({
+      blocked: async () => ({ ok: true, data: [{ id: 'b-1', blocked_by: ['dep-1'] }] }),
+    });
+    const service = new BeadService({ bdGateway });
+    const result = await service.getBlocked();
+    expect(result).toEqual([{ id: 'b-1', blocked_by: ['dep-1'] }]);
+  });
+
+  it('getBlocked() returns empty array when result not ok', async () => {
+    const bdGateway = makeBdGateway({
+      blocked: async () => ({ ok: false, data: null }),
+    });
+    const service = new BeadService({ bdGateway });
+    const result = await service.getBlocked();
+    expect(result).toEqual([]);
+  });
+
   it('search with rig=all aggregates and filters by query', async () => {
     const bdGateway = makeBdGateway({
       search: async () => ({ ok: true, data: [{ id: 'hq-1', title: 'Login bug' }] }),

@@ -368,6 +368,46 @@ app.post('/api/nudge', (req, res) => {
   });
 });
 
+// Dependency graph endpoints
+app.get('/api/beads/dependencies', (req, res) => {
+  const epicId = req.query.epic;
+  if (!epicId) {
+    return res.status(400).json({ error: 'epic query parameter required' });
+  }
+  // Return mock dependency data
+  res.json([
+    {
+      id: 'epic-parent',
+      title: 'Parent Epic',
+      status: 'open',
+      priority: 2,
+      issue_type: 'epic',
+      dependency_type: 'parent-child',
+    },
+    {
+      id: 'task-dep-1',
+      title: 'Blocking task',
+      status: 'closed',
+      priority: 2,
+      issue_type: 'task',
+      dependency_type: 'blocks',
+    },
+  ]);
+});
+
+app.get('/api/beads/blocked', (req, res) => {
+  res.json([
+    {
+      id: 'bead-blocked-1',
+      title: 'Blocked task',
+      status: 'open',
+      priority: 2,
+      blocked_by_count: 1,
+      blocked_by: ['task-dep-1'],
+    },
+  ]);
+});
+
 // Search endpoints
 app.get('/api/beads/search', (req, res) => {
   const query = (req.query.q || '').toLowerCase();
@@ -803,6 +843,33 @@ app.get('/api/bead/:beadId', (req, res) => {
     return res.status(404).json({ error: 'Bead not found' });
   }
   res.json(bead);
+});
+
+app.get('/api/beads/epics', (req, res) => {
+  res.json(mockBeads.filter(b => b.issue_type === 'epic'));
+});
+
+app.get('/api/beads/blocked', (req, res) => {
+  // Return mock blocked beads
+  const blocked = mockBeads
+    .filter(b => b.status === 'blocked')
+    .map(b => ({ ...b, blocked_by_count: 1, blocked_by: ['gt-dep-1'] }));
+  res.json(blocked);
+});
+
+app.get('/api/bead/:beadId/children', (req, res) => {
+  const { beadId } = req.params;
+  const bead = mockBeads.find(b => b.id === beadId);
+  if (!bead) {
+    return res.status(404).json({ error: 'Epic not found' });
+  }
+  // Return mock children for epic-type beads
+  const children = bead.issue_type === 'epic'
+    ? mockBeads
+        .filter(b => b.id !== beadId && b.id.startsWith(beadId + '.'))
+        .map(b => ({ ...b, dependency_type: 'parent-child' }))
+    : [];
+  res.json({ children, epic: bead });
 });
 
 app.get('/api/bead/:beadId/links', (req, res) => {

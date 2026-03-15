@@ -36,6 +36,47 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 
+  app.get('/api/beads/epics', async (req, res) => {
+    try {
+      const data = await beadService.listEpics({ rig: req.query.rig });
+      res.json(data);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get('/api/beads/dependencies', async (req, res) => {
+    try {
+      const epicId = req.query.epic;
+      if (!epicId) return res.status(400).json({ error: 'epic query parameter required' });
+      const data = await beadService.getDependencies(epicId);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/beads/blocked', async (req, res) => {
+    try {
+      const data = await beadService.getBlocked({ rig: req.query.rig });
+      res.json(data);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get('/api/bead/:beadId/children', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const result = await beadService.getChildren(beadId);
+      if (!result.ok) return res.status(404).json({ error: 'Epic not found' });
+      return res.json({ children: result.children, epic: result.epic });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+
   app.get('/api/bead/:beadId', async (req, res) => {
     try {
       const { beadId } = req.params;

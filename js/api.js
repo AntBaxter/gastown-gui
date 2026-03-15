@@ -169,6 +169,24 @@ export const api = {
     return this.get(`/api/bead/${encodeURIComponent(beadId)}/links`);
   },
 
+  getBeadChildren(beadId) {
+    return this.get(`/api/bead/${encodeURIComponent(beadId)}/children`);
+  },
+
+  getEpics(rig) {
+    const params = new URLSearchParams();
+    if (rig) params.set('rig', rig);
+    const query = params.toString();
+    return this.get(`/api/beads/epics${query ? '?' + query : ''}`);
+  },
+
+  getBlockedBeads(rig) {
+    const params = new URLSearchParams();
+    if (rig) params.set('rig', rig);
+    const query = params.toString();
+    return this.get(`/api/beads/blocked${query ? '?' + query : ''}`);
+  },
+
   // === Work Actions ===
   markWorkDone(beadId, summary) {
     return this.post(`/api/work/${encodeURIComponent(beadId)}/done`, { summary });
@@ -184,6 +202,14 @@ export const api = {
 
   reassignWork(beadId, target) {
     return this.post(`/api/work/${encodeURIComponent(beadId)}/reassign`, { target });
+  },
+
+  getBeadDependencies(epicId) {
+    return this.get(`/api/beads/dependencies?epic=${encodeURIComponent(epicId)}`);
+  },
+
+  getBlockedBeads() {
+    return this.get('/api/beads/blocked');
   },
 
   searchBeads(query, options = {}) {

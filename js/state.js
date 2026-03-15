@@ -27,6 +27,7 @@ export function createStateStore(options = {}) {
     events: [],
     mail: [],
     selectedRig: stg?.getItem('gastownui-rig-filter') || 'all',
+    epicFilter: stg?.getItem('gastownui-epic-filter') || 'all',
   };
 
   // Subscribers by key
@@ -187,10 +188,31 @@ export function createStateStore(options = {}) {
       return store.selectedRig;
     },
 
+    /**
+     * Get selected rigs as an array.
+     * Returns ['all'] if all rigs selected, or array of individual rig names.
+     */
+    getSelectedRigs() {
+      const val = store.selectedRig || 'all';
+      if (val === 'all') return ['all'];
+      return val.split(',').filter(Boolean);
+    },
+
     setSelectedRig(rig) {
       store.selectedRig = rig;
       stg?.setItem('gastownui-rig-filter', rig);
       notify('selectedRig');
+    },
+
+    // Epic filter
+    getEpicFilter() {
+      return store.epicFilter;
+    },
+
+    setEpicFilter(epicId) {
+      store.epicFilter = epicId;
+      stg?.setItem('gastownui-epic-filter', epicId);
+      notify('epicFilter');
     },
   };
 

@@ -36,6 +36,12 @@ export class BeadService {
   }
 
   async list({ status, rig } = {}) {
+    // Multi-rig query (comma-separated)
+    if (rig && rig !== 'all' && rig.includes(',')) {
+      const rigNames = rig.split(',').filter(Boolean);
+      return this._aggregateRigs(status, rigNames);
+    }
+
     // Single rig query
     if (rig && rig !== 'all') {
       const rigName = rig === 'hq' ? null : rig;
@@ -47,34 +53,36 @@ export class BeadService {
     // "all" — aggregate HQ + all rigs
     if (rig === 'all') {
       const rigNames = await this._getRigNames();
-      const queries = [
-        this._bd.list({ status }).then(r => ({ r, rigLabel: 'hq' })),
-        ...rigNames.map(name =>
-          this._bd.list({ status, rig: name }).then(r => ({ r, rigLabel: name }))
-        ),
-      ];
-
-      const results = await Promise.allSettled(queries);
-      const merged = [];
-      const seen = new Set();
-      for (const outcome of results) {
-        if (outcome.status !== 'fulfilled') continue;
-        const { r, rigLabel } = outcome.value;
-        if (!r.ok || !Array.isArray(r.data)) continue;
-        for (const bead of r.data) {
-          if (!seen.has(bead.id)) {
-            seen.add(bead.id);
-            merged.push({ ...bead, rig: rigLabel });
-          }
-        }
-      }
-      return merged;
+      return this._aggregateRigs(status, ['hq', ...rigNames]);
     }
 
     // Default (no rig param) — HQ only (backward compatible)
     const result = await this._bd.list({ status });
     if (!result.ok || !Array.isArray(result.data)) return [];
     return result.data;
+  }
+
+  async _aggregateRigs(status, rigNames) {
+    const queries = rigNames.map(name => {
+      const rigArg = name === 'hq' ? null : name;
+      return this._bd.list({ status, rig: rigArg }).then(r => ({ r, rigLabel: name }));
+    });
+
+    const results = await Promise.allSettled(queries);
+    const merged = [];
+    const seen = new Set();
+    for (const outcome of results) {
+      if (outcome.status !== 'fulfilled') continue;
+      const { r, rigLabel } = outcome.value;
+      if (!r.ok || !Array.isArray(r.data)) continue;
+      for (const bead of r.data) {
+        if (!seen.has(bead.id)) {
+          seen.add(bead.id);
+          merged.push({ ...bead, rig: rigLabel });
+        }
+      }
+    }
+    return merged;
   }
 
   async search(query, { rig } = {}) {
@@ -125,6 +133,23 @@ export class BeadService {
     return { ok: true, bead: result.data || { id: beadId } };
   }
 
+  async listEpics({ rig } = {}) {
+    const beads = await this.list({ rig });
+    return beads.filter(b => b.issue_type === 'epic');
+  }
+
+  async getBlocked({ rig } = {}) {
+    const result = await this._bd.blocked({ rig: rig && rig !== 'all' && rig !== 'hq' ? rig : undefined });
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
+  async getChildren(epicId) {
+    const result = await this._bd.children(epicId);
+    if (!result.ok) return { ok: false, children: [], epic: null };
+    return { ok: true, children: result.data || [], epic: result.epic || null };
+  }
+
   async create({ title, description, type, priority, labels, rig } = {}) {
     if (!title) return { ok: false, statusCode: 400, error: 'Title is required' };
 
@@ -148,5 +173,24 @@ export class BeadService {
     }
 
     return { ok: true, beadId, raw: result.raw };
+  }
+
+  async getDependencies(epicId) {
+    if (!this._bd.depList) return [];
+    const result = await this._bd.depList(epicId);
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
+  async getBlocked({ rig } = {}) {
+    const result = await this._bd.blocked({ rig: rig && rig !== 'all' && rig !== 'hq' ? rig : undefined });
+    if (!result.ok || !Array.isArray(result.data)) return [];
+    return result.data;
+  }
+
+  async getChildren(epicId) {
+    const result = await this._bd.children(epicId);
+    if (!result.ok) return { ok: false, children: [], epic: null };
+    return { ok: true, children: result.data || [], epic: result.epic || null };
   }
 }
