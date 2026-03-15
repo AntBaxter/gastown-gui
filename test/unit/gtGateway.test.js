@@ -166,6 +166,44 @@ describe('GTGateway', () => {
     expect(runner.calls[0].args).toEqual(['mq', 'integration', 'land', 'epic-1']);
   });
 
+  it('mailSend() converts string priority to integer', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'sent', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.mailSend({ to: 'mayor/', subject: 'Test', message: 'Hello', priority: 'normal' });
+    expect(runner.calls[0].args).toEqual(['mail', 'send', 'mayor/', '-s', 'Test', '-m', 'Hello', '--priority', '2']);
+  });
+
+  it('mailSend() maps high priority to 1', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'sent', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.mailSend({ to: 'mayor/', subject: 'Urgent', message: 'Now', priority: 'high' });
+    expect(runner.calls[0].args).toContain('--priority');
+    expect(runner.calls[0].args).toContain('1');
+  });
+
+  it('mailSend() passes integer priority as-is', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'sent', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.mailSend({ to: 'mayor/', subject: 'Test', message: 'Hello', priority: 3 });
+    expect(runner.calls[0].args).toContain('--priority');
+    expect(runner.calls[0].args).toContain('3');
+  });
+
+  it('mailSend() omits priority when not provided', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: 'sent', stderr: '', error: null, signal: null });
+    const gateway = new GTGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.mailSend({ to: 'mayor/', subject: 'Test', message: 'Hello' });
+    expect(runner.calls[0].args).not.toContain('--priority');
+  });
+
   it('listConvoys() handles invalid JSON in stdout', async () => {
     const runner = new FakeRunner();
     runner.queue({ ok: true, exitCode: 0, stdout: 'broken', stderr: '', error: null, signal: null });

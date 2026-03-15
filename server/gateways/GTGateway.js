@@ -1,3 +1,20 @@
+const PRIORITY_NAME_TO_INT = {
+  urgent: 0,
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+  backlog: 4,
+};
+
+function normalizePriority(value) {
+  if (value == null) return value;
+  const n = Number(value);
+  if (Number.isFinite(n)) return n;
+  const mapped = PRIORITY_NAME_TO_INT[String(value).toLowerCase()];
+  return mapped !== undefined ? mapped : value;
+}
+
 function parseJsonOrNull(text) {
   try {
     return JSON.parse(text);
@@ -89,7 +106,7 @@ export class GTGateway {
 
   async mailSend({ to, subject, message, priority } = {}) {
     const args = ['mail', 'send', to, '-s', subject, '-m', message];
-    if (priority) args.push('--priority', priority);
+    if (priority) args.push('--priority', String(normalizePriority(priority)));
     const result = await this.exec(args, { timeoutMs: 30000 });
     const raw = (result.stdout || '').trim();
     return { ...result, raw };
