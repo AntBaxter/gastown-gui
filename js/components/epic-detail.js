@@ -163,6 +163,78 @@ export function wireEpicChildEvents(container, children) {
   });
 }
 
+function renderIntegrationBranchStatus(status) {
+  if (!status || !status.branch) return '';
+
+  const readyClass = status.ready_to_land ? 'ib-ready' : '';
+
+  return `
+    <div class="epic-integration-branch ${readyClass}">
+      <div class="epic-ib-header">
+        <span class="material-icons">merge</span>
+        <h4>Integration Branch</h4>
+      </div>
+      <div class="epic-ib-info">
+        <div class="meta-row">
+          <span class="meta-label">Branch:</span>
+          <code>${escapeHtml(status.branch)}</code>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Base:</span>
+          <code>${escapeHtml(status.base_branch || 'main')}</code>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Ahead:</span>
+          <span>${status.ahead_of_base ?? 0} commits</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">MRs merged:</span>
+          <span>${(status.merged_mrs || []).length}</span>
+        </div>
+        ${(status.pending_mrs || []).length > 0 ? `
+          <div class="meta-row">
+            <span class="meta-label">MRs pending:</span>
+            <span>${status.pending_mrs.length}</span>
+          </div>
+        ` : ''}
+      </div>
+      ${status.ready_to_land ? `
+        <div class="epic-ib-land">
+          <div class="epic-ib-ready-badge">
+            <span class="material-icons">check_circle</span>
+            Ready to land
+          </div>
+          <button class="btn btn-primary epic-land-btn" title="Land integration branch to main">
+            <span class="material-icons">merge</span>
+            Land to Main
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function wireIntegrationBranchEvents(container, beadId) {
+  const landBtn = container.querySelector('.epic-land-btn');
+  if (!landBtn) return;
+
+  landBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    landBtn.disabled = true;
+    landBtn.innerHTML = '<span class="material-icons spinning">sync</span> Landing...';
+
+    try {
+      await api.landIntegrationBranch(beadId);
+      showToast('Integration branch landed successfully', 'success');
+      landBtn.innerHTML = '<span class="material-icons">check_circle</span> Landed';
+    } catch (err) {
+      showToast(`Failed to land: ${err.message}`, 'error');
+      landBtn.disabled = false;
+      landBtn.innerHTML = '<span class="material-icons">merge</span> Land to Main';
+    }
+  });
+}
+
 export async function loadAndRenderEpicChildren(beadId, container) {
   container.innerHTML = `
     <div class="loading-inline">
@@ -177,11 +249,23 @@ export async function loadAndRenderEpicChildren(beadId, container) {
 
     if (children.length === 0) {
       container.innerHTML = '<p class="empty-state">No child tasks found</p>';
-      return;
+    } else {
+      container.innerHTML = renderEpicChildTree(children);
+      wireEpicChildEvents(container, children);
     }
 
-    container.innerHTML = renderEpicChildTree(children);
-    wireEpicChildEvents(container, children);
+    // Load integration branch status
+    try {
+      const ibStatus = await api.getIntegrationBranchStatus(beadId);
+      if (ibStatus && ibStatus.branch) {
+        const ibDiv = document.createElement('div');
+        ibDiv.innerHTML = renderIntegrationBranchStatus(ibStatus);
+        container.prepend(ibDiv.firstElementChild);
+        wireIntegrationBranchEvents(container, beadId);
+      }
+    } catch {
+      // No integration branch — that's fine, not all epics have one
+    }
   } catch {
     container.innerHTML = '<p class="error-state">Failed to load child tasks</p>';
   }
