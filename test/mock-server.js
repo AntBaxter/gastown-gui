@@ -805,6 +805,21 @@ app.get('/api/bead/:beadId', (req, res) => {
   res.json(bead);
 });
 
+app.get('/api/bead/:beadId/children', (req, res) => {
+  const { beadId } = req.params;
+  const bead = mockBeads.find(b => b.id === beadId);
+  if (!bead) {
+    return res.status(404).json({ error: 'Epic not found' });
+  }
+  // Return mock children for epic-type beads
+  const children = bead.issue_type === 'epic'
+    ? mockBeads
+        .filter(b => b.id !== beadId && b.id.startsWith(beadId + '.'))
+        .map(b => ({ ...b, dependency_type: 'parent-child' }))
+    : [];
+  res.json({ children, epic: bead });
+});
+
 app.get('/api/bead/:beadId/links', (req, res) => {
   const { beadId } = req.params;
   const bead = mockBeads.find(b => b.id === beadId);

@@ -36,6 +36,17 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 
+  app.get('/api/bead/:beadId/children', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const result = await beadService.getChildren(beadId);
+      if (!result.ok) return res.status(404).json({ error: 'Epic not found' });
+      return res.json({ children: result.children, epic: result.epic });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/bead/:beadId', async (req, res) => {
     try {
       const { beadId } = req.params;

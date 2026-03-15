@@ -13,6 +13,7 @@ import { debounce } from '../utils/performance.js';
 import { getBeadPriority } from '../shared/beads.js';
 import { parseCloseReason } from '../shared/close-reason.js';
 import { TIMING_MS } from '../shared/timing.js';
+import { loadAndRenderEpicChildren } from './epic-detail.js';
 import {
   AGENT_DETAIL,
   AGENT_NUDGE,
@@ -1731,6 +1732,11 @@ async function showBeadDetailModal(beadId, bead) {
         </div>
       ` : ''}
 
+      ${bead.issue_type === 'epic' ? `
+        <div class="bead-detail-section epic-children-container" id="epic-children-container">
+        </div>
+      ` : ''}
+
       <div class="bead-detail-section bead-links-section" id="bead-links-section">
         <h4>
           <span class="material-icons">link</span>
@@ -1756,6 +1762,14 @@ async function showBeadDetailModal(beadId, bead) {
   `;
 
   const modal = showDynamicModal('bead-detail', content);
+
+  // Load epic children if this is an epic
+  if (bead.issue_type === 'epic') {
+    const epicContainer = modal.querySelector('#epic-children-container');
+    if (epicContainer) {
+      loadAndRenderEpicChildren(beadId, epicContainer);
+    }
+  }
 
   // Add sling button handler
   const slingBtn = modal.querySelector('.sling-btn');

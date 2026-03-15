@@ -89,4 +89,16 @@ export class BDGateway {
     const result = await this.exec(['update', beadId, '--assignee', target], { timeoutMs: 30000 });
     return { ...result, raw: (result.stdout || '').trim() };
   }
+
+  async children(epicId) {
+    const result = await this.exec(['show', epicId, '--json'], { timeoutMs: 30000 });
+    const raw = (result.stdout || '').trim();
+    const data = parseJsonOrNull(raw);
+    if (!result.ok || !data) return { ...result, raw, data: [] };
+
+    const epic = Array.isArray(data) ? data[0] : data;
+    const children = (epic?.dependents || [])
+      .filter(d => d.dependency_type === 'parent-child');
+    return { ...result, raw, data: children, epic };
+  }
 }

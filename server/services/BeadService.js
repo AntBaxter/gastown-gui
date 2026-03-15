@@ -125,6 +125,12 @@ export class BeadService {
     return { ok: true, bead: result.data || { id: beadId } };
   }
 
+  async getChildren(epicId) {
+    const result = await this._bd.children(epicId);
+    if (!result.ok) return { ok: false, children: [], epic: null };
+    return { ok: true, children: result.data || [], epic: result.epic || null };
+  }
+
   async create({ title, description, type, priority, labels, rig } = {}) {
     if (!title) return { ok: false, statusCode: 400, error: 'Title is required' };
 
