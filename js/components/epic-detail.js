@@ -11,7 +11,8 @@ import { api } from '../api.js';
 import { showToast } from './toast.js';
 import { escapeHtml } from '../utils/html.js';
 import { getBeadPriority } from '../shared/beads.js';
-import { BEAD_DETAIL, BEAD_SLING, MODAL_SHOW } from '../shared/events.js';
+import { BEAD_DETAIL, BEAD_SLING } from '../shared/events.js';
+import { openModal } from './modals.js';
 
 const STATUS_ICONS = {
   open: 'radio_button_unchecked',
@@ -131,7 +132,7 @@ export function renderEpicChildTree(children) {
   `;
 }
 
-export function wireEpicChildEvents(container, children, epicId) {
+export function wireEpicChildEvents(container, children, epicId, rig) {
   // Sling individual child
   container.querySelectorAll('.epic-sling-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -162,18 +163,12 @@ export function wireEpicChildEvents(container, children, epicId) {
     });
   }
 
-  // Add child task button
+  // Add child task button — use openModal so initNewBeadModal runs properly
   const addChildBtn = container.querySelector('.epic-add-child-btn');
   if (addChildBtn && epicId) {
     addChildBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Open new bead modal with parent pre-filled
-      const newBeadModal = document.getElementById('new-bead-modal');
-      const parentInput = newBeadModal?.querySelector('[name="parent"]');
-      if (parentInput) parentInput.value = epicId;
-      const overlay = document.getElementById('modal-overlay');
-      if (overlay) overlay.classList.remove('hidden');
-      if (newBeadModal) newBeadModal.classList.remove('hidden');
+      openModal('new-bead', { parent: epicId, rig: rig || undefined });
     });
   }
 
@@ -259,7 +254,7 @@ function wireIntegrationBranchEvents(container, beadId) {
   });
 }
 
-export async function loadAndRenderEpicChildren(beadId, container) {
+export async function loadAndRenderEpicChildren(beadId, container, rig) {
   container.innerHTML = `
     <div class="loading-inline">
       <span class="material-icons spinning">sync</span>
@@ -273,10 +268,10 @@ export async function loadAndRenderEpicChildren(beadId, container) {
 
     if (children.length === 0) {
       container.innerHTML = renderEpicChildTree([]);
-      wireEpicChildEvents(container, [], beadId);
+      wireEpicChildEvents(container, [], beadId, rig);
     } else {
       container.innerHTML = renderEpicChildTree(children);
-      wireEpicChildEvents(container, children, beadId);
+      wireEpicChildEvents(container, children, beadId, rig);
     }
 
     // Load integration branch status

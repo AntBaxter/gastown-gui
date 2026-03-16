@@ -789,6 +789,11 @@ function initNewBeadModal(element, data) {
   if (parentInput && data?.parent) {
     parentInput.value = data.parent;
   }
+
+  // Auto-select rig when provided (e.g., creating child in same rig as parent)
+  if (rigSelect && data?.rig) {
+    rigSelect.value = data.rig;
+  }
 }
 
 async function handleNewBeadSubmit(form) {
@@ -1803,7 +1808,7 @@ async function showBeadDetailModal(beadId, bead) {
   if (bead.issue_type === 'epic') {
     const epicContainer = modal.querySelector('#epic-children-container');
     if (epicContainer) {
-      loadAndRenderEpicChildren(beadId, epicContainer);
+      loadAndRenderEpicChildren(beadId, epicContainer, bead.rig);
     }
   }
 
