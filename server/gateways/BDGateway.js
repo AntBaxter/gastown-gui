@@ -134,14 +134,17 @@ export class BDGateway {
   }
 
   async children(epicId) {
-    const result = await this.exec(['show', epicId, '--json'], { timeoutMs: 30000 });
-    const raw = (result.stdout || '').trim();
-    const data = parseJsonOrNull(raw);
-    if (!result.ok || !data) return { ...result, raw, data: [] };
+    // Fetch children using bd children (alias for bd list --parent <id> --status all)
+    const childResult = await this.exec(['children', epicId, '--json'], { timeoutMs: 30000 });
+    const childRaw = (childResult.stdout || '').trim();
+    const children = parseJsonOrNull(childRaw) || [];
 
-    const epic = Array.isArray(data) ? data[0] : data;
-    const children = (epic?.dependents || [])
-      .filter(d => d.dependency_type === 'parent-child');
-    return { ...result, raw, data: children, epic };
+    // Also fetch the epic itself for metadata
+    const epicResult = await this.exec(['show', epicId, '--json'], { timeoutMs: 30000 });
+    const epicRaw = (epicResult.stdout || '').trim();
+    const epicData = parseJsonOrNull(epicRaw);
+    const epic = Array.isArray(epicData) ? epicData[0] : epicData;
+
+    return { ...childResult, raw: childRaw, data: children, epic };
   }
 }
