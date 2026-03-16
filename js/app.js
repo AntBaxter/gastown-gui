@@ -777,8 +777,8 @@ async function loadRigs() {
 }
 
 // Track work filter state
-let workFilter = 'closed'; // Default to showing completed work
-let workViewMode = localStorage.getItem('gastown-work-view') || 'list'; // 'list' or 'board'
+let workFilter = 'open'; // Default to showing open work
+let workViewMode = localStorage.getItem('gastown-work-view') || 'board'; // 'list' or 'board'
 
 async function loadWork() {
   showLoadingState(elements.workList, 'Loading work...');
