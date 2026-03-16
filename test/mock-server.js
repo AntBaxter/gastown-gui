@@ -937,8 +937,8 @@ app.post('/api/work/:beadId/park', (req, res) => {
   if (!bead) {
     return res.status(404).json({ error: 'Bead not found' });
   }
-  bead.status = 'parked';
-  bead.park_reason = reason || 'Parked for later';
+  bead.status = 'deferred';
+  bead.defer_reason = reason || 'Deferred for later';
   res.json({ success: true, bead });
 });
 
@@ -962,6 +962,16 @@ app.post('/api/work/:beadId/reassign', (req, res) => {
   }
   bead.assignee = target;
   res.json({ success: true, bead });
+});
+
+app.delete('/api/work/:beadId', (req, res) => {
+  const { beadId } = req.params;
+  const index = mockBeads.findIndex(b => b.id === beadId);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Bead not found' });
+  }
+  mockBeads.splice(index, 1);
+  res.json({ success: true, beadId, message: `${beadId} deleted` });
 });
 
 // === Formulas endpoints ===

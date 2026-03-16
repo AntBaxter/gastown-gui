@@ -20,6 +20,7 @@ function createStubGateways() {
     park: async () => ({ ok: true, raw: 'parked' }),
     release: async () => ({ ok: true, raw: 'released' }),
     reassign: async () => ({ ok: true, raw: 'reassigned' }),
+    delete: async () => ({ ok: true, raw: 'deleted' }),
   };
 
   return { calls, gtGateway, bdGateway };

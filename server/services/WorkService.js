@@ -69,6 +69,7 @@ export class WorkService {
     if (!bdGateway.park) throw new Error('WorkService requires bdGateway.park()');
     if (!bdGateway.release) throw new Error('WorkService requires bdGateway.release()');
     if (!bdGateway.reassign) throw new Error('WorkService requires bdGateway.reassign()');
+    if (!bdGateway.delete) throw new Error('WorkService requires bdGateway.delete()');
 
     this._gt = gtGateway;
     this._bd = bdGateway;
@@ -153,6 +154,14 @@ export class WorkService {
     if (!result.ok) return { ok: false, statusCode: 500, error: result.error || 'Failed to reassign work' };
 
     this._emit?.('work_reassigned', { beadId, target });
+    return { ok: true, raw: result.raw };
+  }
+
+  async delete(beadId) {
+    const result = await this._bd.delete(beadId);
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to delete work' };
+
+    this._emit?.('work_deleted', { beadId });
     return { ok: true, raw: result.raw };
   }
 }

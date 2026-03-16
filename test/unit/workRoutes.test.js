@@ -38,6 +38,10 @@ describe('Work routes (real Express app)', () => {
         if (!opts.target) return { ok: false, statusCode: 400, error: 'Target is required' };
         return { ok: true, raw: 'reassigned' };
       },
+      delete: async (beadId) => {
+        calls.push(['delete', beadId]);
+        return { ok: true, raw: 'deleted' };
+      },
     };
 
     const app = createApp({ allowedOrigins: ['*'] });
@@ -98,6 +102,15 @@ describe('Work routes (real Express app)', () => {
 
     expect(res.status).toBe(400);
   });
+
+  it('DELETE /api/work/:beadId calls service and returns message', async () => {
+    const res = await fetch(`${baseUrl}/api/work/bead-1`, {
+      method: 'DELETE',
+    });
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({ success: true, beadId: 'bead-1' });
+  });
 });
 
 describe('Work routes error handling', () => {
@@ -112,6 +125,7 @@ describe('Work routes error handling', () => {
       park: async () => ({ ok: false, error: 'Bead not found' }),
       release: async () => ({ ok: false, error: 'Bead not found' }),
       reassign: async () => ({ ok: false, error: 'Bead not found' }),
+      delete: async () => ({ ok: false, error: 'Bead not found' }),
     };
 
     const app = createApp({ allowedOrigins: ['*'] });
@@ -175,6 +189,15 @@ describe('Work routes error handling', () => {
     const res = await fetch(`${baseUrl}/api/work/bead-1/release`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+    });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ success: false, error: 'Bead not found' });
+  });
+
+  it('DELETE /api/work/:beadId returns 500 when service returns not ok', async () => {
+    const res = await fetch(`${baseUrl}/api/work/bead-1`, {
+      method: 'DELETE',
     });
     expect(res.status).toBe(500);
     const body = await res.json();

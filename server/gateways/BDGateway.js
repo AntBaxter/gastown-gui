@@ -118,6 +118,11 @@ export class BDGateway {
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
+  async delete(beadId) {
+    const result = await this.exec(['delete', beadId, '--yes'], { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
   async blocked({ rig } = {}) {
     const args = ['blocked'];
     if (rig) args.push('--rig', rig);

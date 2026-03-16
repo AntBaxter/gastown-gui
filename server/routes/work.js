@@ -93,5 +93,19 @@ export function registerWorkRoutes(app, { workService } = {}) {
       raw: result.raw,
     });
   });
+
+  app.delete('/api/work/:beadId', async (req, res) => {
+    const { beadId } = req.params;
+
+    const result = await workService.delete(beadId);
+    if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+
+    return res.json({
+      success: true,
+      beadId,
+      message: `${beadId} deleted`,
+      raw: result.raw,
+    });
+  });
 }
 

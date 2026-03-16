@@ -135,8 +135,8 @@ export async function handleWorkAction(action, beadId, btn) {
         result = await api.markWorkDone(beadId, summary || 'Completed via GUI');
         break;
 
-      case 'park':
-        const reason = prompt('Enter reason for parking:');
+      case 'defer':
+        const reason = prompt('Enter reason for deferring:');
         if (!reason) {
           btn.innerHTML = originalIcon;
           btn.disabled = false;
@@ -145,8 +145,8 @@ export async function handleWorkAction(action, beadId, btn) {
         result = await api.parkWork(beadId, reason);
         break;
 
-      case 'release':
-        if (!confirm('Release this work item?')) {
+      case 'reopen':
+        if (!confirm('Reopen this work item? It will be unassigned and set to open.')) {
           btn.innerHTML = originalIcon;
           btn.disabled = false;
           return;
@@ -163,10 +163,26 @@ export async function handleWorkAction(action, beadId, btn) {
         }
         result = await api.reassignWork(beadId, target);
         break;
+
+      case 'delete':
+        if (!confirm(`Permanently delete ${beadId}? This cannot be undone.`)) {
+          btn.innerHTML = originalIcon;
+          btn.disabled = false;
+          return;
+        }
+        result = await api.deleteWork(beadId);
+        break;
     }
 
+    const ACTION_LABELS = {
+      done: 'completed',
+      defer: 'deferred',
+      reopen: 'reopened',
+      reassign: 'reassigned',
+      delete: 'deleted',
+    };
     if (result && result.success) {
-      showToast(`Work ${action === 'done' ? 'completed' : action + 'ed'}: ${beadId}`, 'success');
+      showToast(`Work ${ACTION_LABELS[action] || action}: ${beadId}`, 'success');
       // Trigger work list refresh
       document.dispatchEvent(new CustomEvent(WORK_REFRESH));
     } else if (result) {
@@ -239,17 +255,20 @@ export function renderBeadCard(bead, index) {
         </div>
         ${status !== 'closed' ? `
           <div class="bead-actions">
-            <button class="btn btn-xs btn-success-ghost" data-action="done" data-bead-id="${bead.id}" title="Mark as done">
+            <button class="btn btn-xs btn-success-ghost" data-action="done" data-bead-id="${bead.id}" title="Close as completed">
               <span class="material-icons">check_circle</span>
             </button>
-            <button class="btn btn-xs btn-ghost" data-action="park" data-bead-id="${bead.id}" title="Park work">
+            <button class="btn btn-xs btn-ghost" data-action="defer" data-bead-id="${bead.id}" title="Defer for later">
               <span class="material-icons">pause_circle</span>
             </button>
-            <button class="btn btn-xs btn-ghost" data-action="release" data-bead-id="${bead.id}" title="Release work">
-              <span class="material-icons">cancel</span>
+            <button class="btn btn-xs btn-ghost" data-action="reopen" data-bead-id="${bead.id}" title="Reopen and unassign">
+              <span class="material-icons">replay</span>
             </button>
-            <button class="btn btn-xs btn-ghost" data-action="reassign" data-bead-id="${bead.id}" title="Reassign work">
+            <button class="btn btn-xs btn-ghost" data-action="reassign" data-bead-id="${bead.id}" title="Reassign to another agent">
               <span class="material-icons">person_add</span>
+            </button>
+            <button class="btn btn-xs btn-danger-ghost" data-action="delete" data-bead-id="${bead.id}" title="Delete permanently">
+              <span class="material-icons">delete</span>
             </button>
           </div>
         ` : ''}

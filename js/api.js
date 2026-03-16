@@ -225,6 +225,10 @@ export const api = {
     return this.post(`/api/work/${encodeURIComponent(beadId)}/reassign`, { target });
   },
 
+  deleteWork(beadId) {
+    return this.request(`/api/work/${encodeURIComponent(beadId)}`, { method: 'DELETE' });
+  },
+
   getBeadDependencies(epicId) {
     return this.get(`/api/beads/dependencies?epic=${encodeURIComponent(epicId)}`);
   },
