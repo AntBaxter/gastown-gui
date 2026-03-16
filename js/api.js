@@ -158,6 +158,7 @@ export const api = {
       priority: options.priority,
       labels: options.labels,
       rig: options.rig,
+      parent: options.parent,
     });
   },
 
@@ -185,6 +186,26 @@ export const api = {
     if (rig) params.set('rig', rig);
     const query = params.toString();
     return this.get(`/api/beads/blocked${query ? '?' + query : ''}`);
+  },
+
+  addDependency(beadId, dependsOn) {
+    return this.post(`/api/bead/${encodeURIComponent(beadId)}/dep`, { dependsOn });
+  },
+
+  removeDependency(beadId, dependsOn) {
+    return this.post(`/api/bead/${encodeURIComponent(beadId)}/dep/remove`, { dependsOn });
+  },
+
+  getDependencyTree(beadId) {
+    return this.get(`/api/bead/${encodeURIComponent(beadId)}/dep/tree`);
+  },
+
+  setParent(beadId, parentId) {
+    return this.post(`/api/bead/${encodeURIComponent(beadId)}/parent`, { parentId });
+  },
+
+  getDependencies(beadId) {
+    return this.get(`/api/beads/dependencies?epic=${encodeURIComponent(beadId)}`);
   },
 
   // === Work Actions ===

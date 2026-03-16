@@ -40,7 +40,7 @@ export class BDGateway {
     return { ...result, raw, data: parseJsonOrNull(raw) };
   }
 
-  async create({ title, description, type, priority, labels, rig } = {}) {
+  async create({ title, description, type, priority, labels, rig, parent } = {}) {
     const args = ['create', title];
     if (type) args.push('--type', type);
     if (description) args.push('--description', description);
@@ -49,6 +49,7 @@ export class BDGateway {
       args.push('--labels', labels.join(','));
     }
     if (rig) args.push('--rig', rig);
+    if (parent) args.push('--parent', parent);
     args.push('--json');
 
     const result = await this.exec(args, { timeoutMs: 30000 });
@@ -94,6 +95,27 @@ export class BDGateway {
     const result = await this.exec(['dep', 'list', beadId, '--json'], { timeoutMs: 30000 });
     const raw = (result.stdout || '').trim();
     return { ...result, raw, data: parseJsonOrNull(raw) };
+  }
+
+  async depAdd(beadId, dependsOnId) {
+    const result = await this.exec(['dep', 'add', beadId, dependsOnId], { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
+  async depRemove(beadId, dependsOnId) {
+    const result = await this.exec(['dep', 'remove', beadId, dependsOnId], { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
+  async depTree(beadId) {
+    const result = await this.exec(['dep', 'tree', beadId], { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
+  async updateParent(beadId, parentId) {
+    const args = ['update', beadId, '--parent', parentId];
+    const result = await this.exec(args, { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
   }
 
   async blocked({ rig } = {}) {

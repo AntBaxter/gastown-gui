@@ -150,7 +150,7 @@ export class BeadService {
     return { ok: true, children: result.data || [], epic: result.epic || null };
   }
 
-  async create({ title, description, type, priority, labels, rig } = {}) {
+  async create({ title, description, type, priority, labels, rig, parent } = {}) {
     if (!title) return { ok: false, statusCode: 400, error: 'Title is required' };
 
     const normalizedPriority = priority ? PRIORITY_MAP[String(priority).toLowerCase()] || String(priority) : null;
@@ -163,6 +163,7 @@ export class BeadService {
       priority: normalizedPriority && normalizedPriority !== 'P2' ? normalizedPriority : null,
       labels: normalizedLabels,
       rig: rig || null,
+      parent: parent || null,
     });
 
     if (!result.ok) return { ok: false, statusCode: 500, error: result.error || 'Failed to create bead' };
@@ -182,15 +183,37 @@ export class BeadService {
     return result.data;
   }
 
-  async getBlocked({ rig } = {}) {
-    const result = await this._bd.blocked({ rig: rig && rig !== 'all' && rig !== 'hq' ? rig : undefined });
-    if (!result.ok || !Array.isArray(result.data)) return [];
-    return result.data;
+  async addDependency(beadId, dependsOnId) {
+    if (!beadId || !dependsOnId) return { ok: false, error: 'Both bead ID and dependency ID are required' };
+    if (!this._bd.depAdd) return { ok: false, error: 'Dependency management not available' };
+    const result = await this._bd.depAdd(beadId, dependsOnId);
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to add dependency' };
+    this._emit?.('bead_updated', { bead_id: beadId });
+    return { ok: true, raw: result.raw };
   }
 
-  async getChildren(epicId) {
-    const result = await this._bd.children(epicId);
-    if (!result.ok) return { ok: false, children: [], epic: null };
-    return { ok: true, children: result.data || [], epic: result.epic || null };
+  async removeDependency(beadId, dependsOnId) {
+    if (!beadId || !dependsOnId) return { ok: false, error: 'Both bead ID and dependency ID are required' };
+    if (!this._bd.depRemove) return { ok: false, error: 'Dependency management not available' };
+    const result = await this._bd.depRemove(beadId, dependsOnId);
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to remove dependency' };
+    this._emit?.('bead_updated', { bead_id: beadId });
+    return { ok: true, raw: result.raw };
+  }
+
+  async getDependencyTree(beadId) {
+    if (!this._bd.depTree) return { ok: false, error: 'Dependency tree not available' };
+    const result = await this._bd.depTree(beadId);
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to get dependency tree' };
+    return { ok: true, raw: result.raw };
+  }
+
+  async setParent(beadId, parentId) {
+    if (!beadId) return { ok: false, error: 'Bead ID is required' };
+    if (!this._bd.updateParent) return { ok: false, error: 'Parent management not available' };
+    const result = await this._bd.updateParent(beadId, parentId || '');
+    if (!result.ok) return { ok: false, error: result.error || 'Failed to set parent' };
+    this._emit?.('bead_updated', { bead_id: beadId });
+    return { ok: true, raw: result.raw };
   }
 }

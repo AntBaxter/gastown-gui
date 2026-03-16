@@ -23,8 +23,8 @@ export function registerBeadRoutes(app, { beadService } = {}) {
 
   app.post('/api/beads', async (req, res) => {
     try {
-      const { title, description, type, priority, labels, rig } = req.body;
-      const result = await beadService.create({ title, description, type, priority, labels, rig });
+      const { title, description, type, priority, labels, rig, parent } = req.body;
+      const result = await beadService.create({ title, description, type, priority, labels, rig, parent });
 
       if (!result.ok) {
         return res.status(result.statusCode || 500).json({ success: false, error: result.error });
@@ -76,6 +76,56 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 
+
+  // Dependency management
+  app.post('/api/bead/:beadId/dep', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const { dependsOn } = req.body;
+      if (!dependsOn) return res.status(400).json({ success: false, error: 'dependsOn is required' });
+      const result = await beadService.addDependency(beadId, dependsOn);
+      if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+      return res.json({ success: true, raw: result.raw });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/bead/:beadId/dep/remove', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const { dependsOn } = req.body;
+      if (!dependsOn) return res.status(400).json({ success: false, error: 'dependsOn is required' });
+      const result = await beadService.removeDependency(beadId, dependsOn);
+      if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+      return res.json({ success: true, raw: result.raw });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/bead/:beadId/dep/tree', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const result = await beadService.getDependencyTree(beadId);
+      if (!result.ok) return res.status(500).json({ error: result.error });
+      return res.json({ tree: result.raw });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/bead/:beadId/parent', async (req, res) => {
+    try {
+      const { beadId } = req.params;
+      const { parentId } = req.body;
+      const result = await beadService.setParent(beadId, parentId || '');
+      if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+      return res.json({ success: true, raw: result.raw });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   app.get('/api/bead/:beadId', async (req, res) => {
     try {

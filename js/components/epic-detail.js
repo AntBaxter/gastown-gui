@@ -11,7 +11,7 @@ import { api } from '../api.js';
 import { showToast } from './toast.js';
 import { escapeHtml } from '../utils/html.js';
 import { getBeadPriority } from '../shared/beads.js';
-import { BEAD_DETAIL, BEAD_SLING } from '../shared/events.js';
+import { BEAD_DETAIL, BEAD_SLING, MODAL_SHOW } from '../shared/events.js';
 
 const STATUS_ICONS = {
   open: 'radio_button_unchecked',
@@ -107,12 +107,18 @@ export function renderEpicChildTree(children) {
           <span class="material-icons">account_tree</span>
           Child Tasks (${children.length})
         </h4>
-        ${readyCount > 0 ? `
-          <button class="btn btn-sm btn-primary epic-sling-all-btn" title="Sling all ready tasks">
-            <span class="material-icons">send</span>
-            Sling All Ready (${readyCount})
+        <div class="epic-children-actions">
+          <button class="btn btn-sm btn-secondary epic-add-child-btn" title="Create child task">
+            <span class="material-icons">add</span>
+            Add Child
           </button>
-        ` : ''}
+          ${readyCount > 0 ? `
+            <button class="btn btn-sm btn-primary epic-sling-all-btn" title="Sling all ready tasks">
+              <span class="material-icons">send</span>
+              Sling All Ready (${readyCount})
+            </button>
+          ` : ''}
+        </div>
       </div>
       ${renderEpicProgress(children)}
       <div class="epic-child-list">
@@ -122,7 +128,7 @@ export function renderEpicChildTree(children) {
   `;
 }
 
-export function wireEpicChildEvents(container, children) {
+export function wireEpicChildEvents(container, children, epicId) {
   // Sling individual child
   container.querySelectorAll('.epic-sling-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -150,6 +156,21 @@ export function wireEpicChildEvents(container, children) {
         document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId: child.id } }));
       }
       showToast(`Sling initiated for ${readyChildren.length} ready tasks`, 'success');
+    });
+  }
+
+  // Add child task button
+  const addChildBtn = container.querySelector('.epic-add-child-btn');
+  if (addChildBtn && epicId) {
+    addChildBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Open new bead modal with parent pre-filled
+      const newBeadModal = document.getElementById('new-bead-modal');
+      const parentInput = newBeadModal?.querySelector('[name="parent"]');
+      if (parentInput) parentInput.value = epicId;
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+      if (newBeadModal) newBeadModal.classList.remove('hidden');
     });
   }
 
@@ -248,10 +269,11 @@ export async function loadAndRenderEpicChildren(beadId, container) {
     const children = result?.children || [];
 
     if (children.length === 0) {
-      container.innerHTML = '<p class="empty-state">No child tasks found</p>';
+      container.innerHTML = renderEpicChildTree([]);
+      wireEpicChildEvents(container, [], beadId);
     } else {
       container.innerHTML = renderEpicChildTree(children);
-      wireEpicChildEvents(container, children);
+      wireEpicChildEvents(container, children, beadId);
     }
 
     // Load integration branch status

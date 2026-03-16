@@ -783,6 +783,12 @@ function initNewBeadModal(element, data) {
       }
     }
   }
+
+  // Pre-fill parent if provided (e.g., creating child task from epic detail)
+  const parentInput = element.querySelector('[name="parent"]');
+  if (parentInput && data?.parent) {
+    parentInput.value = data.parent;
+  }
 }
 
 async function handleNewBeadSubmit(form) {
@@ -791,6 +797,7 @@ async function handleNewBeadSubmit(form) {
   const type = form.querySelector('[name="type"]')?.value || 'task';
   const rig = form.querySelector('[name="rig"]')?.value || '';
   const priority = form.querySelector('[name="priority"]')?.value || 'normal';
+  const parent = form.querySelector('[name="parent"]')?.value?.trim() || '';
   const labelsText = form.querySelector('[name="labels"]')?.value || '';
   const slingNow = form.querySelector('[name="sling_now"]')?.checked || false;
 
@@ -810,7 +817,7 @@ async function handleNewBeadSubmit(form) {
   closeAllModals();
 
   // Run in background (non-blocking)
-  api.createBead(title, { description, type, priority, labels, rig: rig || undefined }).then(result => {
+  api.createBead(title, { description, type, priority, labels, rig: rig || undefined, parent: parent || undefined }).then(result => {
     if (result.success) {
       showToast(`Work item created: ${result.bead_id}`, 'success');
 
@@ -1732,6 +1739,35 @@ async function showBeadDetailModal(beadId, bead) {
         </div>
       ` : ''}
 
+      ${bead.parent_id ? `
+        <div class="meta-row">
+          <span class="meta-label">Parent:</span>
+          <a href="#" class="bead-parent-link" data-parent-id="${escapeAttr(bead.parent_id)}">${escapeHtml(bead.parent_id)}</a>
+        </div>
+      ` : ''}
+
+      <div class="bead-detail-section bead-deps-section" id="bead-deps-section">
+        <h4>
+          <span class="material-icons">account_tree</span>
+          Dependencies
+        </h4>
+        <div class="bead-deps-content" id="bead-deps-content">
+          <div class="loading-inline">
+            <span class="material-icons spinning">sync</span>
+            Loading dependencies...
+          </div>
+        </div>
+        ${bead.status !== 'closed' ? `
+          <div class="bead-dep-add">
+            <input type="text" class="dep-add-input" id="dep-add-input"
+                   placeholder="Add dependency (bead ID)..." />
+            <button class="btn btn-sm btn-primary dep-add-btn" id="dep-add-btn" title="Add dependency">
+              <span class="material-icons">add</span>
+            </button>
+          </div>
+        ` : ''}
+      </div>
+
       ${bead.issue_type === 'epic' ? `
         <div class="bead-detail-section epic-children-container" id="epic-children-container">
         </div>
@@ -1769,6 +1805,20 @@ async function showBeadDetailModal(beadId, bead) {
     if (epicContainer) {
       loadAndRenderEpicChildren(beadId, epicContainer);
     }
+  }
+
+  // Load and render dependencies
+  loadBeadDependencies(beadId, bead, modal);
+
+  // Wire parent link
+  const parentLink = modal.querySelector('.bead-parent-link');
+  if (parentLink) {
+    parentLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const parentId = parentLink.dataset.parentId;
+      closeAllModals();
+      document.dispatchEvent(new CustomEvent(BEAD_DETAIL, { detail: { beadId: parentId } }));
+    });
   }
 
   // Add sling button handler
@@ -1815,6 +1865,99 @@ async function showBeadDetailModal(beadId, bead) {
 
   // Fetch and display related links (PRs, commits)
   fetchBeadLinks(beadId, modal);
+}
+
+async function loadBeadDependencies(beadId, bead, modal) {
+  const depsContent = modal.querySelector('#bead-deps-content');
+  if (!depsContent) return;
+
+  try {
+    const deps = await api.getDependencies(beadId);
+    if (!deps || deps.length === 0) {
+      depsContent.innerHTML = '<div class="no-deps"><span class="material-icons">link_off</span> No dependencies</div>';
+    } else {
+      depsContent.innerHTML = deps.map(dep => {
+        const depId = dep.dependency_id || dep.id || dep;
+        const depType = dep.dependency_type || 'depends_on';
+        return `
+          <div class="dep-item">
+            <span class="dep-type-badge">${escapeHtml(depType)}</span>
+            <a href="#" class="dep-link" data-dep-id="${escapeAttr(depId)}">${escapeHtml(depId)}</a>
+            ${bead.status !== 'closed' ? `
+              <button class="btn btn-xs btn-ghost dep-remove-btn" data-dep-id="${escapeAttr(depId)}" title="Remove dependency">
+                <span class="material-icons">close</span>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      // Wire dep link clicks
+      depsContent.querySelectorAll('.dep-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const depId = link.dataset.depId;
+          closeAllModals();
+          document.dispatchEvent(new CustomEvent(BEAD_DETAIL, { detail: { beadId: depId } }));
+        });
+      });
+
+      // Wire remove buttons
+      depsContent.querySelectorAll('.dep-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const depId = btn.dataset.depId;
+          btn.disabled = true;
+          try {
+            const result = await api.removeDependency(beadId, depId);
+            if (result.success) {
+              showToast(`Dependency removed: ${depId}`, 'success');
+              loadBeadDependencies(beadId, bead, modal);
+            } else {
+              showToast(`Failed: ${result.error}`, 'error');
+            }
+          } catch (err) {
+            showToast(`Error: ${err.message}`, 'error');
+          }
+          btn.disabled = false;
+        });
+      });
+    }
+  } catch {
+    depsContent.innerHTML = '<div class="no-deps"><span class="material-icons">link_off</span> No dependencies</div>';
+  }
+
+  // Wire add dependency button
+  const addBtn = modal.querySelector('#dep-add-btn');
+  const addInput = modal.querySelector('#dep-add-input');
+  if (addBtn && addInput) {
+    const handleAdd = async () => {
+      const depId = addInput.value.trim();
+      if (!depId) return;
+      addBtn.disabled = true;
+      try {
+        const result = await api.addDependency(beadId, depId);
+        if (result.success) {
+          showToast(`Dependency added: ${depId}`, 'success');
+          addInput.value = '';
+          loadBeadDependencies(beadId, bead, modal);
+        } else {
+          showToast(`Failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      }
+      addBtn.disabled = false;
+    };
+
+    addBtn.addEventListener('click', handleAdd);
+    addInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAdd();
+      }
+    });
+  }
 }
 
 async function fetchBeadLinks(beadId, modal) {

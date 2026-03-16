@@ -892,6 +892,31 @@ app.get('/api/bead/:beadId/links', (req, res) => {
   });
 });
 
+// Dependency management
+app.post('/api/bead/:beadId/dep', (req, res) => {
+  const { beadId } = req.params;
+  const { dependsOn } = req.body;
+  if (!dependsOn) return res.status(400).json({ success: false, error: 'dependsOn is required' });
+  res.json({ success: true, raw: `Added dependency: ${beadId} depends on ${dependsOn}` });
+});
+
+app.post('/api/bead/:beadId/dep/remove', (req, res) => {
+  const { beadId } = req.params;
+  const { dependsOn } = req.body;
+  if (!dependsOn) return res.status(400).json({ success: false, error: 'dependsOn is required' });
+  res.json({ success: true, raw: `Removed dependency: ${beadId} no longer depends on ${dependsOn}` });
+});
+
+app.get('/api/bead/:beadId/dep/tree', (req, res) => {
+  res.json({ tree: `${req.params.beadId}\n  (no dependencies)` });
+});
+
+app.post('/api/bead/:beadId/parent', (req, res) => {
+  const { beadId } = req.params;
+  const { parentId } = req.body;
+  res.json({ success: true, raw: parentId ? `Set parent of ${beadId} to ${parentId}` : `Removed parent from ${beadId}` });
+});
+
 app.post('/api/work/:beadId/done', (req, res) => {
   const { beadId } = req.params;
   const { summary } = req.body;

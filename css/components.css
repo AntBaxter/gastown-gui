@@ -4651,13 +4651,91 @@ select {
   animation: spin 1s linear infinite;
 }
 
-.no-links {
+.no-links,
+.no-deps {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   color: var(--text-muted);
   font-size: var(--text-sm);
   padding: var(--space-sm);
+}
+
+/* Dependencies section */
+.bead-deps-section h4 .material-icons {
+  color: var(--accent-primary);
+}
+
+.dep-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.dep-item:hover {
+  background: var(--bg-hover);
+}
+
+.dep-type-badge {
+  font-size: var(--text-xs);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.dep-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.dep-link:hover {
+  text-decoration: underline;
+}
+
+.dep-remove-btn {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.dep-remove-btn:hover {
+  opacity: 1;
+  color: var(--accent-danger);
+}
+
+.bead-dep-add {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.dep-add-input {
+  flex: 1;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dep-add-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.bead-parent-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-family: monospace;
+}
+
+.bead-parent-link:hover {
+  text-decoration: underline;
 }
 
 .pr-link {
@@ -8159,6 +8237,12 @@ a:focus-visible,
   align-items: center;
   gap: var(--space-xs);
   margin: 0;
+}
+
+.epic-children-actions {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
 }
 
 .epic-progress {
