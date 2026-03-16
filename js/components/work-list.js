@@ -26,6 +26,9 @@ const TYPE_ICONS = {
   epic: 'flag',
 };
 
+// Types that have colour coding (matching CSS type-* classes)
+const TYPE_COLORS = ['task', 'bug', 'feature', 'epic', 'chore'];
+
 // Status configuration
 const STATUS_CONFIG = {
   open: { icon: 'radio_button_unchecked', class: 'status-open', label: 'Open' },
@@ -192,9 +195,11 @@ export function renderBeadCard(bead, index) {
   const isGate = bead._isGate || bead.issue_type === 'gate' ||
     (bead.title || '').toLowerCase().includes('review gate');
   const gateClass = isGate ? ' bead-gate' : '';
+  const beadType = bead.issue_type || 'task';
+  const typeClass = TYPE_COLORS.includes(beadType) ? ` type-${beadType}` : '';
 
   return `
-	    <div class="bead-card ${statusConfig.class}${gateClass} animate-spawn ${getStaggerClass(index)}"
+	    <div class="bead-card ${statusConfig.class}${gateClass}${typeClass} animate-spawn ${getStaggerClass(index)}"
 	         data-bead-id="${bead.id}">
       <div class="bead-header">
         <div class="bead-status">
@@ -204,9 +209,9 @@ export function renderBeadCard(bead, index) {
           <h3 class="bead-title">${escapeHtml(bead.title)}</h3>
           <div class="bead-meta">
             <span class="bead-id">#${bead.id}</span>
-            <span class="bead-type">
+            <span class="bead-type${typeClass}">
               <span class="material-icons">${typeIcon}</span>
-              ${bead.issue_type || 'task'}
+              ${beadType}
             </span>
             ${bead.rig ? `
               <span class="bead-rig-badge" title="Rig: ${escapeHtml(bead.rig)}">

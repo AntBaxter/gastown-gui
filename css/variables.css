@@ -46,6 +46,13 @@
   --event-mail: #58a6ff;
   --event-escalation: #d29922;
 
+  /* Bead Type Colors */
+  --type-task: #d29922;
+  --type-bug: #f85149;
+  --type-feature: #a371f7;
+  --type-epic: #58a6ff;
+  --type-chore: #6e7681;
+
   /* Role Colors */
   --role-mayor: #58a6ff;
   --role-deacon: #a371f7;
