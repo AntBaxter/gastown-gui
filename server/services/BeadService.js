@@ -135,7 +135,7 @@ export class BeadService {
 
   async listEpics({ rig } = {}) {
     const beads = await this.list({ rig });
-    return beads.filter(b => b.issue_type === 'epic');
+    return beads.filter(b => b.issue_type === 'epic' && !b.ephemeral);
   }
 
   async getBlocked({ rig } = {}) {

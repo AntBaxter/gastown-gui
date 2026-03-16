@@ -846,7 +846,7 @@ app.get('/api/bead/:beadId', (req, res) => {
 });
 
 app.get('/api/beads/epics', (req, res) => {
-  res.json(mockBeads.filter(b => b.issue_type === 'epic'));
+  res.json(mockBeads.filter(b => b.issue_type === 'epic' && !b.ephemeral));
 });
 
 app.get('/api/beads/blocked', (req, res) => {
