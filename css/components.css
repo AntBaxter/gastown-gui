@@ -4294,6 +4294,34 @@ select {
   border-left: 3px solid var(--accent-warning);
 }
 
+/* Type-based border colours (override status border when type is known) */
+.bead-card.type-task {
+  border-left: 3px solid var(--type-task);
+}
+
+.bead-card.type-bug {
+  border-left: 3px solid var(--type-bug);
+}
+
+.bead-card.type-feature {
+  border-left: 3px solid var(--type-feature);
+}
+
+.bead-card.type-epic {
+  border-left: 3px solid var(--type-epic);
+}
+
+.bead-card.type-chore {
+  border-left: 3px solid var(--type-chore);
+}
+
+/* Type-coloured icon in bead metadata */
+.bead-type.type-task .material-icons { color: var(--type-task); }
+.bead-type.type-bug .material-icons { color: var(--type-bug); }
+.bead-type.type-feature .material-icons { color: var(--type-feature); }
+.bead-type.type-epic .material-icons { color: var(--type-epic); }
+.bead-type.type-chore .material-icons { color: var(--type-chore); }
+
 .bead-header {
   display: flex;
   align-items: flex-start;
@@ -8301,6 +8329,13 @@ a:focus-visible,
   border-style: dashed;
   border-color: var(--color-warning, #f59e0b);
 }
+
+/* Type-based left border on epic child cards */
+.epic-child-card.type-task { border-left: 3px solid var(--type-task); }
+.epic-child-card.type-bug { border-left: 3px solid var(--type-bug); }
+.epic-child-card.type-feature { border-left: 3px solid var(--type-feature); }
+.epic-child-card.type-epic { border-left: 3px solid var(--type-epic); }
+.epic-child-card.type-chore { border-left: 3px solid var(--type-chore); }
 
 .epic-child-main {
   display: flex;

@@ -45,8 +45,11 @@ function renderChildCard(child, allChildren) {
   const reviewGate = isReviewGate(child);
   const canSling = ready && child.status !== 'closed';
 
+  const childType = child.issue_type || 'task';
+  const typeClass = ['task', 'bug', 'feature', 'epic', 'chore'].includes(childType) ? ` type-${childType}` : '';
+
   return `
-    <div class="epic-child-card ${child.status === 'closed' ? 'child-closed' : ''} ${reviewGate ? 'child-review-gate' : ''}"
+    <div class="epic-child-card ${child.status === 'closed' ? 'child-closed' : ''} ${reviewGate ? 'child-review-gate' : ''}${typeClass}"
          data-child-id="${escapeHtml(child.id)}">
       <div class="epic-child-main">
         <span class="material-icons status-icon status-${child.status}">${statusIcon}</span>
