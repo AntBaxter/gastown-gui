@@ -119,7 +119,7 @@ export class BDGateway {
   }
 
   async delete(beadId) {
-    const result = await this.exec(['delete', beadId, '--yes'], { timeoutMs: 30000 });
+    const result = await this.exec(['delete', beadId, '--force'], { timeoutMs: 30000 });
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
