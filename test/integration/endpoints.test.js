@@ -843,7 +843,7 @@ describe('Beads CRUD', () => {
     expect(ok).toBe(true);
     expect(status).toBe(200);
     expect(data).toHaveProperty('success', true);
-    expect(data.bead).toHaveProperty('status', 'parked');
+    expect(data.bead).toHaveProperty('status', 'deferred');
   });
 
   it('should release a bead', async () => {
