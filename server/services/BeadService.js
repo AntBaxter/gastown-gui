@@ -36,16 +36,19 @@ export class BeadService {
   }
 
   async list({ status, rig } = {}) {
+    // When no status filter, use --all to include closed beads
+    const all = !status;
+
     // Multi-rig query (comma-separated)
     if (rig && rig !== 'all' && rig.includes(',')) {
       const rigNames = rig.split(',').filter(Boolean);
-      return this._aggregateRigs(status, rigNames);
+      return this._aggregateRigs(status, rigNames, all);
     }
 
     // Single rig query
     if (rig && rig !== 'all') {
       const rigName = rig === 'hq' ? null : rig;
-      const result = await this._bd.list({ status, rig: rigName });
+      const result = await this._bd.list({ status, rig: rigName, all });
       if (!result.ok || !Array.isArray(result.data)) return [];
       return result.data.map(b => ({ ...b, rig: rig === 'hq' ? 'hq' : rigName }));
     }
@@ -53,19 +56,19 @@ export class BeadService {
     // "all" — aggregate HQ + all rigs
     if (rig === 'all') {
       const rigNames = await this._getRigNames();
-      return this._aggregateRigs(status, ['hq', ...rigNames]);
+      return this._aggregateRigs(status, ['hq', ...rigNames], all);
     }
 
     // Default (no rig param) — HQ only (backward compatible)
-    const result = await this._bd.list({ status });
+    const result = await this._bd.list({ status, all });
     if (!result.ok || !Array.isArray(result.data)) return [];
     return result.data;
   }
 
-  async _aggregateRigs(status, rigNames) {
+  async _aggregateRigs(status, rigNames, all) {
     const queries = rigNames.map(name => {
       const rigArg = name === 'hq' ? null : name;
-      return this._bd.list({ status, rig: rigArg }).then(r => ({ r, rigLabel: name }));
+      return this._bd.list({ status, rig: rigArg, all }).then(r => ({ r, rigLabel: name }));
     });
 
     const results = await Promise.allSettled(queries);

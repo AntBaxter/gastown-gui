@@ -128,7 +128,7 @@ describe('BeadService', () => {
     const service = new BeadService({ bdGateway });
     const result = await service.list({ rig: 'myrig', status: 'open' });
 
-    expect(calls[0]).toEqual({ status: 'open', rig: 'myrig' });
+    expect(calls[0]).toEqual({ status: 'open', rig: 'myrig', all: false });
     expect(result).toEqual([{ id: 'mr-1', title: 'Rig bead', rig: 'myrig' }]);
   });
 

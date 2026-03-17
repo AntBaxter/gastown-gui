@@ -51,6 +51,27 @@ describe('BDGateway', () => {
     expect(runner.calls[0].args).toEqual(['list', '--status=open', '--rig', 'gastownui', '--json']);
   });
 
+  it('list() passes --all flag when all is true', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: '[]', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.list({ all: true });
+
+    expect(runner.calls[0].args).toEqual(['list', '--all', '--json']);
+  });
+
+  it('list() omits --all when status is specified', async () => {
+    const runner = new FakeRunner();
+    runner.queue({ ok: true, exitCode: 0, stdout: '[]', stderr: '', error: null, signal: null });
+    const gateway = new BDGateway({ runner, gtRoot: '/tmp/gt' });
+
+    await gateway.list({ status: 'open', all: true });
+
+    // --all takes precedence over --status when both are set
+    expect(runner.calls[0].args).toEqual(['list', '--all', '--json']);
+  });
+
   it('search() uses list when query is empty', async () => {
     const runner = new FakeRunner();
     runner.queue({ ok: true, exitCode: 0, stdout: '[]', stderr: '', error: null, signal: null });
