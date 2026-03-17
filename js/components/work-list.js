@@ -8,7 +8,7 @@ import { api } from '../api.js';
 import { showToast } from './toast.js';
 import { escapeHtml, truncate } from '../utils/html.js';
 import { formatTimeAgoOrDate } from '../utils/formatting.js';
-import { getBeadPriority, HIDDEN_BEAD_TYPES } from '../shared/beads.js';
+import { getBeadPriority, isHiddenBead } from '../shared/beads.js';
 import { BEAD_DETAIL, WORK_REFRESH } from '../shared/events.js';
 import { TIMING_MS } from '../shared/timing.js';
 import { getStaggerClass } from '../shared/animations.js';
@@ -49,7 +49,7 @@ export function renderWorkList(container, beads) {
   if (!container) return;
 
   // Show all work types except internal/ephemeral ones
-  const tasks = beads.filter(b => !HIDDEN_BEAD_TYPES.includes(b.issue_type) && !b.ephemeral);
+  const tasks = beads.filter(b => !isHiddenBead(b));
 
   if (!tasks || tasks.length === 0) {
     container.innerHTML = `

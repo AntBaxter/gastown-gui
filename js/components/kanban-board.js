@@ -8,7 +8,7 @@
 
 import { renderBeadCard } from './work-list.js';
 import { BEAD_DETAIL } from '../shared/events.js';
-import { HIDDEN_BEAD_TYPES } from '../shared/beads.js';
+import { isHiddenBead } from '../shared/beads.js';
 import { escapeHtml, escapeAttr } from '../utils/html.js';
 
 const KANBAN_COLUMNS = [
@@ -29,7 +29,7 @@ function groupByStatus(beads) {
   }
 
   for (const bead of beads) {
-    if (HIDDEN_BEAD_TYPES.includes(bead.issue_type) || bead.ephemeral) continue;
+    if (isHiddenBead(bead)) continue;
 
     let status = bead.status || 'open';
     // Normalize in-progress variants
@@ -134,7 +134,7 @@ export function renderKanbanBoard(container, beads, options = {}) {
     return { ...bead, _blockers: blockers, _isBlocked: isBlocked, _isReady: isReady, _isGate: isGate };
   });
 
-  const tasks = annotatedBeads.filter(b => !HIDDEN_BEAD_TYPES.includes(b.issue_type));
+  const tasks = annotatedBeads.filter(b => !isHiddenBead(b));
 
   if (!tasks || tasks.length === 0) {
     container.innerHTML = `
