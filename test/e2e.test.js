@@ -6,6 +6,7 @@
 
 import { describe, it, beforeAll, afterAll, beforeEach, expect } from 'vitest';
 import {
+  checkPuppeteerAvailable,
   launchBrowser,
   closeBrowser,
   createPage,
@@ -25,7 +26,9 @@ import {
   getBrowserErrors,
 } from './setup.js';
 
-describe('Gas Town GUI E2E Tests', () => {
+const canRunE2E = await checkPuppeteerAvailable();
+
+describe.skipIf(!canRunE2E)('Gas Town GUI E2E Tests', () => {
   let page;
 
   beforeAll(async () => {
@@ -452,7 +455,7 @@ describe('Gas Town GUI E2E Tests', () => {
   });
 });
 
-describe('Component Tests', () => {
+describe.skipIf(!canRunE2E)('Component Tests', () => {
   let page;
 
   beforeAll(async () => {
@@ -551,7 +554,7 @@ describe('Component Tests', () => {
   });
 });
 
-describe('UI Smoke Test', () => {
+describe.skipIf(!canRunE2E)('UI Smoke Test', () => {
   let page;
 
   beforeAll(async () => {

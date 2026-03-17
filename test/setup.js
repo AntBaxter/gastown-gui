@@ -23,6 +23,25 @@ export const CONFIG = {
 // Global browser instance
 let browser = null;
 
+// Pre-flight check: can Puppeteer actually launch Chrome?
+let _puppeteerAvailable = null;
+
+export async function checkPuppeteerAvailable() {
+  if (_puppeteerAvailable !== null) return _puppeteerAvailable;
+  try {
+    const testBrowser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    await testBrowser.close();
+    _puppeteerAvailable = true;
+  } catch (err) {
+    console.warn(`[E2E] Puppeteer cannot launch Chrome — E2E tests will be skipped.\n  ${err.message?.split('\n')[0]}`);
+    _puppeteerAvailable = false;
+  }
+  return _puppeteerAvailable;
+}
+
 function attachBrowserErrorTracking(page) {
   const consoleErrors = [];
   const pageErrors = [];
