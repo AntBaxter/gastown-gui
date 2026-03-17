@@ -114,10 +114,10 @@ export function renderKanbanBoard(container, beads, options = {}) {
   const { epics, epicFilter, epicChildren, blockedBeads, onEpicFilterChange } = options;
   const selectedEpicId = epicFilter || 'all';
 
-  // If epic is selected and we have children, use those instead
+  // If epic is selected, show only its children (may be empty)
   let displayBeads = beads;
-  if (selectedEpicId !== 'all' && epicChildren && epicChildren.length > 0) {
-    displayBeads = epicChildren;
+  if (selectedEpicId !== 'all') {
+    displayBeads = epicChildren || [];
   }
 
   const blockedMap = buildBlockedMap(blockedBeads);
