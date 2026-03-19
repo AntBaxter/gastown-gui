@@ -155,7 +155,14 @@ export function initModals() {
   });
 
   document.addEventListener(BEAD_SLING, (e) => {
-    openModal('sling', { bead: e.detail.beadId });
+    const beadId = e.detail.beadId;
+    showToast(`Slinging ${beadId}...`, 'info');
+    api.sling(beadId).then(result => {
+      showToast(`Work slung: ${beadId}`, 'success');
+      document.dispatchEvent(new CustomEvent(WORK_SLUNG, { detail: result }));
+    }).catch(err => {
+      showToast(`Failed to sling work: ${err.message || 'Unknown error'}`, 'error');
+    });
   });
 
   document.addEventListener(AGENT_PEEK, (e) => {
