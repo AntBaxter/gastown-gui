@@ -154,6 +154,10 @@ export function initModals() {
     showBeadDetailModal(e.detail.beadId, e.detail.bead);
   });
 
+  document.addEventListener(BEAD_SLING, (e) => {
+    openModal('sling', { bead: e.detail.beadId });
+  });
+
   document.addEventListener(AGENT_PEEK, (e) => {
     showPeekModal(e.detail.agentId);
   });
