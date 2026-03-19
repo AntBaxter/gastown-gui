@@ -155,9 +155,9 @@ export function initModals() {
   });
 
   document.addEventListener(BEAD_SLING, (e) => {
-    const beadId = e.detail.beadId;
+    const { beadId, target } = e.detail;
     showToast(`Slinging ${beadId}...`, 'info');
-    api.sling(beadId).then(result => {
+    api.sling(beadId, target).then(result => {
       showToast(`Work slung: ${beadId}`, 'success');
       document.dispatchEvent(new CustomEvent(WORK_SLUNG, { detail: result }));
     }).catch(err => {
@@ -1841,7 +1841,7 @@ async function showBeadDetailModal(beadId, bead) {
   const slingBtn = modal.querySelector('.sling-btn');
   if (slingBtn) {
     slingBtn.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId } }));
+      document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId, target: bead.rig } }));
       closeAllModals();
     });
   }

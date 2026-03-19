@@ -138,7 +138,7 @@ export function wireEpicChildEvents(container, children, epicId, rig) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const beadId = btn.dataset.slingId;
-      document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId } }));
+      document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId, target: rig } }));
     });
   });
 
@@ -157,7 +157,7 @@ export function wireEpicChildEvents(container, children, epicId, rig) {
     slingAllBtn.addEventListener('click', () => {
       const readyChildren = children.filter(c => isReady(c, children) && c.status !== 'closed');
       for (const child of readyChildren) {
-        document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId: child.id } }));
+        document.dispatchEvent(new CustomEvent(BEAD_SLING, { detail: { beadId: child.id, target: rig } }));
       }
       showToast(`Sling initiated for ${readyChildren.length} ready tasks`, 'success');
     });
