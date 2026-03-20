@@ -277,6 +277,9 @@ export function addEventToFeed(container, event) {
 export function renderFeedFilterBar(headerContainer) {
   if (!headerContainer) return;
 
+  const feedEl = document.getElementById('activity-feed');
+  const isCollapsed = feedEl?.classList.contains('collapsed');
+
   headerContainer.innerHTML = `
     <h2>Activity</h2>
     <div class="feed-controls">
@@ -302,8 +305,20 @@ export function renderFeedFilterBar(headerContainer) {
           </button>
         </div>
       </div>
+      <button class="icon-btn-sm" id="collapse-feed" title="Toggle activity panel">
+        <span class="material-icons">${isCollapsed ? 'chevron_left' : 'chevron_right'}</span>
+      </button>
     </div>
   `;
+
+  // Wire up collapse button
+  document.getElementById('collapse-feed')?.addEventListener('click', () => {
+    feedEl?.classList.toggle('collapsed');
+    const icon = document.querySelector('#collapse-feed .material-icons');
+    if (icon) {
+      icon.textContent = feedEl?.classList.contains('collapsed') ? 'chevron_left' : 'chevron_right';
+    }
+  });
 }
 
 /**

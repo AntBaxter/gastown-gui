@@ -405,6 +405,7 @@ body {
   width: 0;
   min-width: 0;
   overflow: hidden;
+  border-right: none;
 }
 
 .sidebar-header {
@@ -491,6 +492,14 @@ body {
   border-left: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
+  transition: width var(--transition-base), min-width var(--transition-base);
+}
+
+.activity-feed.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: none;
 }
 
 .feed-header {

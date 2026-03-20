@@ -340,8 +340,21 @@ sidebarMenuBtn?.addEventListener('click', handleSidebarToggle);
 
 sidebarBackdrop?.addEventListener('click', closeSidebar);
 
-// Also wire up the existing collapse button for mobile close
-document.getElementById('collapse-sidebar')?.addEventListener('click', closeSidebar);
+// Collapse button: on mobile closes the overlay, on desktop toggles collapsed state
+const collapseBtn = document.getElementById('collapse-sidebar');
+collapseBtn?.addEventListener('click', () => {
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  if (isMobile) {
+    closeSidebar();
+  } else {
+    sidebarEl?.classList.toggle('collapsed');
+    // Update the chevron icon direction
+    const icon = collapseBtn.querySelector('.material-icons');
+    if (icon) {
+      icon.textContent = sidebarEl?.classList.contains('collapsed') ? 'chevron_right' : 'chevron_left';
+    }
+  }
+});
 
 // Tree node toggle functionality and agent click handling
 document.addEventListener('click', (e) => {
