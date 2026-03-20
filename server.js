@@ -114,7 +114,7 @@ function emit(type, data) {
 const statusService = new StatusService({ gtGateway, tmuxGateway, cache: backendCache, gtRoot: GT_ROOT });
 const targetService = new TargetService({ statusService });
 const convoyService = new ConvoyService({ gtGateway, cache: backendCache, emit });
-const beadService = new BeadService({ bdGateway, statusService, emit });
+const beadService = new BeadService({ bdGateway, statusService, cache: backendCache, emit });
 const workService = new WorkService({ gtGateway, bdGateway, emit });
 const gitHubService = new GitHubService({ gitHubGateway, statusService, cache: backendCache });
 const mailService = new MailService({ gtGateway, cache: backendCache, gtRoot: GT_ROOT });

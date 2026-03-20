@@ -13,7 +13,7 @@ function normalizeLabels(labels) {
 }
 
 export class BeadService {
-  constructor({ bdGateway, statusService, emit } = {}) {
+  constructor({ bdGateway, statusService, cache, emit } = {}) {
     if (!bdGateway) throw new Error('BeadService requires bdGateway');
     if (!bdGateway.list) throw new Error('BeadService requires bdGateway.list()');
     if (!bdGateway.search) throw new Error('BeadService requires bdGateway.search()');
@@ -22,7 +22,17 @@ export class BeadService {
 
     this._bd = bdGateway;
     this._status = statusService ?? null;
+    this._cache = cache ?? null;
     this._emit = emit ?? null;
+    this._cacheKeys = new Set();
+  }
+
+  _invalidateListCache() {
+    if (!this._cache?.delete) return;
+    for (const key of this._cacheKeys) {
+      this._cache.delete(key);
+    }
+    this._cacheKeys.clear();
   }
 
   async _getRigNames() {
@@ -35,7 +45,19 @@ export class BeadService {
     }
   }
 
-  async list({ status, rig } = {}) {
+  async list({ status, rig, refresh = false } = {}) {
+    const key = `beads_${rig || 'default'}_${status || 'all'}`;
+    const ttlMs = 300000;
+
+    if (!refresh && this._cache?.getOrExecute) {
+      this._cacheKeys.add(key);
+      return this._cache.getOrExecute(key, () => this._fetchList({ status, rig }), ttlMs);
+    }
+
+    return this._fetchList({ status, rig });
+  }
+
+  async _fetchList({ status, rig } = {}) {
     // When no status filter, use --all to include closed beads
     const all = !status;
 
@@ -175,6 +197,7 @@ export class BeadService {
 
     const beadId = result.beadId || null;
     if (beadId) {
+      this._invalidateListCache();
       this._emit?.('bead_created', { bead_id: beadId, title });
     }
 
