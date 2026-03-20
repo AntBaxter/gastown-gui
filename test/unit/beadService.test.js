@@ -79,7 +79,7 @@ describe('BeadService', () => {
     await expect(service.get('missing')).resolves.toEqual({ ok: false });
   });
 
-  it('list with rig=all aggregates HQ + all rigs', async () => {
+  it('list with rig=all aggregates all rigs (excludes HQ)', async () => {
     const bdGateway = makeBdGateway({
       list: async ({ rig } = {}) => {
         if (!rig) return { ok: true, data: [{ id: 'hq-1', title: 'HQ bead' }] };
@@ -94,7 +94,6 @@ describe('BeadService', () => {
     const result = await service.list({ rig: 'all' });
 
     expect(result).toEqual([
-      { id: 'hq-1', title: 'HQ bead', rig: 'hq' },
       { id: 'mr-1', title: 'Rig bead', rig: 'myrig' },
     ]);
   });
@@ -143,18 +142,18 @@ describe('BeadService', () => {
   it('list with rig=all deduplicates by id', async () => {
     const bdGateway = makeBdGateway({
       list: async ({ rig } = {}) => {
-        if (!rig) return { ok: true, data: [{ id: 'shared-1', title: 'Shared' }] };
         if (rig === 'r1') return { ok: true, data: [{ id: 'shared-1', title: 'Shared' }] };
+        if (rig === 'r2') return { ok: true, data: [{ id: 'shared-1', title: 'Shared' }] };
         return { ok: true, data: [] };
       },
     });
 
-    const statusService = makeStatusService([{ name: 'r1' }]);
+    const statusService = makeStatusService([{ name: 'r1' }, { name: 'r2' }]);
     const service = new BeadService({ bdGateway, statusService });
 
     const result = await service.list({ rig: 'all' });
     expect(result).toHaveLength(1);
-    expect(result[0].rig).toBe('hq');
+    expect(result[0].rig).toBe('r1');
   });
 
   it('list with specific rig queries that rig', async () => {
