@@ -299,6 +299,20 @@ function switchView(viewId) {
   }
 }
 
+// Get the currently active view ID
+function getActiveViewId() {
+  const activeView = document.querySelector('.view.active');
+  if (!activeView) return 'dashboard';
+  return activeView.id.replace('view-', '');
+}
+
+// Refresh only the currently active view
+function refreshActiveView() {
+  const viewId = getActiveViewId();
+  switchView(viewId);
+  showToast('Refreshing...', 'info', REFRESH_TOAST_DURATION_MS);
+}
+
 // WebSocket connection
 function connectWebSocket() {
   updateConnectionStatus('connecting');
@@ -1229,8 +1243,7 @@ function setupKeyboardShortcuts() {
           break;
         case 'r':
           e.preventDefault();
-          loadInitialData();
-          showToast('Refreshing...', 'info', REFRESH_TOAST_DURATION_MS);
+          refreshActiveView();
           break;
         case 's':
           e.preventDefault();
@@ -1302,7 +1315,7 @@ function showKeyboardHelp() {
           <div class="shortcut-group">
             <h3>Actions</h3>
             <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>N</kbd> <span>New Convoy</span></div>
-            <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>R</kbd> <span>Refresh Data</span></div>
+            <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>R</kbd> <span>Refresh Current View</span></div>
             <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>S</kbd> <span>Sling Work</span></div>
             <div class="shortcut-row"><kbd>Alt</kbd>+<kbd>N</kbd> <span>New Bead</span></div>
             <div class="shortcut-row"><kbd>Alt</kbd>+<kbd>M</kbd> <span>Compose Mail</span></div>
@@ -1379,10 +1392,30 @@ function setupThemeToggle() {
   icon.textContent = savedTheme === 'dark' ? 'dark_mode' : 'light_mode';
 }
 
-// Refresh button
-document.getElementById('refresh-btn').addEventListener('click', () => {
-  loadInitialData();
-  showToast('Refreshing...', 'info', REFRESH_TOAST_DURATION_MS);
+// Per-view refresh buttons
+document.getElementById('convoy-refresh')?.addEventListener('click', () => {
+  loadConvoys();
+  showToast('Refreshing convoys...', 'info', REFRESH_TOAST_DURATION_MS);
+});
+
+document.getElementById('work-refresh')?.addEventListener('click', () => {
+  loadWork();
+  showToast('Refreshing work...', 'info', REFRESH_TOAST_DURATION_MS);
+});
+
+document.getElementById('agent-refresh')?.addEventListener('click', () => {
+  loadAgents();
+  showToast('Refreshing agents...', 'info', REFRESH_TOAST_DURATION_MS);
+});
+
+document.getElementById('rig-refresh')?.addEventListener('click', () => {
+  loadRigs();
+  showToast('Refreshing rigs...', 'info', REFRESH_TOAST_DURATION_MS);
+});
+
+document.getElementById('mail-refresh')?.addEventListener('click', () => {
+  loadMail();
+  showToast('Refreshing mail...', 'info', REFRESH_TOAST_DURATION_MS);
 });
 
 // Crew management buttons

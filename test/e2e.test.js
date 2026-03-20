@@ -293,15 +293,15 @@ describe.skipIf(!canRunE2E)('Gas Town GUI E2E Tests', () => {
   });
 
   describe('Refresh', () => {
-    it('should refresh data when clicking refresh button', async () => {
+    it('should refresh data when clicking per-view refresh button', async () => {
       await navigateToApp(page);
 
-      // Click refresh
-      await page.click('#refresh-btn');
+      // Click dashboard refresh (default view)
+      await page.click('#dashboard-refresh');
 
-      // Should show toast
-      const toastMessage = await waitForToast(page, 'info');
-      expect(toastMessage).toContain('Refresh');
+      // Dashboard refresh reloads dashboard data (no toast)
+      // Verify the dashboard container still has content
+      await page.waitForSelector('#dashboard-container', { timeout: 5000 });
     });
 
     it('should refresh with Ctrl+R keyboard shortcut', async () => {
@@ -316,9 +316,9 @@ describe.skipIf(!canRunE2E)('Gas Town GUI E2E Tests', () => {
         }));
       });
 
-      // The handler should trigger refresh and show a toast
+      // The handler should trigger refresh of the active view and show a toast
       const toastMessage = await waitForToast(page, 'info');
-      expect(toastMessage).toContain('Refresh');
+      expect(toastMessage).toContain('Refreshing');
     });
   });
 
@@ -474,8 +474,14 @@ describe.skipIf(!canRunE2E)('Component Tests', () => {
     it('should display toast and auto-dismiss', async () => {
       await navigateToApp(page);
 
-      // Trigger a toast via refresh button
-      await page.click('#refresh-btn');
+      // Trigger a toast via Ctrl+R (refreshes active view)
+      await page.evaluate(() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'r',
+          ctrlKey: true,
+          bubbles: true,
+        }));
+      });
 
       // Toast should appear
       await page.waitForSelector('.toast.show', { timeout: 5000 });

@@ -119,9 +119,6 @@
         <button class="icon-btn" id="theme-toggle" title="Toggle theme">
           <span class="material-icons">dark_mode</span>
         </button>
-        <button class="icon-btn" id="refresh-btn" title="Refresh">
-          <span class="material-icons">refresh</span>
-        </button>
         <div class="connection-status" id="connection-status" data-tooltip="Real-time WebSocket connection to Gas Town server">
           <span class="status-dot"></span>
           <span class="status-text">Connecting...</span>
@@ -191,6 +188,9 @@
                 <span class="material-icons">send</span>
                 Sling
               </button>
+              <button class="btn btn-sm btn-icon" id="convoy-refresh" title="Refresh">
+                <span class="material-icons">refresh</span>
+              </button>
               <button class="btn btn-primary" id="new-convoy-btn" data-modal-open="new-convoy" data-tooltip="Create a group of related issues to track together">
                 <span class="material-icons">add</span>
                 New Convoy
@@ -226,6 +226,9 @@
                   <span class="material-icons">view_kanban</span>
                 </button>
               </div>
+              <button class="btn btn-sm btn-icon" id="work-refresh" title="Refresh">
+                <span class="material-icons">refresh</span>
+              </button>
               <button class="btn btn-primary" id="new-bead-btn-work" data-modal-open="new-bead">
                 <span class="material-icons">add</span>
                 New Task
@@ -248,6 +251,9 @@
                 <option value="idle">Idle</option>
                 <option value="working">Working</option>
               </select>
+              <button class="btn btn-sm btn-icon" id="agent-refresh" title="Refresh">
+                <span class="material-icons">refresh</span>
+              </button>
             </div>
           </div>
           <div class="agent-grid" id="agent-grid">
@@ -260,6 +266,9 @@
           <div class="view-header">
             <h1>Rigs</h1>
             <div class="view-actions">
+              <button class="btn btn-sm btn-icon" id="rig-refresh" title="Refresh">
+                <span class="material-icons">refresh</span>
+              </button>
               <button class="btn btn-primary" id="new-rig-btn" data-modal-open="new-rig">
                 <span class="material-icons">add</span>
                 Add Rig
@@ -368,6 +377,9 @@
               <button class="btn btn-ghost" id="mail-filter-unread" title="Show unread only">
                 <span class="material-icons">markunread</span>
                 Unread Only
+              </button>
+              <button class="btn btn-sm btn-icon" id="mail-refresh" title="Refresh">
+                <span class="material-icons">refresh</span>
               </button>
               <button class="btn btn-secondary" id="compose-mail-btn" data-modal-open="mail-compose">
                 <span class="material-icons">edit</span>
