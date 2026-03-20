@@ -7,7 +7,6 @@
 
 import { api, ws } from './api.js';
 import { state, subscribe } from './state.js';
-import { renderSidebar } from './components/sidebar.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter, toggleExcludeCategory, getExcludedCategories, updateCollapsedBar } from './components/activity-feed.js';
@@ -53,7 +52,6 @@ const elements = {
   mailBadge: document.getElementById('mail-badge'),
   hookStatus: document.getElementById('hook-status'),
   statusMessage: document.getElementById('status-message'),
-  agentTree: document.getElementById('agent-tree'),
   convoyList: document.getElementById('convoy-list'),
   workList: document.getElementById('work-list'),
   agentGrid: document.getElementById('agent-grid'),
@@ -424,7 +422,7 @@ function handleWebSocketMessage(message) {
           service: message.data.service
         });
       }
-      // Refresh status and update state to re-render sidebar
+      // Refresh status
       api.getStatus().then(status => state.setStatus(status)).catch(console.error);
       break;
 
@@ -1124,22 +1122,6 @@ function populateRigFilterOptions(rigs) {
   restoreRigFilterState();
 }
 
-// Debounced sidebar render to avoid layout thrashing from rapid status updates
-let sidebarRenderTimer = null;
-let pendingSidebarStatus = null;
-
-function debouncedRenderSidebar(container, status) {
-  pendingSidebarStatus = status;
-  if (sidebarRenderTimer) return; // Already scheduled
-  sidebarRenderTimer = requestAnimationFrame(() => {
-    sidebarRenderTimer = null;
-    if (pendingSidebarStatus) {
-      renderSidebar(container, pendingSidebarStatus);
-      pendingSidebarStatus = null;
-    }
-  });
-}
-
 // State subscriptions
 function subscribeToState() {
   // Status updates
@@ -1156,9 +1138,6 @@ function subscribeToState() {
       elements.hookStatus.classList.remove('active');
       elements.hookStatus.querySelector('.hook-text').textContent = 'No work hooked';
     }
-
-    // Debounced sidebar render to coalesce rapid status changes
-    debouncedRenderSidebar(elements.agentTree, status);
 
     // Update rig filter options
     if (status?.rigs) {

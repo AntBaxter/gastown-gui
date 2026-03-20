@@ -102,10 +102,10 @@ describe('Comprehensive Integration Tests', () => {
       await page.click('[data-view="agents"]');
       await sleep(500);
 
-      // Check if agents section exists
+      // Check if agents view exists
       const hasAgents = await page.evaluate(() => {
-        const sidebar = document.querySelector('.sidebar, .agent-tree, #agent-tree');
-        return sidebar !== null;
+        const agentGrid = document.querySelector('.agent-grid, #agent-grid');
+        return agentGrid !== null;
       });
       expect(hasAgents).toBe(true);
     });

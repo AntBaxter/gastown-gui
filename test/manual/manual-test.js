@@ -437,28 +437,7 @@ async function runTests() {
     await delay(200);
 
     // ═══════════════════════════════════════════════════════════
-    header('9. SIDEBAR & AGENT TREE');
-    // ═══════════════════════════════════════════════════════════
-
-    const hasSidebar = await page.evaluate(() => {
-      return document.querySelector('.sidebar, #sidebar, .agent-tree') !== null;
-    });
-
-    if (hasSidebar) {
-      success('Sidebar present');
-      passed++;
-
-      const agentItems = await page.$$('.agent-item, .tree-item, .sidebar-item');
-      info(`Found ${agentItems.length} agent item(s)`);
-
-      if (agentItems.length > 0) {
-        success('Agent tree populated');
-        passed++;
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    header('10. ACTIVITY FEED');
+    header('9. ACTIVITY FEED');
     // ═══════════════════════════════════════════════════════════
 
     const hasActivityFeed = await page.evaluate(() => {
@@ -471,7 +450,7 @@ async function runTests() {
     }
 
     // ═══════════════════════════════════════════════════════════
-    header('11. RESPONSIVE LAYOUT');
+    header('10. RESPONSIVE LAYOUT');
     // ═══════════════════════════════════════════════════════════
 
     // Test mobile viewport
@@ -480,10 +459,8 @@ async function runTests() {
     await delay(300);
 
     const mobileLayout = await page.evaluate(() => {
-      const sidebar = document.querySelector('.sidebar');
       const mainContent = document.querySelector('.main-content, main');
       return {
-        sidebarHidden: sidebar ? getComputedStyle(sidebar).display === 'none' : true,
         mainExists: mainContent !== null,
       };
     });
