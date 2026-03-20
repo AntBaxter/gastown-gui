@@ -238,6 +238,121 @@ For full dependency graphs, we need to call `bd deps <id>` per bead or add a bul
 - Graph: Dagre layout computation is O(V+E), fast for < 200 nodes
 - Real-time: existing WebSocket handles updates; kanban/graph should subscribe to bead events and re-render affected cards/nodes
 
+---
+
+## Performance Investigation: Bead Loading Speed (2026-03-20)
+
+### Problem
+
+`/api/beads?rig=all` takes 20-26 seconds to respond. This makes the beads UI unusable for planning and managing work.
+
+### Root Cause Analysis
+
+The bottleneck is the **HQ (town-level) database query** when `bd list --all --json` runs from `cwd: /home/gastown/gt` without a `--rig` flag.
+
+**Data profile of the HQ database:**
+- 2214 total beads (1944 closed, 255 hooked, 15 open)
+- 1512 epics (mostly molecule wisps from formula execution)
+- Only 15 beads are actually open
+
+**Timing breakdown for `/api/beads?rig=all` (no status filter):**
+
+| Stage | Time | What happens |
+|-------|------|--------------|
+| `gt status --fast` (get rig names) | ~4-5s | StatusService calls CLI to discover rigs |
+| `bd list --all --json` (HQ, no `--rig`) | ~20-24s | Queries town-level DB: 2214 beads, ~0.01s/bead |
+| `bd list --all --rig gastownui` | ~0.5s | 47 beads, fast |
+| `bd list --all --rig vsbel` | ~1s | 114 beads, fast |
+| **Total (parallel rig queries)** | **~24s** | Dominated by HQ query |
+
+**Why HQ is slow:** The `bd list --all` command from the GT_ROOT directory hits the town-level Dolt database which has accumulated 2214 beads over time. Performance scales linearly at ~0.01s/bead. Even `--rig hq` takes 16s because it resolves to the same large database.
+
+**Why rig-specific queries are fast:** Each rig's `.beads/` database contains only its own beads (47 for gastownui, 114 for vsbel), so queries complete in <1s.
+
+**Comparison with status filter:**
+
+| Endpoint | Time | Why |
+|----------|------|-----|
+| `/api/beads?rig=all&status=open` | ~4.4s | Only 15 open HQ beads + rig open beads |
+| `/api/beads?rig=all` (no filter) | ~21-26s | All 2214 HQ beads fetched |
+| `/api/beads?rig=gastownui` | ~0.5s | Small rig DB, no HQ overhead |
+| `/api/beads?status=open` (no rig) | ~0.3s | Only open beads from HQ |
+
+### Code Path
+
+1. `GET /api/beads?rig=all` → `server/routes/beads.js:6` → `BeadService.list({ rig: 'all' })`
+2. `BeadService.list()` calls `_getRigNames()` → `StatusService.getStatus()` → `gt status --fast` (~4s)
+3. `_aggregateRigs(['hq', 'gastownui', 'vsbel'])` runs `bd list` per rig via `Promise.allSettled`
+4. HQ query: `BDGateway.list({ all: true })` → `bd list --all --json` from `cwd: GT_ROOT` → **24s bottleneck**
+
+### Proposed Solutions
+
+#### Solution 1: Exclude HQ from `rig=all` aggregation (Quick Win)
+
+The `rig=all` query should only aggregate named rigs (gastownui, vsbel), not the town-level HQ database. HQ beads are coordination/molecule beads that aren't useful in kanban planning views. If users need HQ beads, they can select the "hq" rig specifically.
+
+**Impact:** `/api/beads?rig=all` drops from ~24s to ~5s (dominated by `gt status --fast`).
+
+**Implementation:** In `BeadService.list()`, change the `rig === 'all'` branch:
+```js
+// Before:
+return this._aggregateRigs(status, ['hq', ...rigNames], all);
+// After:
+return this._aggregateRigs(status, rigNames, all);
+```
+
+#### Solution 2: Cache rig names (Quick Win)
+
+`_getRigNames()` calls `gt status --fast` on every `rig=all` request (~4-5s). The StatusService already has a 5s cache, but this is too short. Rig names change very rarely.
+
+**Impact:** Eliminates 4-5s overhead on most `rig=all` calls.
+
+**Implementation:** Cache rig names with a longer TTL (60-300s), or read from a config file instead of calling `gt status`.
+
+#### Solution 3: Default to open beads, not all (Quick Win)
+
+The `BeadService.list()` method passes `--all` to `bd list` when no status filter is provided. This fetches all 2214 beads including 1944 closed ones. Instead, default to fetching only actionable statuses (open, in_progress, blocked, hooked).
+
+**Impact:** HQ query drops from 24s to <1s (only ~270 non-closed beads).
+
+**Implementation:** In `BeadService.list()`:
+```js
+// Only pass --all when explicitly requested via status='all'
+// Default (no status): fetch actionable beads only
+const all = status === 'all';
+```
+Frontend already defaults `workFilter` to `'open'`, so this only affects the "All" filter toggle.
+
+#### Solution 4: Server-side bead list caching (Medium effort)
+
+Cache the aggregated bead list with a 10-30s TTL. Invalidate on WebSocket bead events (bead_created, bead_updated). This amortizes the cost across multiple rapid page loads and tab switches.
+
+**Impact:** Subsequent requests within TTL window are instant.
+
+**Implementation:** Add a cache layer in BeadService similar to StatusService's existing pattern.
+
+#### Solution 5: Pagination with `bd list -n <limit>` (Medium effort)
+
+The `bd list` command supports `-n` (limit, default 50) and could support offset-based pagination. For initial page load, fetch only the first 50-100 beads, then lazy-load more on scroll.
+
+**Impact:** Caps worst-case query time regardless of database size.
+
+**Implementation:** Add `limit` and `offset` query params to `/api/beads`, pass `-n` to `bd list`. Frontend implements infinite scroll or "Load More" button.
+
+#### Solution 6: Progressive loading via WebSocket (Higher effort)
+
+Instead of waiting for all rigs to respond, stream per-rig results to the frontend via WebSocket as they complete. The kanban board renders incrementally.
+
+**Impact:** First results appear in <1s. Full aggregation still takes same time but UX is responsive.
+
+### Recommended Implementation Order
+
+1. **Solution 1 + Solution 3** (immediate, ~30 min): Exclude HQ from `rig=all` and default to actionable statuses. Combined, this drops `/api/beads?rig=all` from ~24s to ~5s.
+2. **Solution 2** (immediate, ~15 min): Cache rig names longer. Drops `rig=all` from ~5s to ~1s.
+3. **Solution 4** (next sprint): Add server-side caching for repeat loads.
+4. **Solution 5** (next sprint): Add pagination for scalability as bead counts grow.
+5. **Solution 6** (future): Progressive loading for best UX.
+
 ### CSS Architecture
 
 New views should use the existing CSS custom property system in `variables.css`. Kanban columns use CSS grid. Graph view uses an SVG container with absolute positioning.
