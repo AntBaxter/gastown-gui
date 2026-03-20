@@ -54,9 +54,11 @@ export class BeadService {
     }
 
     // "all" — aggregate HQ + all rigs
+    // Default to 'open' when no status filter to avoid fetching thousands of closed beads
     if (rig === 'all') {
       const rigNames = await this._getRigNames();
-      return this._aggregateRigs(status, ['hq', ...rigNames], all);
+      const effectiveStatus = status || 'open';
+      return this._aggregateRigs(effectiveStatus, ['hq', ...rigNames], false);
     }
 
     // Default (no rig param) — HQ only (backward compatible)

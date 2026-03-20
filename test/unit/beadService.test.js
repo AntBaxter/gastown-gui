@@ -99,6 +99,47 @@ describe('BeadService', () => {
     ]);
   });
 
+  it('list with rig=all defaults to status=open when no status provided', async () => {
+    const calls = [];
+    const bdGateway = makeBdGateway({
+      list: async (opts) => {
+        calls.push(opts);
+        return { ok: true, data: [] };
+      },
+    });
+
+    const statusService = makeStatusService([{ name: 'r1' }]);
+    const service = new BeadService({ bdGateway, statusService });
+
+    await service.list({ rig: 'all' });
+
+    // Should pass status='open' and all=false for each rig query
+    for (const call of calls) {
+      expect(call.status).toBe('open');
+      expect(call.all).toBe(false);
+    }
+  });
+
+  it('list with rig=all respects explicit status filter', async () => {
+    const calls = [];
+    const bdGateway = makeBdGateway({
+      list: async (opts) => {
+        calls.push(opts);
+        return { ok: true, data: [] };
+      },
+    });
+
+    const statusService = makeStatusService([{ name: 'r1' }]);
+    const service = new BeadService({ bdGateway, statusService });
+
+    await service.list({ rig: 'all', status: 'closed' });
+
+    for (const call of calls) {
+      expect(call.status).toBe('closed');
+      expect(call.all).toBe(false);
+    }
+  });
+
   it('list with rig=all deduplicates by id', async () => {
     const bdGateway = makeBdGateway({
       list: async ({ rig } = {}) => {
