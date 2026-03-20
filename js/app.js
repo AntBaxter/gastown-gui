@@ -10,7 +10,7 @@ import { state, subscribe } from './state.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
-import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter } from './components/activity-feed.js';
+import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter, toggleExcludeCategory, getExcludedCategories, updateCollapsedBar } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
 import { renderMailList } from './components/mail-list.js';
@@ -661,6 +661,7 @@ let _feedFilterOutsideClickRegistered = false;
 function setupFeedFilters() {
   renderFeedFilterBar(elements.feedHeader);
   _attachFeedFilterMenuListeners();
+  updateCollapsedBar();
 
   // Close the dropdown when clicking anywhere outside — registered once
   if (!_feedFilterOutsideClickRegistered) {
@@ -686,17 +687,31 @@ function _attachFeedFilterMenuListeners() {
       e.stopPropagation();
     });
 
-    // Filter option clicks
+    // Filter option clicks (on the option itself, not the exclude toggle)
     filterMenu.querySelectorAll('.feed-filter-option[data-filter]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        // Don't trigger filter select when clicking exclude toggle
+        if (e.target.closest('.feed-exclude-toggle')) return;
         const filter = btn.dataset.filter;
         setFeedFilter(filter);
         filterMenu.classList.remove('open');
-        // Re-render filter bar to update active state and re-wire menu listeners
         renderFeedFilterBar(elements.feedHeader);
         _attachFeedFilterMenuListeners();
-        // Re-render feed with new filter
         renderActivityFeed(elements.feedList, state.get('events'));
+        updateCollapsedBar();
+      });
+    });
+
+    // Exclude toggle clicks
+    filterMenu.querySelectorAll('.feed-exclude-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const category = btn.dataset.exclude;
+        toggleExcludeCategory(category);
+        renderFeedFilterBar(elements.feedHeader);
+        _attachFeedFilterMenuListeners();
+        renderActivityFeed(elements.feedList, state.get('events'));
+        updateCollapsedBar();
       });
     });
   }
@@ -707,6 +722,19 @@ function _attachFeedFilterMenuListeners() {
     clearBtn.addEventListener('click', () => {
       state.clearEvents();
       document.getElementById('feed-filter-menu')?.classList.remove('open');
+    });
+  }
+
+  // Wire up collapsed bar expand button
+  const collapsedBar = document.getElementById('feed-collapsed-bar');
+  const expandBtn = collapsedBar?.querySelector('.feed-collapsed-bar-toggle');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      const feedEl = document.getElementById('activity-feed');
+      feedEl?.classList.remove('collapsed');
+      const icon = document.querySelector('#collapse-feed .material-icons');
+      if (icon) icon.textContent = 'chevron_right';
+      updateCollapsedBar();
     });
   }
 }
@@ -1155,6 +1183,7 @@ function subscribeToState() {
     } else {
       renderActivityFeed(elements.feedList, events);
     }
+    updateCollapsedBar();
   });
 
   // Mail updates

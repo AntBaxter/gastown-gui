@@ -58,9 +58,17 @@ const FILTER_CATEGORIES = {
 // Safe localStorage access
 const storage = typeof localStorage !== 'undefined' ? localStorage : null;
 const FILTER_STORAGE_KEY = 'gastownui-feed-filter';
+const EXCLUDED_STORAGE_KEY = 'gastownui-feed-excluded';
 
 // Current filter state
 let activeFilter = storage?.getItem(FILTER_STORAGE_KEY) || 'all';
+
+// Excluded categories (set of category keys)
+let excludedCategories = new Set();
+try {
+  const stored = storage?.getItem(EXCLUDED_STORAGE_KEY);
+  if (stored) excludedCategories = new Set(JSON.parse(stored));
+} catch (_) { /* ignore */ }
 
 /**
  * Get the current active filter
@@ -78,13 +86,33 @@ export function setActiveFilter(filter) {
 }
 
 /**
- * Filter events by the active category
+ * Toggle exclusion of a category
+ */
+export function toggleExcludeCategory(category) {
+  if (excludedCategories.has(category)) {
+    excludedCategories.delete(category);
+  } else {
+    excludedCategories.add(category);
+  }
+  storage?.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify([...excludedCategories]));
+}
+
+/**
+ * Get the set of excluded categories
+ */
+export function getExcludedCategories() {
+  return excludedCategories;
+}
+
+/**
+ * Filter events by the active category and exclusions
  */
 function filterEvents(events) {
-  if (activeFilter === 'all') return events;
   return events.filter(event => {
     const type = event.type || 'system';
     const config = EVENT_CONFIG[type] || EVENT_CONFIG.system;
+    if (excludedCategories.has(config.category)) return false;
+    if (activeFilter === 'all') return true;
     return config.category === activeFilter;
   });
 }
@@ -178,12 +206,11 @@ export function renderActivityFeed(container, events) {
 export function addEventToFeed(container, event) {
   if (!container) return;
 
-  // Check if event passes current filter
-  if (activeFilter !== 'all') {
-    const type = event.type || 'system';
-    const config = EVENT_CONFIG[type] || EVENT_CONFIG.system;
-    if (config.category !== activeFilter) return;
-  }
+  // Check if event passes current filter and exclusions
+  const type = event.type || 'system';
+  const config = EVENT_CONFIG[type] || EVENT_CONFIG.system;
+  if (excludedCategories.has(config.category)) return;
+  if (activeFilter !== 'all' && config.category !== activeFilter) return;
 
   // Remove empty state if present
   const emptyState = container.querySelector('.feed-empty');
@@ -279,6 +306,8 @@ export function renderFeedFilterBar(headerContainer) {
 
   const feedEl = document.getElementById('activity-feed');
   const isCollapsed = feedEl?.classList.contains('collapsed');
+  const hasExclusions = excludedCategories.size > 0;
+  const hasActiveFilter = activeFilter !== 'all' || hasExclusions;
 
   headerContainer.innerHTML = `
     <h2>Activity</h2>
@@ -286,18 +315,28 @@ export function renderFeedFilterBar(headerContainer) {
       <div class="feed-filter-dropdown">
         <button class="icon-btn-sm feed-filter-btn" id="feed-filter-btn"
                 title="Filter activity">
-          <span class="material-icons">${activeFilter === 'all' ? 'filter_list' : 'filter_alt'}</span>
-          ${activeFilter !== 'all' ? `<span class="filter-active-dot"></span>` : ''}
+          <span class="material-icons">${hasActiveFilter ? 'filter_alt' : 'filter_list'}</span>
+          ${hasActiveFilter ? `<span class="filter-active-dot"></span>` : ''}
         </button>
         <div class="feed-filter-menu" id="feed-filter-menu">
-          ${Object.entries(FILTER_CATEGORIES).map(([key, cat]) => `
-            <button class="feed-filter-option ${activeFilter === key ? 'active' : ''}"
+          ${Object.entries(FILTER_CATEGORIES).map(([key, cat]) => {
+            const isExcluded = excludedCategories.has(key);
+            const isAll = key === 'all';
+            return `
+            <button class="feed-filter-option ${activeFilter === key ? 'active' : ''} ${isExcluded ? 'excluded-category' : ''}"
                     data-filter="${key}">
               <span class="material-icons">${cat.icon}</span>
               <span>${cat.label}</span>
               ${activeFilter === key ? '<span class="material-icons filter-check">check</span>' : ''}
+              ${!isAll ? `
+                <button class="feed-exclude-toggle ${isExcluded ? 'excluded' : ''}"
+                        data-exclude="${key}"
+                        title="${isExcluded ? 'Include ' + cat.label : 'Exclude ' + cat.label}">
+                  <span class="material-icons" style="font-size: 14px">${isExcluded ? 'block' : 'remove_circle_outline'}</span>
+                </button>
+              ` : ''}
             </button>
-          `).join('')}
+          `}).join('')}
           <div class="feed-filter-divider"></div>
           <button class="feed-filter-option" id="feed-clear-btn">
             <span class="material-icons">clear_all</span>
@@ -318,7 +357,80 @@ export function renderFeedFilterBar(headerContainer) {
     if (icon) {
       icon.textContent = feedEl?.classList.contains('collapsed') ? 'chevron_left' : 'chevron_right';
     }
+    updateCollapsedBar();
   });
+}
+
+/**
+ * Render the collapsed mini-bar with colored blocks representing recent events.
+ * Call this after events change or after collapsing the panel.
+ */
+export function updateCollapsedBar() {
+  const bar = document.getElementById('feed-collapsed-bar');
+  if (!bar) return;
+
+  const feedEl = document.getElementById('activity-feed');
+  const isCollapsed = feedEl?.classList.contains('collapsed');
+
+  if (!isCollapsed) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+
+  const blocksContainer = bar.querySelector('.feed-mini-blocks');
+  if (!blocksContainer) return;
+
+  // Get recent events from state (imported in app.js, we read from the DOM feed-list)
+  const feedList = document.getElementById('feed-list');
+  const items = feedList?.querySelectorAll('.feed-item, .feed-group') || [];
+  blocksContainer.innerHTML = '';
+
+  const maxBlocks = 50;
+  let count = 0;
+  for (const item of items) {
+    if (count >= maxBlocks) break;
+    const eventType = item.dataset.eventType || item.dataset.groupType || 'system';
+    const config = EVENT_CONFIG[eventType] || EVENT_CONFIG.system;
+    const msg = item.querySelector('.feed-message')?.textContent?.trim() || config.label;
+    const block = document.createElement('div');
+    block.className = 'feed-mini-block';
+    block.style.background = config.color;
+    block.dataset.tooltip = truncate(msg, 60);
+    block.dataset.color = config.color;
+    blocksContainer.appendChild(block);
+    count++;
+  }
+
+  // Wire hover tooltips for blocks
+  blocksContainer.querySelectorAll('.feed-mini-block').forEach(block => {
+    block.addEventListener('mouseenter', (e) => {
+      showMiniBlockTooltip(block, block.dataset.tooltip);
+    });
+    block.addEventListener('mouseleave', () => {
+      hideMiniBlockTooltip();
+    });
+  });
+}
+
+let _miniBlockTooltipEl = null;
+
+function showMiniBlockTooltip(block, text) {
+  if (!_miniBlockTooltipEl) {
+    _miniBlockTooltipEl = document.createElement('div');
+    _miniBlockTooltipEl.className = 'feed-mini-block-tooltip';
+    document.body.appendChild(_miniBlockTooltipEl);
+  }
+  _miniBlockTooltipEl.textContent = text;
+  _miniBlockTooltipEl.style.display = 'block';
+  const rect = block.getBoundingClientRect();
+  _miniBlockTooltipEl.style.top = `${rect.top - 2}px`;
+}
+
+function hideMiniBlockTooltip() {
+  if (_miniBlockTooltipEl) {
+    _miniBlockTooltipEl.style.display = 'none';
+  }
 }
 
 /**
