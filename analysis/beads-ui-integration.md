@@ -1,31 +1,42 @@
 # Beads UI Integration Analysis
 
-**Date:** 2026-03-13 (updated 2026-03-13)
-**Context:** Investigating how to enhance the gastownui beads interface with kanban boards, dependency graphs, bead type creation, and patterns from [BeadBoard](https://github.com/zenchantlive/beadboard).
+**Date:** 2026-03-13 (updated 2026-03-20)
+**Context:** Investigating how to enhance the gastownui beads interface with kanban boards, dependency graphs, bead type creation, graph insights, and patterns from [BeadBoard](https://github.com/zenchantlive/beadboard) and [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer).
 
 ---
 
 ## Current State
 
-### What We Have
+### What We Have (as of 2026-03-20)
 
-The gastownui frontend displays beads as a **flat card list** with status filters (All Work, Open Tasks, Completed Work) and rig filters. Each card shows status icon, title, ID, type, rig badge, assignee, and priority (P0-P4). Actions available: done, park, release, reassign.
+The gastownui frontend provides:
 
-**Bead creation** is a simple modal with: title, description, rig selection, priority dropdown, labels, and a "sling now" checkbox.
+**Views (all functional):**
+- **Kanban board** (default) -- CSS grid with 5 status columns, epic filter, priority sorting, ready/blocked badges
+- **Work list** -- linear card list with status/rig filters
+- **Dependency graph** -- SVG-based DAG with Dagre layout, pan/zoom, click-to-detail
+- **Epic detail** -- child tasks with progress bar, "Sling All Ready" bulk action
+- **Convoy dashboard** -- expand/collapse cards, issue trees, progress bars
+
+**Bead creation** includes type dropdown (task, bug, epic, feature, research), description, rig selection, priority, labels, parent, and "sling now" checkbox.
 
 **Backend** is well-structured: `BDGateway` wraps the `bd` CLI, `BeadService` handles business logic, `beads.js` routes expose REST endpoints. Real-time updates flow via WebSocket from `gt feed`.
 
-### What's Missing
+### What's Still Missing
 
-- No kanban/board view (only linear list)
-- No dependency graph visualization
-- No bead type selection during creation (type is implicit)
-- No hierarchy/parent-child visualization
-- No convoy management UI
-- No integration branch UI
-- No blocked-chain visibility
+- ~~No kanban/board view~~ DONE
+- ~~No dependency graph visualization~~ DONE (core)
+- ~~No bead type selection during creation~~ DONE
+- ~~No convoy management UI~~ DONE (core)
+- ~~No blocked-chain visibility~~ DONE (on kanban cards)
+- Dependency graph mobile fallback (indented tree for small screens)
+- Cycle detection in dependency graphs
+- Blocked chain triage modal (dedicated UI for unblocking)
+- Integration branch status/management in convoy detail
+- Multi-step convoy creation wizard
+- Graph insights dashboard (critical path, bottleneck detection, project health)
+- Export capabilities (Mermaid diagrams, Markdown summaries)
 - No agent pool monitor / "needs agent" queue
-- No message acknowledgment tracking
 - No project scope switching (single vs aggregate workspace)
 
 ---
@@ -95,80 +106,94 @@ BeadBoard is a full Next.js app that directly accesses Dolt and the filesystem. 
 
 ---
 
+## beads_viewer Reference Analysis
+
+[beads_viewer (bv)](https://github.com/Dicklesworthstone/beads_viewer) is a Go-based graph-aware TUI for the beads issue tracker. Unlike BeadBoard (a web app), bv is a terminal tool that treats projects as dependency graphs and computes graph-theoretic metrics.
+
+### Key Capabilities
+
+| Category | Feature | Description |
+|----------|---------|-------------|
+| **Graph Analysis** | 9 graph metrics | PageRank, betweenness centrality, HITS, critical path, eigenvector, degree, density, cycle detection, topological sort |
+| **Views** | Multiple modes | List, kanban, graph visualization, insights dashboard, history |
+| **AI Integration** | Robot mode | `--robot-triage`, `--robot-next`, `--robot-plan` for structured agent output |
+| **Export** | Multiple formats | Mermaid diagrams, DOT, JSON, HTML interactive graphs |
+| **Health** | Automated alerts | Stale items, cascading blocks, priority misalignment |
+| **History** | Time-travel | Compare bead state across git revisions |
+
+### What to Adopt from beads_viewer
+
+| Feature | bv Approach | Our Adaptation |
+|---------|-------------|----------------|
+| **Critical path** | Longest dependency chain computation | Server-side computation, highlight in graph view + sidebar list |
+| **Bottleneck detection** | In-degree analysis (what blocks most work) | "Top blockers" ranked list, "blocks N" badge on kanban cards |
+| **Cycle detection** | Graph cycle finder | Warning overlay on dependency graph when cycles found |
+| **Stale item detection** | Age-based alerts | Configurable threshold, surface in insights panel |
+| **Mermaid export** | `--export-graph` command | Copy-to-clipboard button on dependency graph view |
+| **Project health** | Density, status distribution | Counters + simple charts in insights panel |
+
+### What NOT to Adopt from beads_viewer
+
+| Feature | Why Skip |
+|---------|----------|
+| **PageRank / eigenvector centrality** | Full spectral analysis is overkill for web UI; degree + critical path covers 80% of value |
+| **HITS algorithm** | Hub/authority less useful when we have explicit epic/task hierarchy |
+| **Topological sort display** | Mainly useful for agent consumption; our API already serves structured data |
+| **Robot mode** | Our REST API endpoints already serve structured JSON to agents |
+| **Time-travel / history** | High effort, low value; `git log` + timestamps sufficient |
+| **Token-optimized output (TOON format)** | Agent-specific optimization not needed in web UI |
+
+### Key Architectural Differences
+
+bv is a single-binary Go TUI reading `.beads/beads.jsonl` directly. We are a web SPA talking to Express endpoints wrapping CLI commands. This means:
+
+- **We can't reuse their Go graph algorithms** -- must reimplement critical path / cycle detection in JS (server-side)
+- **Their direct file access vs our CLI wrapping** -- we trade speed for security (SafeSegment validation)
+- **Their Bubble Tea TUI vs our browser UI** -- completely different rendering, but the analytical concepts transfer
+- **Their file watcher vs our WebSocket** -- same real-time effect, different mechanism
+
+---
+
 ## Recommended Features (Priority Order)
 
-### Phase 1: Kanban Board View (High Value, Medium Effort)
+### Phase 1: Kanban Board View -- COMPLETE
 
-**What:** Column-based board with beads grouped by status (Open, In Progress, Blocked, Closed/Deferred).
+Implemented: CSS grid with 5 status columns, epic filter, priority sorting, ready/blocked badges, view toggle, real-time WebSocket updates.
 
-**Why:** Most impactful single improvement. Transforms the flat list into a spatial overview that immediately shows work distribution and bottlenecks.
+### Phase 2: Bead Type Selection -- COMPLETE
 
-**Approach:**
-- Add a view toggle (list/board) to the work section header
-- CSS grid with columns per status
-- Reuse existing bead card HTML from `work-list.js`
-- Optional: drag-and-drop between columns (updates bead status via existing API)
-- Filter by rig, priority, assignee (reuse existing filter UI)
+Implemented: Type dropdown in creation modal, full API chain, color-coded type badges.
 
-**Data requirements:** Already have `GET /api/beads?status=<status>` -- just need to fetch all statuses and group client-side, or add a `GET /api/beads/board` endpoint that returns grouped data.
+### Phase 3: Dependency Graph View -- PARTIALLY COMPLETE
 
-**Mobile consideration:** Columns stack vertically or become horizontally scrollable. Cards already have good mobile sizing from the list view.
+Implemented: Dagre-based SVG rendering, pan/zoom, click-to-detail, dependency CRUD endpoints.
+Remaining: Mobile fallback (indented tree), cycle detection, convoy-scoped graphs.
 
-### Phase 2: Bead Type Selection (High Value, Low Effort)
+### Phase 4: Blocked Chain Triage (Medium Value, Medium Effort)
 
-**What:** Add a "type" dropdown to the bead creation modal supporting: task, bug, epic, research, spike.
+**What:** Dedicated modal for triaging blocked beads with full chain visualization and one-click unblock actions.
 
-**Why:** Currently all beads are created as implicit type. Users need to categorize work at creation time.
+**Status:** Data layer done (blocked API, kanban badges). Triage modal UI remaining.
 
-**Approach:**
-- Add `<select>` to `new-bead-modal` in `index.html`
-- Pass type to `api.createBead()` and through to `BDGateway.create()`
-- Add `--type` flag to the `bd create` call
-- Update card rendering to show type badge (already partially done -- cards show type)
+### Phase 5: Graph Insights Dashboard (High Value, Medium Effort) -- NEW
 
-**Note:** The frontend already filters out internal types (message, convoy, agent, gate, role, event, slot). User-facing types should be: task, bug, epic, feature, research.
+**What:** Project health metrics inspired by beads_viewer's graph analysis engine.
 
-### Phase 3: Dependency Graph View (High Value, High Effort)
+**Why:** Understanding which beads are critical bottlenecks and the overall health of the dependency graph helps prioritize unblocking work. Especially valuable in multi-agent Gas Town where blocking cascades determine system throughput.
 
-**What:** Interactive DAG visualization showing bead dependencies, blocked chains, and hierarchy.
+**Key features:**
+- Critical path computation and display (longest dependency chain)
+- Bottleneck detection ("blocks N items" badges, ranked blocker list)
+- Project health counters (by status, dependency density, stale items)
+- Insights panel or tab for drill-down
 
-**Why:** Understanding "what blocks what" is critical for multi-agent coordination. Currently invisible in the UI.
+### Phase 6: Export and Sharing (Medium Value, Low Effort) -- NEW
 
-**Approach options:**
+**What:** Export dependency graphs as Mermaid diagrams and views as Markdown summaries.
 
-1. **Lightweight SVG-based (recommended for vanilla JS):**
-   - Use [Dagre](https://github.com/dagrejs/dagre) for layout computation (no framework dependency)
-   - Render nodes and edges as SVG elements
-   - Pan/zoom via SVG viewBox manipulation
-   - Node cards show: title, status, assignee, priority
-   - Edge colors indicate: dependency (gray), blocked (red), resolved (green)
-   - Click node to open bead detail modal
+**Why:** Useful for documentation, PR descriptions, and sharing project state outside the UI.
 
-2. **Canvas-based (higher performance, more work):**
-   - Better for very large graphs (100+ nodes)
-   - More complex hit detection and interaction
-   - Not recommended unless we know graphs will be large
-
-3. **Adopt XYFlow (BeadBoard's approach):**
-   - Requires React -- incompatible with our vanilla JS architecture
-   - Would need a React micro-frontend or full framework migration
-   - Not recommended for this phase
-
-**Data requirements:** Need a new endpoint `GET /api/beads/dependencies` or `GET /api/bead/:id/links` that returns dependency edges. The `bd` CLI supports `bd deps <id>` and `bd blocked` -- expose these through new gateway methods.
-
-**Mobile consideration:** Graph views are inherently desktop-oriented. On mobile, fall back to a dependency list view (indented tree) rather than trying to render a graph.
-
-### Phase 4: Blocked Chain Visualization (Medium Value, Medium Effort)
-
-**What:** Highlight blocked chains in both kanban and graph views. Show "why is this blocked?" with the full chain back to the root blocker.
-
-**Approach:**
-- Add `bd blocked` output to a new endpoint
-- In kanban: blocked column cards show blocker chain on hover/click
-- In graph: blocked paths highlighted in red with animation
-- Add a "blocked triage" modal (inspired by BeadBoard) that lists all blocked beads with their blocker context and one-click unblock actions
-
-### Phase 5: Enhanced Activity Feed (Low Value, Low Effort)
+### Phase 7: Enhanced Activity Feed (Low Value, Low Effort)
 
 **What:** Add type-based filtering (beads, work, agents, rigs, system) and conversation threading per bead.
 
