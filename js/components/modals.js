@@ -529,6 +529,7 @@ const convoyWizard = {
   notify: '',
   integrationBranch: false,
   branchName: '',
+  rig: '',
 };
 
 function resetConvoyWizard() {
@@ -539,12 +540,21 @@ function resetConvoyWizard() {
   convoyWizard.notify = '';
   convoyWizard.integrationBranch = false;
   convoyWizard.branchName = '';
+  convoyWizard.rig = '';
 }
 
 function initNewConvoyModal(element, data = {}) {
   resetConvoyWizard();
   if (Array.isArray(data.issues) && data.issues.length > 0) {
     convoyWizard.issues = [...data.issues];
+  }
+  if (data.rig) {
+    convoyWizard.rig = data.rig;
+  } else {
+    const selectedRig = state.getSelectedRig();
+    if (selectedRig && selectedRig !== 'all') {
+      convoyWizard.rig = selectedRig;
+    }
   }
   renderConvoyWizardStep(element);
   wireConvoyWizardNav(element);
@@ -647,6 +657,7 @@ function saveConvoyWizardStepData(element) {
     case 3: {
       convoyWizard.integrationBranch = element.querySelector('#convoy-wiz-intbranch')?.checked || false;
       convoyWizard.branchName = element.querySelector('#convoy-wiz-branchname')?.value?.trim() || '';
+      convoyWizard.rig = element.querySelector('#convoy-wiz-rig')?.value || '';
       break;
     }
   }
@@ -874,6 +885,14 @@ function renderConvoyStep3() {
 
       <div class="convoy-wiz-intbranch-config ${convoyWizard.integrationBranch ? '' : 'hidden'}" id="convoy-wiz-intbranch-config">
         <div class="form-group">
+          <label for="convoy-wiz-rig">Target rig</label>
+          <select id="convoy-wiz-rig">
+            <option value="">Auto-detect</option>
+            ${(state.getRigs() || []).map(r => `<option value="${escapeAttr(r)}" ${convoyWizard.rig === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}
+          </select>
+          <small class="form-hint">Rig where the epic and integration branch are created</small>
+        </div>
+        <div class="form-group">
           <label for="convoy-wiz-branchname">Branch name (optional)</label>
           <input type="text" id="convoy-wiz-branchname"
             placeholder="Auto-generated from convoy name if empty"
@@ -945,6 +964,10 @@ function renderConvoyStep4() {
         <span class="convoy-wiz-review-label">Integration Branch</span>
         <span class="convoy-wiz-review-value">${escapeHtml(branchDisplay)}</span>
       </div>
+      ${convoyWizard.integrationBranch && convoyWizard.rig ? `<div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Target Rig</span>
+        <span class="convoy-wiz-review-value">${escapeHtml(convoyWizard.rig)}</span>
+      </div>` : ''}
       ${reparentingPreview}
     </div>
   `;
@@ -970,6 +993,7 @@ async function handleConvoyWizardSubmit(element) {
           epicName: convoyWizard.name,
           branchName: convoyWizard.branchName || undefined,
           beadIds: convoyWizard.issues,
+          rig: convoyWizard.rig || undefined,
         });
         const reparentCount = intResult.reparented?.length || 0;
         if (reparentCount > 0) {

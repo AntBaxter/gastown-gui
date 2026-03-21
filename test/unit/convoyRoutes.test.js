@@ -82,8 +82,8 @@ describe('Convoy integration branch routes', () => {
       list: async () => [],
       get: async () => ({}),
       create: async () => ({ ok: true, convoyId: 'c-1', raw: '' }),
-      integrationBranchStatus: async (id) => {
-        calls.push(['integrationBranchStatus', id]);
+      integrationBranchStatus: async (id, opts) => {
+        calls.push(['integrationBranchStatus', id, opts]);
         return { branch: 'integration/test', commits_ahead: 5, ready_to_land: false };
       },
       createIntegrationBranch: async (id, opts) => {
@@ -118,7 +118,7 @@ describe('Convoy integration branch routes', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ branch: 'integration/test', commits_ahead: 5, ready_to_land: false });
-    expect(calls.find(c => c[0] === 'integrationBranchStatus')).toEqual(['integrationBranchStatus', 'convoy-abc']);
+    expect(calls.find(c => c[0] === 'integrationBranchStatus')).toEqual(['integrationBranchStatus', 'convoy-abc', { rig: undefined }]);
   });
 
   it('POST /api/convoy/:id/integration-branch creates branch', async () => {
@@ -130,7 +130,7 @@ describe('Convoy integration branch routes', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(calls.find(c => c[0] === 'createIntegrationBranch')).toEqual(['createIntegrationBranch', 'convoy-abc', { branch: 'integration/custom' }]);
+    expect(calls.find(c => c[0] === 'createIntegrationBranch')).toEqual(['createIntegrationBranch', 'convoy-abc', { branch: 'integration/custom', rig: undefined }]);
   });
 
   it('POST /api/convoy/:id/integration-branch/land lands branch', async () => {
@@ -142,7 +142,7 @@ describe('Convoy integration branch routes', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(calls.find(c => c[0] === 'landIntegrationBranch')).toEqual(['landIntegrationBranch', 'convoy-abc', { dryRun: true }]);
+    expect(calls.find(c => c[0] === 'landIntegrationBranch')).toEqual(['landIntegrationBranch', 'convoy-abc', { dryRun: true, rig: undefined }]);
   });
 
   it('POST /api/convoy/:id/feed feeds convoy', async () => {
@@ -211,6 +211,7 @@ describe('Convoy prepare-integration route', () => {
       epicName: 'My Feature',
       branchName: undefined,
       beadIds: ['bd-1', 'bd-2'],
+      rig: undefined,
     }]);
   });
 

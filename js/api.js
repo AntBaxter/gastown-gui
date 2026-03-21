@@ -89,8 +89,8 @@ export const api = {
     return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/land`, { dryRun });
   },
 
-  prepareIntegration(convoyId, { epicName, branchName, beadIds }) {
-    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/prepare-integration`, { epicName, branchName, beadIds });
+  prepareIntegration(convoyId, { epicName, branchName, beadIds, rig }) {
+    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/prepare-integration`, { epicName, branchName, beadIds, rig: rig || undefined });
   },
 
   feedConvoy(convoyId) {

@@ -212,27 +212,35 @@ export class GTGateway {
     return { ...result, raw };
   }
 
-  async integrationBranchStatus(epicId) {
+  _rigCwd(rig) {
+    if (!rig) return undefined;
+    return `${this._gtRoot}/${rig}/refinery/rig/`;
+  }
+
+  async integrationBranchStatus(epicId, { rig } = {}) {
+    const cwd = this._rigCwd(rig);
     const result = await this.exec(
       ['mq', 'integration', 'status', epicId, '--json'],
-      { timeoutMs: 30000 }
+      { timeoutMs: 30000, ...(cwd && { cwd }) }
     );
     const raw = (result.stdout || '').trim();
     return { ...result, raw, data: parseJsonOrNull(raw) };
   }
 
-  async integrationBranchCreate(epicId, { branch } = {}) {
+  async integrationBranchCreate(epicId, { branch, rig } = {}) {
     const args = ['mq', 'integration', 'create', epicId];
     if (branch) args.push('--branch', branch);
-    const result = await this.exec(args, { timeoutMs: 60000 });
+    const cwd = this._rigCwd(rig);
+    const result = await this.exec(args, { timeoutMs: 60000, ...(cwd && { cwd }) });
     const raw = (result.stdout || '').trim();
     return { ...result, raw };
   }
 
-  async integrationBranchLand(epicId, { dryRun = false } = {}) {
+  async integrationBranchLand(epicId, { dryRun = false, rig } = {}) {
     const args = ['mq', 'integration', 'land', epicId];
     if (dryRun) args.push('--dry-run');
-    const result = await this.exec(args, { timeoutMs: 120000 });
+    const cwd = this._rigCwd(rig);
+    const result = await this.exec(args, { timeoutMs: 120000, ...(cwd && { cwd }) });
     const raw = (result.stdout || '').trim();
     return { ...result, raw };
   }

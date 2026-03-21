@@ -44,20 +44,20 @@ export class ConvoyService {
     return result.data || { id: convoyId, raw: result.raw };
   }
 
-  async integrationBranchStatus(convoyId) {
+  async integrationBranchStatus(convoyId, { rig } = {}) {
     if (!this._gt.integrationBranchStatus) {
       throw new Error('Gateway does not support integrationBranchStatus');
     }
-    const result = await this._gt.integrationBranchStatus(convoyId);
+    const result = await this._gt.integrationBranchStatus(convoyId, { rig });
     if (!result.ok) throw new Error(result.error || 'Failed to get integration branch status');
     return result.data || { raw: result.raw };
   }
 
-  async createIntegrationBranch(convoyId, { branch } = {}) {
+  async createIntegrationBranch(convoyId, { branch, rig } = {}) {
     if (!this._gt.integrationBranchCreate) {
       throw new Error('Gateway does not support integrationBranchCreate');
     }
-    const result = await this._gt.integrationBranchCreate(convoyId, { branch });
+    const result = await this._gt.integrationBranchCreate(convoyId, { branch, rig });
     if (!result.ok) throw new Error(result.error || 'Failed to create integration branch');
 
     if (this._emit) {
@@ -67,11 +67,11 @@ export class ConvoyService {
     return { ok: true, raw: result.raw };
   }
 
-  async landIntegrationBranch(convoyId, { dryRun = false } = {}) {
+  async landIntegrationBranch(convoyId, { dryRun = false, rig } = {}) {
     if (!this._gt.integrationBranchLand) {
       throw new Error('Gateway does not support integrationBranchLand');
     }
-    const result = await this._gt.integrationBranchLand(convoyId, { dryRun });
+    const result = await this._gt.integrationBranchLand(convoyId, { dryRun, rig });
     if (!result.ok) throw new Error(result.error || 'Failed to land integration branch');
 
     if (!dryRun && this._emit) {
@@ -95,7 +95,7 @@ export class ConvoyService {
     return { ok: true, convoyId, raw: result.raw };
   }
 
-  async prepareIntegration(convoyId, { epicName, branchName, beadIds } = {}) {
+  async prepareIntegration(convoyId, { epicName, branchName, beadIds, rig } = {}) {
     if (!this._bd) {
       throw new Error('ConvoyService requires bdGateway for prepareIntegration');
     }
@@ -104,8 +104,8 @@ export class ConvoyService {
       throw new Error('beadIds must be a non-empty array');
     }
 
-    // 1. Create an epic bead
-    const createResult = await this._bd.create({ title: epicName, type: 'epic' });
+    // 1. Create an epic bead in the target rig
+    const createResult = await this._bd.create({ title: epicName, type: 'epic', rig });
     if (!createResult.ok || !createResult.beadId) {
       throw new Error(createResult.error || 'Failed to create epic bead');
     }
@@ -162,6 +162,7 @@ export class ConvoyService {
     }
     const branchResult = await this._gt.integrationBranchCreate(epicId, {
       branch: branchName || undefined,
+      rig,
     });
     if (!branchResult.ok) {
       throw new Error(branchResult.error || 'Failed to create integration branch');

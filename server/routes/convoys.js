@@ -25,7 +25,8 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
 
   app.get('/api/convoy/:id/integration-branch/status', async (req, res) => {
     try {
-      const status = await convoyService.integrationBranchStatus(req.params.id);
+      const rig = req.query.rig || undefined;
+      const status = await convoyService.integrationBranchStatus(req.params.id, { rig });
       res.json(status);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -34,8 +35,8 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
 
   app.post('/api/convoy/:id/integration-branch', async (req, res) => {
     try {
-      const { branch } = req.body || {};
-      const result = await convoyService.createIntegrationBranch(req.params.id, { branch });
+      const { branch, rig } = req.body || {};
+      const result = await convoyService.createIntegrationBranch(req.params.id, { branch, rig: rig || undefined });
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -44,8 +45,8 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
 
   app.post('/api/convoy/:id/integration-branch/land', async (req, res) => {
     try {
-      const { dryRun } = req.body || {};
-      const result = await convoyService.landIntegrationBranch(req.params.id, { dryRun: dryRun === true });
+      const { dryRun, rig } = req.body || {};
+      const result = await convoyService.landIntegrationBranch(req.params.id, { dryRun: dryRun === true, rig: rig || undefined });
       res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -70,7 +71,7 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
 
   app.post('/api/convoy/:id/prepare-integration', async (req, res) => {
     try {
-      const { epicName, branchName, beadIds } = req.body || {};
+      const { epicName, branchName, beadIds, rig } = req.body || {};
       if (!epicName) return res.status(400).json({ error: 'epicName is required' });
       if (!Array.isArray(beadIds) || beadIds.length === 0) {
         return res.status(400).json({ error: 'beadIds must be a non-empty array' });
@@ -79,6 +80,7 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
         epicName,
         branchName,
         beadIds,
+        rig: rig || undefined,
       });
       res.json(result);
     } catch (err) {

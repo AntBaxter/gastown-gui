@@ -196,7 +196,7 @@ app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
 
 // Prepare integration (create epic, reparent beads, create integration branch)
 app.post('/api/convoy/:id/prepare-integration', (req, res) => {
-  const { epicName, branchName, beadIds } = req.body || {};
+  const { epicName, branchName, beadIds, rig } = req.body || {};
   if (!epicName) return res.status(400).json({ error: 'epicName is required' });
   if (!Array.isArray(beadIds) || beadIds.length === 0) {
     return res.status(400).json({ error: 'beadIds must be a non-empty array' });
