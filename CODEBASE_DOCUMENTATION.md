@@ -212,6 +212,7 @@ analysis/beads-ui-integration.md - Beads UI enhancement analysis: kanban, graphs
 analysis/convoy-integration-branches.md - Convoy and integration branch UI analysis and pitfalls
 analysis/implementation-plan.md - Phased implementation plan for all beads UI enhancements
 analysis/auth-workflow-ui-plan.md - UI plan for auth workflow: epics, integration branches, convoys, dependencies
+analysis/formula-ui-revamp.md - Formula UI revamp proposal: fix scroll, card content, mol-* filtering, type badges
 refactoring-analysis/ - Refactor plans, reports, and analysis docs
 refactoring-analysis/trace/ - Sanitized prompt/trace exports
 ```
