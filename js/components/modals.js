@@ -14,6 +14,7 @@ import { getBeadPriority } from '../shared/beads.js';
 import { parseCloseReason } from '../shared/close-reason.js';
 import { TIMING_MS } from '../shared/timing.js';
 import { loadAndRenderEpicChildren } from './epic-detail.js';
+import { renderConvoyGraph } from './dependency-graph.js';
 import {
   AGENT_DETAIL,
   AGENT_NUDGE,
@@ -1664,32 +1665,67 @@ async function showConvoyDetailModal(convoyId) {
           <span class="material-icons">close</span>
         </button>
       </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="details">
+          <span class="material-icons" style="font-size:16px">info</span> Details
+        </button>
+        <button class="modal-tab" data-tab="graph">
+          <span class="material-icons" style="font-size:16px">account_tree</span> Graph
+        </button>
+      </div>
       <div class="modal-body">
-        <div class="detail-grid">
-          <div class="detail-item">
-            <label>ID</label>
-            <span>${convoyId}</span>
-          </div>
-          <div class="detail-item">
-            <label>Status</label>
-            <span class="status-badge status-${convoy.status || 'pending'}">${convoy.status || 'pending'}</span>
-          </div>
-          <div class="detail-item">
-            <label>Created</label>
-            <span>${new Date(convoy.created_at).toLocaleString()}</span>
-          </div>
-          ${convoy.issues?.length ? `
-            <div class="detail-item full-width">
-              <label>Issues</label>
-              <ul class="issue-list">
-                ${convoy.issues.map(i => `<li>${escapeHtml(typeof i === 'string' ? i : i.title)}</li>`).join('')}
-              </ul>
+        <div class="modal-tab-content active" data-tab-content="details">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>ID</label>
+              <span>${convoyId}</span>
             </div>
-          ` : ''}
+            <div class="detail-item">
+              <label>Status</label>
+              <span class="status-badge status-${convoy.status || 'pending'}">${convoy.status || 'pending'}</span>
+            </div>
+            <div class="detail-item">
+              <label>Created</label>
+              <span>${new Date(convoy.created_at).toLocaleString()}</span>
+            </div>
+            ${convoy.issues?.length ? `
+              <div class="detail-item full-width">
+                <label>Issues</label>
+                <ul class="issue-list">
+                  ${convoy.issues.map(i => `<li>${escapeHtml(typeof i === 'string' ? i : i.title)}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+        <div class="modal-tab-content" data-tab-content="graph">
+          <div id="convoy-graph-container" style="min-height:300px"></div>
         </div>
       </div>
     `;
     modal.innerHTML = content;
+
+    // Wire tab switching
+    let graphLoaded = false;
+    modal.querySelectorAll('.modal-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        modal.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t === tab));
+        modal.querySelectorAll('.modal-tab-content').forEach(c =>
+          c.classList.toggle('active', c.dataset.tabContent === tabName)
+        );
+        // Lazy-load graph on first switch
+        if (tabName === 'graph' && !graphLoaded) {
+          graphLoaded = true;
+          const graphContainer = modal.querySelector('#convoy-graph-container');
+          renderConvoyGraph(graphContainer, convoyId, {
+            onNodeClick: (beadId) => {
+              document.dispatchEvent(new CustomEvent(BEAD_DETAIL, { detail: { beadId } }));
+            },
+          });
+        }
+      });
+    });
 
     // Re-add close button handler
     modal.querySelector('[data-modal-close]')?.addEventListener('click', closeAllModals);

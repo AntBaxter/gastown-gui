@@ -688,6 +688,44 @@ kbd {
   overflow-y: auto;
 }
 
+.modal-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-muted);
+  padding: 0 var(--space-lg);
+}
+
+.modal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.modal-tab:hover {
+  color: var(--text-primary);
+}
+
+.modal-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.modal-tab-content {
+  display: none;
+}
+
+.modal-tab-content.active {
+  display: block;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

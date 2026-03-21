@@ -287,6 +287,226 @@ function setupNodeClicks(container, onNodeClick) {
 }
 
 /**
+ * Build a dagre graph from a flat list of beads and their dependency edges.
+ * Used by renderConvoyGraph for multi-issue combined graphs.
+ * @param {Array} beads - Array of bead objects
+ * @param {Array} edges - Array of { from, to } dependency pairs
+ * @param {Set} blockedIds - Set of blocked bead IDs
+ * @returns {{ graph: object, nodeMap: Map }}
+ */
+function buildCombinedGraph(beads, edges, blockedIds) {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 100, marginx: 30, marginy: 30 });
+
+  const nodeMap = new Map();
+
+  for (const bead of beads) {
+    g.setNode(bead.id, { width: NODE_WIDTH, height: NODE_HEIGHT, label: bead });
+    nodeMap.set(bead.id, bead);
+  }
+
+  for (const edge of edges) {
+    if (nodeMap.has(edge.from) && nodeMap.has(edge.to)) {
+      const target = nodeMap.get(edge.to);
+      const edgeColor = target.status === 'closed'
+        ? EDGE_COLORS.resolved
+        : blockedIds.has(edge.to)
+          ? EDGE_COLORS.blocked
+          : EDGE_COLORS.default;
+      g.setEdge(edge.from, edge.to, { color: edgeColor });
+    }
+  }
+
+  dagre.layout(g);
+  return { graph: g, nodeMap };
+}
+
+/**
+ * Render a convoy-scoped dependency graph into a container element.
+ * Fetches all issues in the convoy, their dependencies, and builds a combined DAG.
+ *
+ * @param {HTMLElement} container - DOM element to render into
+ * @param {string} convoyId - The convoy ID to visualize
+ * @param {Object} options
+ * @param {Function} options.onNodeClick - Callback when a node is clicked (receives beadId)
+ */
+export async function renderConvoyGraph(container, convoyId, options = {}) {
+  if (!container) return;
+
+  container.innerHTML = '<div class="dag-loading"><span class="loading-spinner"></span> Loading convoy dependency graph...</div>';
+
+  try {
+    const [convoy, blocked] = await Promise.all([
+      api.getConvoy(convoyId),
+      api.getBlockedBeads(),
+    ]);
+
+    const issueIds = (convoy.issues || []).map(i => typeof i === 'string' ? i : i.id).filter(Boolean);
+
+    if (issueIds.length === 0) {
+      container.innerHTML = '<div class="dag-empty">No issues in this convoy</div>';
+      return;
+    }
+
+    // Fetch bead details and dependencies for each issue in parallel
+    const [beadResults, depResults] = await Promise.all([
+      Promise.all(issueIds.map(id => api.getBead(id).catch(() => null))),
+      Promise.all(issueIds.map(id => api.getBeadDependencies(id).catch(() => []))),
+    ]);
+
+    // Collect all beads
+    const beadMap = new Map();
+    for (const result of beadResults) {
+      const bead = Array.isArray(result) ? result[0] : result;
+      if (bead?.id) beadMap.set(bead.id, bead);
+    }
+
+    // Also add any dependents/children from each bead
+    for (const bead of beadMap.values()) {
+      for (const child of (bead.dependents || [])) {
+        if (!beadMap.has(child.id)) beadMap.set(child.id, child);
+      }
+    }
+
+    // Build edges from dependency data
+    const edges = [];
+    const blockedIds = new Set(blocked.map(b => b.id));
+
+    for (let i = 0; i < issueIds.length; i++) {
+      const issueId = issueIds[i];
+      const deps = depResults[i] || [];
+      const bead = beadMap.get(issueId);
+
+      // Parent-to-child edges
+      if (bead?.dependents) {
+        for (const child of bead.dependents) {
+          edges.push({ from: issueId, to: child.id });
+          if (!beadMap.has(child.id)) beadMap.set(child.id, child);
+        }
+      }
+
+      // Explicit dependency edges
+      for (const dep of deps) {
+        if (!beadMap.has(dep.id)) beadMap.set(dep.id, dep);
+        if (dep.dependency_type === 'blocks') {
+          // dep blocks something — find which children it blocks
+          const children = bead?.dependents || [];
+          for (const child of children) {
+            const childBlocked = blocked.find(b => b.id === child.id);
+            if (childBlocked?.blocked_by?.includes(dep.id)) {
+              edges.push({ from: dep.id, to: child.id });
+            }
+          }
+        }
+      }
+    }
+
+    const allBeads = Array.from(beadMap.values());
+
+    // Mobile fallback
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
+      container.innerHTML = renderConvoyMobileFallback(allBeads, blockedIds);
+      setupNodeClicks(container, options.onNodeClick);
+      return;
+    }
+
+    const { graph, nodeMap } = buildCombinedGraph(allBeads, edges, blockedIds);
+    container.innerHTML = `<div class="dag-container">
+      <div class="dag-toolbar">
+        <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
+          <span class="material-icons" style="font-size:16px">zoom_in</span>
+        </button>
+        <button class="btn btn-sm btn-secondary dag-zoom-out" title="Zoom out">
+          <span class="material-icons" style="font-size:16px">zoom_out</span>
+        </button>
+        <button class="btn btn-sm btn-secondary dag-reset" title="Reset view">
+          <span class="material-icons" style="font-size:16px">fit_screen</span>
+        </button>
+      </div>
+      ${renderSVG(graph, nodeMap)}
+      <div class="dag-legend">
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.default}"></span> Pending</span>
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.blocked}"></span> Blocked</span>
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.resolved}"></span> Resolved</span>
+      </div>
+    </div>`;
+
+    setupPanZoom(container);
+    setupNodeClicks(container, options.onNodeClick);
+    setupZoomButtons(container);
+  } catch (err) {
+    console.error('[ConvoyGraph] Error:', err);
+    container.innerHTML = `<div class="dag-error">
+      <span class="material-icons">error_outline</span>
+      <p>Failed to load convoy dependency graph: ${escapeHtml(err.message)}</p>
+    </div>`;
+  }
+}
+
+/**
+ * Render mobile fallback for convoy graph as a flat list of beads.
+ */
+function renderConvoyMobileFallback(beads, blockedIds) {
+  if (!beads.length) return '<div class="dag-empty">No dependency data available</div>';
+
+  const statusColor = (s) => STATUS_COLORS[s] || STATUS_COLORS.open;
+
+  let html = '<div class="dag-mobile-list">';
+  for (const bead of beads) {
+    const isBlocked = blockedIds.has(bead.id);
+    const assignee = bead.assignee ? bead.assignee.split('/').pop() : '';
+    html += `<div class="dag-mobile-node" data-bead-id="${escapeHtml(bead.id)}">
+      <span class="dag-mobile-status" style="background:${statusColor(bead.status)}"></span>
+      <span class="dag-mobile-title">${escapeHtml(bead.title || bead.id)}</span>
+      <span class="dag-mobile-id">${escapeHtml(bead.id)}</span>
+      ${assignee ? `<span class="dag-mobile-assignee">${escapeHtml(assignee)}</span>` : ''}
+      ${isBlocked ? '<span class="dag-mobile-badge dag-badge-blocked">Blocked</span>' : ''}
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+/**
+ * Set up zoom button handlers on a DAG container.
+ */
+function setupZoomButtons(container) {
+  const svg = container.querySelector('.dag-svg');
+  if (!svg) return;
+
+  const vb = svg.viewBox.baseVal;
+  const origW = vb.width;
+  const origH = vb.height;
+  const origX = vb.x;
+  const origY = vb.y;
+
+  container.querySelector('.dag-zoom-in')?.addEventListener('click', () => {
+    const cx = vb.x + vb.width / 2;
+    const cy = vb.y + vb.height / 2;
+    vb.width *= 0.8;
+    vb.height *= 0.8;
+    vb.x = cx - vb.width / 2;
+    vb.y = cy - vb.height / 2;
+  });
+
+  container.querySelector('.dag-zoom-out')?.addEventListener('click', () => {
+    const cx = vb.x + vb.width / 2;
+    const cy = vb.y + vb.height / 2;
+    vb.width *= 1.25;
+    vb.height *= 1.25;
+    vb.x = cx - vb.width / 2;
+    vb.y = cy - vb.height / 2;
+  });
+
+  container.querySelector('.dag-reset')?.addEventListener('click', () => {
+    vb.x = origX;
+    vb.y = origY;
+    vb.width = origW;
+    vb.height = origH;
+  });
+}
+
+/**
  * Render a dependency graph into a container element.
  *
  * @param {HTMLElement} container - DOM element to render into
@@ -344,41 +564,7 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
 
     setupPanZoom(container);
     setupNodeClicks(container, options.onNodeClick);
-
-    // Zoom buttons
-    const svg = container.querySelector('.dag-svg');
-    if (svg) {
-      const vb = svg.viewBox.baseVal;
-      const origW = vb.width;
-      const origH = vb.height;
-      const origX = vb.x;
-      const origY = vb.y;
-
-      container.querySelector('.dag-zoom-in')?.addEventListener('click', () => {
-        const cx = vb.x + vb.width / 2;
-        const cy = vb.y + vb.height / 2;
-        vb.width *= 0.8;
-        vb.height *= 0.8;
-        vb.x = cx - vb.width / 2;
-        vb.y = cy - vb.height / 2;
-      });
-
-      container.querySelector('.dag-zoom-out')?.addEventListener('click', () => {
-        const cx = vb.x + vb.width / 2;
-        const cy = vb.y + vb.height / 2;
-        vb.width *= 1.25;
-        vb.height *= 1.25;
-        vb.x = cx - vb.width / 2;
-        vb.y = cy - vb.height / 2;
-      });
-
-      container.querySelector('.dag-reset')?.addEventListener('click', () => {
-        vb.x = origX;
-        vb.y = origY;
-        vb.width = origW;
-        vb.height = origH;
-      });
-    }
+    setupZoomButtons(container);
   } catch (err) {
     console.error('[DependencyGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">
