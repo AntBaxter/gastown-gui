@@ -12,7 +12,7 @@ import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter, toggleExcludeCategory } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
-import { renderFloatingBar, onSelectionChange, clearSelection } from './shared/selection.js';
+import { onSelectionChange, clearSelection } from './shared/selection.js';
 import { renderGraphInsights } from './components/graph-insights.js';
 import { renderAllBeadsGraph } from './components/dependency-graph.js';
 import { renderMailList } from './components/mail-list.js';
@@ -1013,11 +1013,8 @@ function setupSelectModeToggle() {
   const toggleBtn = document.getElementById('select-mode-toggle');
   if (!toggleBtn) return;
 
-  // Render floating action bar into the work view container
-  const viewWork = document.getElementById('view-work');
-  if (viewWork) {
-    renderFloatingBar(viewWork);
-  }
+  // Floating action bar is rendered by individual sub-views (kanban, graph)
+  // so we don't render one here at the #view-work level to avoid duplicates
 
   // Update toggle button visibility based on view mode
   function updateToggleVisibility() {
