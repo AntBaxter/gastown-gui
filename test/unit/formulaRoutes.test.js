@@ -43,50 +43,6 @@ describe('Formula routes (real Express app)', () => {
     await fsPromises.rm(formulasDir, { recursive: true, force: true });
   });
 
-  it('PUT /api/formula/:name returns 400 when template missing', async () => {
-    const res = await fetch(`${baseUrl}/api/formula/foo`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: 'x' }),
-    });
-
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.success).toBe(false);
-  });
-
-  it('PUT /api/formula/:name returns 404 when file missing', async () => {
-    const res = await fetch(`${baseUrl}/api/formula/missing`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ template: 'hi' }),
-    });
-
-    expect(res.status).toBe(404);
-  });
-
-  it('PUT /api/formula/:name updates existing TOML file', async () => {
-    const name = 'test-formula';
-    const filePath = path.join(formulasDir, `${name}.toml`);
-    await fsPromises.writeFile(filePath, '[formula]\nname="test-formula"\n', 'utf8');
-
-    const res = await fetch(`${baseUrl}/api/formula/${name}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: 'desc', template: 'hello' }),
-    });
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-
-    const content = await fsPromises.readFile(filePath, 'utf8');
-    expect(content).toContain('name = "test-formula"');
-    expect(content).toContain('description = "desc"');
-    expect(content).toContain('template = """');
-    expect(content).toContain('hello');
-  });
-
   it('DELETE /api/formula/:name deletes existing TOML file', async () => {
     const name = 'delete-me';
     const filePath = path.join(formulasDir, `${name}.toml`);

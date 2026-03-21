@@ -101,33 +101,6 @@ export class FormulaService {
     return { ok: result.ok, raw: (result.stdout || '').trim(), error: result.error };
   }
 
-  async update({ name, description, template } = {}) {
-    if (!template) {
-      return { ok: false, error: 'Template is required', status: 400 };
-    }
-
-    const formulaPath = path.join(this._formulasDir, `${name}.toml`);
-
-    try {
-      await fsPromises.access(formulaPath);
-    } catch {
-      return { ok: false, error: 'Formula not found', status: 404 };
-    }
-
-    const content = `[formula]
-name = "${name}"
-description = "${description || ''}"
-template = """
-${template}
-"""
-`;
-
-    await fsPromises.writeFile(formulaPath, content, 'utf8');
-    this._cache?.delete?.('formulas');
-    this._emit?.('formula_updated', { name });
-    return { ok: true };
-  }
-
   async remove(name) {
     const formulaPath = path.join(this._formulasDir, `${name}.toml`);
 

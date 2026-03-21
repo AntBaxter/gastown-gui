@@ -266,20 +266,8 @@ export const api = {
     return this.get(`/api/formula/${encodeURIComponent(name)}`);
   },
 
-  createFormula(name, description, template) {
-    return this.post('/api/formulas', { name, description, template });
-  },
-
   useFormula(name, target, args) {
     return this.post(`/api/formula/${encodeURIComponent(name)}/use`, { target, args });
-  },
-
-  updateFormula(name, description, template) {
-    return this.request(`/api/formula/${encodeURIComponent(name)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description, template }),
-    });
   },
 
   deleteFormula(name) {

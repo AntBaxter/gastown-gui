@@ -1077,21 +1077,6 @@ app.post('/api/formula/:name/use', (req, res) => {
   });
 });
 
-app.put('/api/formula/:name', (req, res) => {
-  const { name } = req.params;
-  const { description, template } = req.body;
-  const formula = mockFormulas.find(f => f.name === name);
-  if (!formula) {
-    return res.status(404).json({ error: 'Formula not found' });
-  }
-  if (!template) {
-    return res.status(400).json({ error: 'Template is required' });
-  }
-  formula.description = description || formula.description;
-  formula.template = template;
-  res.json({ success: true, formula });
-});
-
 app.delete('/api/formula/:name', (req, res) => {
   const { name } = req.params;
   const index = mockFormulas.findIndex(f => f.name === name);

@@ -329,10 +329,6 @@
               <button class="btn btn-sm btn-icon" id="formula-refresh" title="Refresh">
                 <span class="material-icons">refresh</span>
               </button>
-              <button class="btn btn-primary" id="new-formula-btn">
-                <span class="material-icons">add</span>
-                New Formula
-              </button>
             </div>
           </div>
           <div class="formula-list" id="formula-list-container">
@@ -943,37 +939,6 @@
             Reply
           </button>
         </div>
-      </div>
-
-      <!-- New Formula Modal -->
-      <div class="modal hidden" id="new-formula-modal">
-        <div class="modal-header">
-          <h2>Create Formula</h2>
-          <button class="modal-close" data-modal-close>
-            <span class="material-icons">close</span>
-          </button>
-        </div>
-        <form class="modal-body" id="new-formula-form">
-          <div class="form-group">
-            <label for="formula-name">Formula Name</label>
-            <input type="text" id="formula-name" name="name" placeholder="e.g., bug-fix, new-feature" required>
-          </div>
-          <div class="form-group">
-            <label for="formula-description">Description (optional)</label>
-            <input type="text" id="formula-description" name="description" placeholder="What this formula does...">
-          </div>
-          <div class="form-group">
-            <label for="formula-template">Template</label>
-            <textarea id="formula-template" name="template" placeholder="The work template (instructions for workers)..." rows="6" required></textarea>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
-            <button type="submit" class="btn btn-primary">
-              <span class="material-icons">science</span>
-              Create Formula
-            </button>
-          </div>
-        </form>
       </div>
 
       <!-- Use Formula Modal -->

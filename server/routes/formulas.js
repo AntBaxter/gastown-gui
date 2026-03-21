@@ -45,21 +45,6 @@ export function registerFormulaRoutes(app, { formulaService } = {}) {
     res.json({ success: true, name, target, raw: result.raw });
   });
 
-  app.put('/api/formula/:name', async (req, res) => {
-    const { name } = req.params;
-    const { description, template } = req.body;
-
-    try {
-      const result = await formulaService.update({ name, description, template });
-      if (!result.ok) {
-        return res.status(result.status || 500).json({ success: false, error: result.error });
-      }
-      res.json({ success: true, name, description, template });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
   app.delete('/api/formula/:name', async (req, res) => {
     const { name } = req.params;
 
