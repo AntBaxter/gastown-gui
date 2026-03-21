@@ -59,6 +59,17 @@ function slingErrorResponse({ errorMsg }) {
   };
 }
 
+function parseWorkError(result) {
+  const text = result.stderr || result.error || '';
+  const notFound = /issue\s+\S+\s+not found/i.test(text) || /not found/i.test(text);
+  if (notFound) {
+    return { statusCode: 404, error: 'Bead not found' };
+  }
+  // Strip "Command failed: ..." wrapper from Node's execFile
+  const cleaned = text.replace(/^Command failed:.*?\n/i, '').trim();
+  return { statusCode: 500, error: cleaned || 'Operation failed' };
+}
+
 export class WorkService {
   constructor({ gtGateway, bdGateway, emit } = {}) {
     if (!gtGateway) throw new Error('WorkService requires gtGateway');
@@ -125,7 +136,10 @@ export class WorkService {
 
   async markDone({ beadId, summary } = {}) {
     const result = await this._bd.markDone({ beadId, summary });
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to mark as done' };
+    if (!result.ok) {
+      const parsed = parseWorkError(result);
+      return { ok: false, statusCode: parsed.statusCode, error: parsed.error };
+    }
 
     this._emit?.('work_done', { beadId, summary });
     return { ok: true, raw: result.raw };
@@ -133,7 +147,10 @@ export class WorkService {
 
   async park({ beadId, reason } = {}) {
     const result = await this._bd.park({ beadId, reason });
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to park work' };
+    if (!result.ok) {
+      const parsed = parseWorkError(result);
+      return { ok: false, statusCode: parsed.statusCode, error: parsed.error };
+    }
 
     this._emit?.('work_parked', { beadId, reason });
     return { ok: true, raw: result.raw };
@@ -141,7 +158,10 @@ export class WorkService {
 
   async release(beadId) {
     const result = await this._bd.release(beadId);
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to release work' };
+    if (!result.ok) {
+      const parsed = parseWorkError(result);
+      return { ok: false, statusCode: parsed.statusCode, error: parsed.error };
+    }
 
     this._emit?.('work_released', { beadId });
     return { ok: true, raw: result.raw };
@@ -151,7 +171,10 @@ export class WorkService {
     if (!target) return { ok: false, statusCode: 400, error: 'Target is required' };
 
     const result = await this._bd.reassign({ beadId, target });
-    if (!result.ok) return { ok: false, statusCode: 500, error: result.error || 'Failed to reassign work' };
+    if (!result.ok) {
+      const parsed = parseWorkError(result);
+      return { ok: false, statusCode: parsed.statusCode, error: parsed.error };
+    }
 
     this._emit?.('work_reassigned', { beadId, target });
     return { ok: true, raw: result.raw };
@@ -159,7 +182,10 @@ export class WorkService {
 
   async delete(beadId) {
     const result = await this._bd.delete(beadId);
-    if (!result.ok) return { ok: false, error: result.error || 'Failed to delete work' };
+    if (!result.ok) {
+      const parsed = parseWorkError(result);
+      return { ok: false, statusCode: parsed.statusCode, error: parsed.error };
+    }
 
     this._emit?.('work_deleted', { beadId });
     return { ok: true, raw: result.raw };

@@ -60,6 +60,38 @@ describe('WorkService', () => {
     expect(result.body).toMatchObject({ errorType: 'formula_missing', formula: 'foo' });
   });
 
+  it('returns 404 with clean message when delete target not found', async () => {
+    const { gtGateway, bdGateway } = createStubGateways();
+    bdGateway.delete = async () => ({
+      ok: false,
+      stderr: 'Error: issue ga-xyz not found',
+      error: 'Command failed: bd delete ga-xyz --force\nError: issue ga-xyz not found',
+    });
+
+    const service = new WorkService({ gtGateway, bdGateway });
+    const result = await service.delete('ga-xyz');
+
+    expect(result.ok).toBe(false);
+    expect(result.statusCode).toBe(404);
+    expect(result.error).toBe('Bead not found');
+  });
+
+  it('returns 500 with cleaned error for non-not-found failures', async () => {
+    const { gtGateway, bdGateway } = createStubGateways();
+    bdGateway.delete = async () => ({
+      ok: false,
+      stderr: 'database locked',
+      error: 'Command failed: bd delete ga-xyz --force\ndatabase locked',
+    });
+
+    const service = new WorkService({ gtGateway, bdGateway });
+    const result = await service.delete('ga-xyz');
+
+    expect(result.ok).toBe(false);
+    expect(result.statusCode).toBe(500);
+    expect(result.error).toBe('database locked');
+  });
+
   it('maps priorities to severities for escalate', async () => {
     const { calls, gtGateway, bdGateway } = createStubGateways();
     const emitted = [];

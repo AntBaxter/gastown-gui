@@ -36,7 +36,7 @@ export function registerWorkRoutes(app, { workService } = {}) {
     const { summary } = req.body;
 
     const result = await workService.markDone({ beadId, summary });
-    if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+    if (!result.ok) return res.status(result.statusCode || 500).json({ success: false, error: result.error });
 
     return res.json({
       success: true,
@@ -51,7 +51,7 @@ export function registerWorkRoutes(app, { workService } = {}) {
     const { reason } = req.body;
 
     const result = await workService.park({ beadId, reason });
-    if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+    if (!result.ok) return res.status(result.statusCode || 500).json({ success: false, error: result.error });
 
     return res.json({
       success: true,
@@ -65,7 +65,7 @@ export function registerWorkRoutes(app, { workService } = {}) {
     const { beadId } = req.params;
 
     const result = await workService.release(beadId);
-    if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+    if (!result.ok) return res.status(result.statusCode || 500).json({ success: false, error: result.error });
 
     return res.json({
       success: true,
@@ -81,8 +81,7 @@ export function registerWorkRoutes(app, { workService } = {}) {
 
     const result = await workService.reassign({ beadId, target });
     if (!result.ok) {
-      const statusCode = result.statusCode || (result.error === 'Target is required' ? 400 : 500);
-      return res.status(statusCode).json({ success: false, error: result.error });
+      return res.status(result.statusCode || 500).json({ success: false, error: result.error });
     }
 
     return res.json({
@@ -98,7 +97,7 @@ export function registerWorkRoutes(app, { workService } = {}) {
     const { beadId } = req.params;
 
     const result = await workService.delete(beadId);
-    if (!result.ok) return res.status(500).json({ success: false, error: result.error });
+    if (!result.ok) return res.status(result.statusCode || 500).json({ success: false, error: result.error });
 
     return res.json({
       success: true,
