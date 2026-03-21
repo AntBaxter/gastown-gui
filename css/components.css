@@ -5514,27 +5514,283 @@ select {
 .formula-detail h3 {
   font-size: var(--text-xl);
   color: var(--text-primary);
-  margin: 0 0 var(--space-sm);
+  margin: 0;
+}
+
+.formula-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.formula-detail-badges {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.formula-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.formula-type-badge .material-icons {
+  font-size: 14px;
+}
+
+.formula-type-badge.type-workflow {
+  background: rgba(56, 139, 253, 0.15);
+  color: #58a6ff;
+}
+
+.formula-type-badge.type-convoy {
+  background: rgba(139, 92, 246, 0.15);
+  color: #bc8cff;
+}
+
+.formula-type-badge.type-expansion {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+
+.formula-type-badge.type-aspect {
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+
+.formula-type-badge.type-unknown {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.formula-version-badge {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
 }
 
 .formula-detail .description {
   color: var(--text-secondary);
   margin: 0 0 var(--space-lg);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
-.formula-detail .template-section,
-.formula-detail .args-section {
+.formula-section {
   margin-bottom: var(--space-lg);
 }
 
-.formula-detail h4 {
+.formula-section h4 {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
+.formula-section h4 .material-icons {
+  font-size: 16px;
+}
+
+/* Step DAG table */
+.formula-step-table,
+.formula-var-table,
+.formula-advice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.formula-step-table th,
+.formula-var-table th,
+.formula-advice-table th {
+  text-align: left;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-default);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.formula-step-table td,
+.formula-var-table td,
+.formula-advice-table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.05));
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+.formula-step-table .step-index {
+  color: var(--text-tertiary);
+  width: 32px;
+  text-align: center;
+}
+
+.formula-step-table .step-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: #58a6ff;
+}
+
+.formula-step-table .step-deps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.step-dep-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: #d29922;
+  background: rgba(210, 153, 34, 0.1);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.step-dep-arrow .material-icons {
+  font-size: 12px;
+}
+
+.step-dep-none {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+/* Variable table */
+.formula-var-table .var-name code {
+  font-size: var(--text-xs);
+  color: #58a6ff;
+  background: rgba(56, 139, 253, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.var-flag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.var-required {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.var-optional {
+  background: rgba(63, 185, 80, 0.1);
+  color: #3fb950;
+}
+
+.formula-var-table .var-default {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Convoy note */
+.formula-convoy-note {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* Expansion refinement chain */
+.refinement-chain {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.refinement-arrow {
+  color: var(--text-tertiary);
+  font-size: 18px;
+  margin: 2px 0 2px 16px;
+}
+
+.refinement-step {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+}
+
+.refinement-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 4px;
+}
+
+.refinement-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.refinement-step-desc {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  margin: 0;
+}
+
+/* Aspect pointcuts */
+.pointcut-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.pointcut-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: rgba(210, 153, 34, 0.1);
+  color: #d29922;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(210, 153, 34, 0.2);
+}
+
+/* Advice table */
+.formula-advice-table .advice-target code {
+  font-size: var(--text-xs);
+  color: #d29922;
+}
+
+/* Legacy template/args code blocks */
 .formula-detail .template-code,
 .formula-detail .args-code {
   background: var(--bg-primary);

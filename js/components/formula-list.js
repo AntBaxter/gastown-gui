@@ -248,27 +248,239 @@ function createFormulaCard(formula, index) {
 }
 
 /**
- * Show formula details in a modal or toast
+ * Build the step DAG section for workflow formulas
+ */
+function buildStepDagHtml(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return '';
+
+  const stepById = {};
+  steps.forEach(s => { stepById[s.id] = s; });
+
+  const rows = steps.map((step, i) => {
+    const needs = Array.isArray(step.needs) ? step.needs : [];
+    const depsHtml = needs.length > 0
+      ? needs.map(dep => `<span class="step-dep-arrow" title="Depends on: ${escapeHtml(dep)}"><span class="material-icons">arrow_back</span>${escapeHtml(dep)}</span>`).join(' ')
+      : '<span class="step-dep-none">none</span>';
+
+    return `
+      <tr>
+        <td class="step-index">${i + 1}</td>
+        <td class="step-id">${escapeHtml(step.id)}</td>
+        <td class="step-title">${escapeHtml(step.title || '')}</td>
+        <td class="step-deps">${depsHtml}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div class="formula-section">
+      <h4><span class="material-icons">account_tree</span> Steps (${steps.length})</h4>
+      <table class="formula-step-table">
+        <thead><tr><th>#</th><th>ID</th><th>Title</th><th>Depends on</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Build the variable table section
+ */
+function buildVarsTableHtml(vars) {
+  if (!vars || typeof vars !== 'object') return '';
+  const entries = Object.entries(vars);
+  if (entries.length === 0) return '';
+
+  const rows = entries.map(([name, def]) => {
+    const isRequired = def.required === true;
+    const flagHtml = isRequired
+      ? '<span class="var-flag var-required">required</span>'
+      : '<span class="var-flag var-optional">optional</span>';
+    const defaultVal = def.default != null && def.default !== ''
+      ? escapeHtml(String(def.default))
+      : '—';
+
+    return `
+      <tr>
+        <td class="var-name"><code>${escapeHtml(name)}</code></td>
+        <td class="var-flag-cell">${flagHtml}</td>
+        <td class="var-default">${defaultVal}</td>
+        <td class="var-desc">${escapeHtml(def.description || '')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div class="formula-section">
+      <h4><span class="material-icons">data_object</span> Variables (${entries.length})</h4>
+      <table class="formula-var-table">
+        <thead><tr><th>Name</th><th>Flag</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Build convoy legs section (from description since legs aren't structured)
+ */
+function buildConvoyHtml(details) {
+  return `
+    <div class="formula-section">
+      <h4><span class="material-icons">group_work</span> Convoy</h4>
+      <p class="formula-convoy-note">Convoy formulas execute legs in parallel. See description for leg details.</p>
+    </div>
+  `;
+}
+
+/**
+ * Build expansion refinement chain section
+ */
+function buildExpansionHtml(template) {
+  if (!Array.isArray(template) || template.length === 0) return '';
+
+  const chain = template.map((step, i) => {
+    const needs = Array.isArray(step.needs) ? step.needs : [];
+    const arrow = i > 0 ? '<span class="material-icons refinement-arrow">arrow_downward</span>' : '';
+    return `
+      ${arrow}
+      <div class="refinement-step">
+        <div class="refinement-step-header">
+          <span class="refinement-step-num">${i + 1}</span>
+          <strong>${escapeHtml(step.title || step.id)}</strong>
+        </div>
+        <p class="refinement-step-desc">${escapeHtml(step.description || '')}</p>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="formula-section">
+      <h4><span class="material-icons">layers</span> Refinement Chain (${template.length} passes)</h4>
+      <div class="refinement-chain">${chain}</div>
+    </div>
+  `;
+}
+
+/**
+ * Build aspect pointcuts section
+ */
+function buildAspectHtml(details) {
+  const pointcuts = details.pointcuts || [];
+  const advice = details.advice || [];
+
+  let html = '';
+
+  if (pointcuts.length > 0) {
+    const pcList = pointcuts.map(pc =>
+      `<span class="pointcut-tag">${escapeHtml(pc.glob || JSON.stringify(pc))}</span>`
+    ).join(' ');
+    html += `
+      <div class="formula-section">
+        <h4><span class="material-icons">adjust</span> Pointcuts</h4>
+        <div class="pointcut-list">${pcList}</div>
+      </div>
+    `;
+  }
+
+  if (advice.length > 0) {
+    const adviceRows = advice.map(a => {
+      const beforeSteps = a.around?.before || [];
+      const afterSteps = a.around?.after || [];
+      const beforeHtml = beforeSteps.map(s => escapeHtml(s.title || s.id)).join(', ') || '—';
+      const afterHtml = afterSteps.map(s => escapeHtml(s.title || s.id)).join(', ') || '—';
+      return `
+        <tr>
+          <td class="advice-target"><code>${escapeHtml(a.target || '')}</code></td>
+          <td class="advice-before">${beforeHtml}</td>
+          <td class="advice-after">${afterHtml}</td>
+        </tr>
+      `;
+    }).join('');
+
+    html += `
+      <div class="formula-section">
+        <h4><span class="material-icons">swap_vert</span> Advice</h4>
+        <table class="formula-advice-table">
+          <thead><tr><th>Target</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>${adviceRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+/**
+ * Get the type icon and color class for a formula type
+ */
+function getTypeInfo(type) {
+  switch (type) {
+    case 'workflow': return { icon: 'account_tree', cls: 'type-workflow' };
+    case 'convoy': return { icon: 'group_work', cls: 'type-convoy' };
+    case 'expansion': return { icon: 'layers', cls: 'type-expansion' };
+    case 'aspect': return { icon: 'adjust', cls: 'type-aspect' };
+    default: return { icon: 'science', cls: 'type-unknown' };
+  }
+}
+
+/**
+ * Show formula details in a modal
  */
 async function showFormulaDetails(formula) {
   try {
     const details = await api.getFormula(formula.name);
+    const type = details.type || 'unknown';
+    const typeInfo = getTypeInfo(type);
+    const version = details.version != null ? `v${details.version}` : '';
+    const description = details.description || 'No description';
 
-    // Create detail view
-    const detailHtml = `
-      <div class="formula-detail">
-        <h3>${escapeHtml(details.name || formula.name)}</h3>
-        <p class="description">${escapeHtml(details.description || 'No description')}</p>
-        <div class="template-section">
+    // Build type-specific sections
+    let typeSections = '';
+    if (type === 'workflow') {
+      typeSections = buildStepDagHtml(details.steps) + buildVarsTableHtml(details.vars);
+    } else if (type === 'convoy') {
+      typeSections = buildConvoyHtml(details);
+    } else if (type === 'expansion') {
+      typeSections = buildExpansionHtml(details.template);
+    } else if (type === 'aspect') {
+      typeSections = buildAspectHtml(details);
+    }
+
+    // Fallback: show raw template/args if no structured sections rendered
+    if (!typeSections && (details.template || details.args)) {
+      const tmpl = typeof details.template === 'string' ? details.template : '';
+      typeSections = tmpl ? `
+        <div class="formula-section">
           <h4>Template</h4>
-          <pre class="template-code">${escapeHtml(details.template || 'No template defined')}</pre>
+          <pre class="template-code">${escapeHtml(tmpl)}</pre>
         </div>
-        ${details.args ? `
-          <div class="args-section">
+      ` : '';
+      if (details.args) {
+        typeSections += `
+          <div class="formula-section">
             <h4>Arguments</h4>
             <pre class="args-code">${escapeHtml(JSON.stringify(details.args, null, 2))}</pre>
           </div>
-        ` : ''}
+        `;
+      }
+    }
+
+    const detailHtml = `
+      <div class="formula-detail">
+        <div class="formula-detail-header">
+          <h3>${escapeHtml(details.name || formula.name)}</h3>
+          <div class="formula-detail-badges">
+            <span class="badge formula-type-badge ${typeInfo.cls}">
+              <span class="material-icons">${typeInfo.icon}</span>
+              ${escapeHtml(type)}
+            </span>
+            ${version ? `<span class="badge formula-version-badge">${escapeHtml(version)}</span>` : ''}
+          </div>
+        </div>
+        <p class="description">${escapeHtml(description)}</p>
+        ${typeSections}
       </div>
     `;
 
