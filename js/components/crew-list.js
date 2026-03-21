@@ -9,6 +9,7 @@ import { showToast } from './toast.js';
 import { CREW_REFRESH, MODAL_CLOSE, MODAL_SHOW } from '../shared/events.js';
 import { escapeHtml } from '../utils/html.js';
 import { getStaggerClass } from '../shared/animations.js';
+import { state } from '../state.js';
 
 let currentCrews = [];
 
@@ -231,7 +232,9 @@ export function showNewCrewModal() {
           </div>
           <div class="form-group">
             <label for="crew-rig">Rig (optional)</label>
-            <input type="text" id="crew-rig" name="rig" placeholder="e.g., my-project">
+            <select id="crew-rig" name="rig">
+              <option value="">None</option>
+            </select>
             <small class="form-help">Associate this crew with a specific rig/project</small>
           </div>
           <div class="form-actions">
@@ -241,6 +244,20 @@ export function showNewCrewModal() {
         </form>
       `,
       onMount: (modal) => {
+        const rigSelect = modal.querySelector('#crew-rig');
+        if (rigSelect) {
+          const rigs = state.getRigs();
+          for (const rig of rigs) {
+            const name = typeof rig === 'string' ? rig : rig.name;
+            if (name) {
+              const opt = document.createElement('option');
+              opt.value = name;
+              opt.textContent = name;
+              rigSelect.appendChild(opt);
+            }
+          }
+        }
+
         const form = modal.querySelector('#new-crew-form');
         form?.addEventListener('submit', async (e) => {
           e.preventDefault();
