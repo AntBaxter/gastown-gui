@@ -8635,6 +8635,37 @@ a:focus-visible,
   filter: brightness(1.15);
 }
 
+/* Selection mode toggle active state */
+.dag-select-toggle.active {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+}
+
+/* Cursor change when select mode is active */
+.dag-select-active .dag-svg .dag-node {
+  cursor: crosshair;
+}
+
+/* Selected node visual in SVG graph */
+.dag-svg .dag-node-selected rect {
+  filter: brightness(1.1);
+}
+
+/* Selected kanban card */
+.bead-card-selected {
+  outline: 2px solid #58a6ff;
+  outline-offset: -2px;
+  background: var(--bg-elevated) !important;
+}
+
+/* Selected mobile DAG node */
+.dag-mobile-node.dag-node-selected {
+  outline: 2px solid #58a6ff;
+  outline-offset: -2px;
+  background: var(--bg-elevated);
+}
+
 .dag-legend {
   display: flex;
   gap: var(--space-md);

@@ -12,10 +12,13 @@ import { escapeHtml } from '../utils/html.js';
 import { detectCycles, CYCLE_EDGE_COLOR } from '../utils/cycle-detect.js';
 import { showToast } from './toast.js';
 import { isHiddenBead } from '../shared/beads.js';
+import { toggleSelection, isSelected, onSelectionChange, clearSelection, renderFloatingBar } from '../shared/selection.js';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 72;
 const MOBILE_BREAKPOINT = 768;
+const SELECTION_STROKE = '#58a6ff';
+const SELECTION_STROKE_WIDTH = 3;
 
 const STATUS_COLORS = {
   open: '#6e7681',
@@ -126,16 +129,24 @@ function renderNode(node, bead) {
   const statusText = escapeHtml(bead.status || 'open');
   const isEpic = bead.issue_type === 'epic';
 
-  return `<g class="dag-node" data-bead-id="${escapeHtml(bead.id)}" style="cursor:pointer">
+  const strokeWidth = isEpic ? 2.5 : 1.5;
+  const sel = isSelected(bead.id);
+
+  return `<g class="dag-node${sel ? ' dag-node-selected' : ''}" data-bead-id="${escapeHtml(bead.id)}" style="cursor:pointer">
     <rect x="${x}" y="${y}" width="${NODE_WIDTH}" height="${NODE_HEIGHT}"
       rx="6" ry="6"
-      fill="var(--bg-tertiary)" stroke="${statusColor}" stroke-width="${isEpic ? 2.5 : 1.5}"
+      fill="var(--bg-tertiary)"
+      stroke="${sel ? SELECTION_STROKE : statusColor}"
+      stroke-width="${sel ? SELECTION_STROKE_WIDTH : strokeWidth}"
+      data-orig-stroke="${statusColor}" data-orig-stroke-width="${strokeWidth}"
       ${isEpic ? 'stroke-dasharray="6,3"' : ''}/>
     <text x="${x + 10}" y="${y + 20}" fill="var(--text-primary)" font-size="13" font-weight="500">${titleText}</text>
     <text x="${x + 10}" y="${y + 38}" fill="var(--text-muted)" font-size="11" font-family="var(--font-mono)">${idText}</text>
     <rect x="${x + 10}" y="${y + 48}" width="8" height="8" rx="2" fill="${statusColor}"/>
     <text x="${x + 22}" y="${y + 56}" fill="var(--text-secondary)" font-size="10">${statusText}</text>
     ${assigneeText ? `<text x="${x + NODE_WIDTH - 10}" y="${y + 56}" fill="var(--text-muted)" font-size="10" text-anchor="end">${escapeHtml(assigneeText)}</text>` : ''}
+    ${sel ? `<circle cx="${x + NODE_WIDTH - 12}" cy="${y + 14}" r="8" fill="${SELECTION_STROKE}"/>
+    <path d="M${x + NODE_WIDTH - 16} ${y + 14} l3 3 5-6" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
   </g>`;
 }
 
@@ -296,18 +307,72 @@ function setupPanZoom(container) {
 }
 
 /**
- * Set up click handlers on nodes to open bead detail.
+ * Set up click handlers on nodes — either selection toggle or detail open.
+ * @param {HTMLElement} container
+ * @param {Function} onNodeClick - fallback when selection mode is off
+ * @param {{ isSelectMode: () => boolean }} mode - selection mode accessor
  */
-function setupNodeClicks(container, onNodeClick) {
+function setupNodeClicks(container, onNodeClick, mode = {}) {
   container.addEventListener('click', (e) => {
     const node = e.target.closest('[data-bead-id]');
     if (node) {
       const beadId = node.dataset.beadId;
-      if (onNodeClick) {
+      if (mode.isSelectMode && mode.isSelectMode()) {
+        toggleSelection(beadId);
+      } else if (onNodeClick) {
         onNodeClick(beadId);
       }
     }
   });
+}
+
+/**
+ * Set up the Select toggle button and wire selection visuals on graph nodes.
+ * Returns an unsubscribe function for cleanup.
+ */
+function setupSelectionMode(container) {
+  let selectMode = false;
+
+  const btn = container.querySelector('.dag-select-toggle');
+  if (!btn) return { isSelectMode: () => false, unsub: () => {} };
+
+  btn.addEventListener('click', () => {
+    selectMode = !selectMode;
+    btn.classList.toggle('active', selectMode);
+    container.classList.toggle('dag-select-active', selectMode);
+    if (!selectMode) {
+      clearSelection();
+    }
+  });
+
+  // Update node visuals when selection changes
+  const unsub = onSelectionChange((ids) => {
+    const selectedSet = new Set(ids);
+    container.querySelectorAll('.dag-node[data-bead-id]').forEach(g => {
+      const id = g.dataset.beadId;
+      const rect = g.querySelector('rect');
+      if (!rect) return;
+      if (selectedSet.has(id)) {
+        g.classList.add('dag-node-selected');
+        rect.setAttribute('stroke', SELECTION_STROKE);
+        rect.setAttribute('stroke-width', String(SELECTION_STROKE_WIDTH));
+      } else {
+        g.classList.remove('dag-node-selected');
+        // Restore original stroke from STATUS_COLORS
+        const origStroke = rect.dataset.origStroke;
+        const origWidth = rect.dataset.origStrokeWidth;
+        if (origStroke) rect.setAttribute('stroke', origStroke);
+        if (origWidth) rect.setAttribute('stroke-width', origWidth);
+      }
+    });
+
+    // Also update mobile list nodes
+    container.querySelectorAll('.dag-mobile-node[data-bead-id]').forEach(el => {
+      el.classList.toggle('dag-node-selected', selectedSet.has(el.dataset.beadId));
+    });
+  });
+
+  return { isSelectMode: () => selectMode, unsub };
 }
 
 /**
@@ -437,6 +502,9 @@ export async function renderConvoyGraph(container, convoyId, options = {}) {
     const { graph, nodeMap } = buildCombinedGraph(allBeads, edges, blockedIds);
     container.innerHTML = `<div class="dag-container">
       <div class="dag-toolbar">
+        <button class="btn btn-sm btn-secondary dag-select-toggle" title="Toggle selection mode">
+          <span class="material-icons" style="font-size:16px">check_box_outline_blank</span> Select
+        </button>
         <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
           <span class="material-icons" style="font-size:16px">zoom_in</span>
         </button>
@@ -459,9 +527,11 @@ export async function renderConvoyGraph(container, convoyId, options = {}) {
     </div>`;
 
     setupPanZoom(container);
-    setupNodeClicks(container, options.onNodeClick);
+    const mode = setupSelectionMode(container);
+    setupNodeClicks(container, options.onNodeClick, mode);
     setupZoomButtons(container);
     setupMermaidExport(container, graph, nodeMap);
+    renderFloatingBar(container.querySelector('.dag-container'));
   } catch (err) {
     console.error('[ConvoyGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">
@@ -694,6 +764,9 @@ export async function renderAllBeadsGraph(container, options = {}) {
     container.innerHTML = `<div class="dag-container">
       ${cycleBannerHtml}
       <div class="dag-toolbar">
+        <button class="btn btn-sm btn-secondary dag-select-toggle" title="Toggle selection mode">
+          <span class="material-icons" style="font-size:16px">check_box_outline_blank</span> Select
+        </button>
         <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
           <span class="material-icons" style="font-size:16px">zoom_in</span>
         </button>
@@ -717,9 +790,11 @@ export async function renderAllBeadsGraph(container, options = {}) {
     </div>`;
 
     setupPanZoom(container);
-    setupNodeClicks(container, options.onNodeClick);
+    const mode = setupSelectionMode(container);
+    setupNodeClicks(container, options.onNodeClick, mode);
     setupZoomButtons(container);
     setupMermaidExport(container, graph, nodeMap);
+    renderFloatingBar(container.querySelector('.dag-container'));
   } catch (err) {
     console.error('[AllBeadsGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">
@@ -763,6 +838,9 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
     container.innerHTML = `<div class="dag-container">
       ${cycleBannerHtml}
       <div class="dag-toolbar">
+        <button class="btn btn-sm btn-secondary dag-select-toggle" title="Toggle selection mode">
+          <span class="material-icons" style="font-size:16px">check_box_outline_blank</span> Select
+        </button>
         <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
           <span class="material-icons" style="font-size:16px">zoom_in</span>
         </button>
@@ -786,9 +864,11 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
     </div>`;
 
     setupPanZoom(container);
-    setupNodeClicks(container, options.onNodeClick);
+    const mode = setupSelectionMode(container);
+    setupNodeClicks(container, options.onNodeClick, mode);
     setupZoomButtons(container);
     setupMermaidExport(container, graph, nodeMap);
+    renderFloatingBar(container.querySelector('.dag-container'));
   } catch (err) {
     console.error('[DependencyGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">

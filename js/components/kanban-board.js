@@ -10,6 +10,7 @@ import { renderBeadCard } from './work-list.js';
 import { BEAD_DETAIL, BLOCKED_TRIAGE } from '../shared/events.js';
 import { isHiddenBead } from '../shared/beads.js';
 import { escapeHtml, escapeAttr } from '../utils/html.js';
+import { isSelected, onSelectionChange, renderFloatingBar } from '../shared/selection.js';
 
 const KANBAN_COLUMNS = [
   { key: 'open', label: 'Open', icon: 'radio_button_unchecked', colorVar: '--accent-warning' },
@@ -219,6 +220,20 @@ export function renderKanbanBoard(container, beads, options = {}) {
       handleWorkAction(action, beadId, btn);
     });
   });
+
+  // Sync selection state from shared selection module
+  function updateCardSelection(ids) {
+    const selectedSet = new Set(ids);
+    container.querySelectorAll('.bead-card[data-bead-id]').forEach(card => {
+      card.classList.toggle('bead-card-selected', selectedSet.has(card.dataset.beadId));
+    });
+  }
+  // Apply current selection on initial render
+  container.querySelectorAll('.bead-card[data-bead-id]').forEach(card => {
+    card.classList.toggle('bead-card-selected', isSelected(card.dataset.beadId));
+  });
+  onSelectionChange(updateCardSelection);
+  renderFloatingBar(container);
 }
 
 /**
