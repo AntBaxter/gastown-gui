@@ -228,7 +228,8 @@ export function showNewCrewModal() {
         <form id="new-crew-form" class="modal-form">
           <div class="form-group">
             <label for="crew-name">Crew Name</label>
-            <input type="text" id="crew-name" name="name" required placeholder="e.g., backend-team">
+            <input type="text" id="crew-name" name="name" required placeholder="e.g., backend-team"
+              pattern="[A-Za-z0-9._-]+" title="Letters, numbers, hyphens, dots, or underscores only (no spaces)">
           </div>
           <div class="form-group">
             <label for="crew-rig">Rig (optional)</label>
@@ -262,8 +263,13 @@ export function showNewCrewModal() {
         form?.addEventListener('submit', async (e) => {
           e.preventDefault();
           const formData = new FormData(form);
-          const name = formData.get('name');
+          const name = formData.get('name')?.trim();
           const rig = formData.get('rig') || undefined;
+
+          if (!name || !/^[A-Za-z0-9._-]+$/.test(name)) {
+            showToast('Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)', 'error');
+            return;
+          }
 
           try {
             showToast('Creating crew...', 'info');

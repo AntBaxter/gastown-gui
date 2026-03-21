@@ -1100,6 +1100,30 @@ describe('Crew Management Endpoints', () => {
     expect(status).toBe(400);
   });
 
+  it('should reject crew creation with invalid name (spaces)', async () => {
+    const { status, data } = await api('/api/crews', {
+      method: 'POST',
+      body: {
+        name: 'research team',
+        rig: 'test-rig',
+      },
+    });
+
+    expect(status).toBe(400);
+    expect(data.error).toMatch(/invalid crew name/i);
+  });
+
+  it('should reject crew creation with shell metacharacters', async () => {
+    const { status } = await api('/api/crews', {
+      method: 'POST',
+      body: {
+        name: 'crew;rm -rf',
+      },
+    });
+
+    expect(status).toBe(400);
+  });
+
   it('should reject duplicate crew creation', async () => {
     const { status } = await api('/api/crews', {
       method: 'POST',

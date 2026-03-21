@@ -26,7 +26,7 @@ export function registerCrewRoutes(app, { crewService } = {}) {
       const result = await crewService.add({ name, rig });
       res.status(201).json(result);
     } catch (err) {
-      const statusCode = err.message === 'Crew name is required' ? 400 : 500;
+      const statusCode = err.statusCode || (err.message === 'Crew name is required' ? 400 : 500);
       res.status(statusCode).json({ success: false, error: err.message });
     }
   });

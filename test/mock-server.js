@@ -1126,6 +1126,9 @@ app.post('/api/crews', (req, res) => {
   if (!name) {
     return res.status(400).json({ error: 'Crew name is required' });
   }
+  if (!/^[A-Za-z0-9._-]+$/.test(name)) {
+    return res.status(400).json({ error: 'Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)' });
+  }
   const existingCrew = mockCrews.find(c => c.name === name);
   if (existingCrew) {
     return res.status(409).json({ error: 'Crew already exists' });

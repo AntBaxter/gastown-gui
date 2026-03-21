@@ -6,6 +6,8 @@ function parseJsonOrNull(text) {
   }
 }
 
+import { SafeSegment } from '../domain/values/SafeSegment.js';
+
 export class CrewService {
   constructor({ gtGateway, cache, emit, crewsTtlMs = 5000 } = {}) {
     if (!gtGateway) throw new Error('CrewService requires gtGateway');
@@ -53,6 +55,11 @@ export class CrewService {
 
   async add({ name, rig } = {}) {
     if (!name) throw new Error('Crew name is required');
+    if (!SafeSegment.isValid(name)) {
+      const err = new Error('Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)');
+      err.statusCode = 400;
+      throw err;
+    }
     const result = await this._gt.crewAdd(name, rig);
     if (!result.ok) throw new Error(result.error || 'Failed to add crew');
     this._emit?.('crew_added', { name, rig });
