@@ -318,7 +318,7 @@ export function addEventToFeed(container, event) {
 }
 
 /**
- * Render the filter bar with chips for the feed header area
+ * Render the filter bar with a dropdown for the feed header area
  */
 export function renderFeedFilterBar(headerContainer) {
   if (!headerContainer) return;
@@ -326,12 +326,29 @@ export function renderFeedFilterBar(headerContainer) {
   const feedEl = document.getElementById('activity-feed');
   const isCollapsed = feedEl?.classList.contains('collapsed');
 
-  const chips = Object.entries(FILTER_CATEGORIES).map(([key, cat]) => {
+  const currentCat = FILTER_CATEGORIES[activeFilter] || FILTER_CATEGORIES.all;
+  const excludeCount = excludedCategories.size;
+  const filterLabel = activeFilter === 'all' && excludeCount === 0
+    ? 'Filter'
+    : activeFilter !== 'all'
+      ? currentCat.label
+      : `${excludeCount} excluded`;
+
+  const dropdownItems = Object.entries(FILTER_CATEGORIES).map(([key, cat]) => {
     const isActive = activeFilter === key;
-    return `<button class="feed-chip ${isActive ? 'active' : ''}" data-filter="${escapeAttr(key)}" title="${escapeAttr(cat.label)}">
-      <span class="material-icons">${cat.icon}</span>
-      <span class="feed-chip-label">${cat.label}</span>
-    </button>`;
+    const isExcluded = excludedCategories.has(key);
+    // "all" can't be excluded
+    const excludeBtn = key !== 'all' ? `
+      <button class="feed-dropdown-exclude ${isExcluded ? 'excluded' : ''}"
+              data-exclude="${escapeAttr(key)}"
+              title="${isExcluded ? 'Include ' + cat.label : 'Exclude ' + cat.label}">
+        <span class="material-icons">${isExcluded ? 'visibility_off' : 'visibility'}</span>
+      </button>` : '';
+    return `<div class="feed-dropdown-item ${isActive ? 'active' : ''} ${isExcluded ? 'excluded' : ''}" data-filter="${escapeAttr(key)}">
+      <span class="material-icons feed-dropdown-icon">${cat.icon}</span>
+      <span class="feed-dropdown-label">${cat.label}</span>
+      ${excludeBtn}
+    </div>`;
   }).join('');
 
   const threadBar = activeThread ? `
@@ -348,6 +365,16 @@ export function renderFeedFilterBar(headerContainer) {
     <div class="feed-header-top">
       <h2>Activity</h2>
       <div class="feed-controls">
+        <div class="feed-filter-dropdown-wrap">
+          <button class="feed-filter-trigger" id="feed-filter-trigger" title="Filter activity">
+            <span class="material-icons">filter_list</span>
+            <span class="feed-filter-label">${escapeHtml(filterLabel)}</span>
+            <span class="material-icons feed-filter-caret">expand_more</span>
+          </button>
+          <div class="feed-filter-dropdown" id="feed-filter-dropdown">
+            ${dropdownItems}
+          </div>
+        </div>
         <button class="icon-btn-sm" id="feed-clear-btn" title="Clear feed">
           <span class="material-icons">clear_all</span>
         </button>
@@ -356,7 +383,6 @@ export function renderFeedFilterBar(headerContainer) {
         </button>
       </div>
     </div>
-    <div class="feed-chips" id="feed-chips">${chips}</div>
     ${threadBar}
   `;
 
@@ -402,46 +428,14 @@ export function updateCollapsedBar() {
     if (count >= maxBlocks) break;
     const eventType = item.dataset.eventType || item.dataset.groupType || 'system';
     const config = EVENT_CONFIG[eventType] || EVENT_CONFIG.system;
-    const msg = item.querySelector('.feed-message')?.textContent?.trim() || config.label;
     const block = document.createElement('div');
     block.className = 'feed-mini-block';
     block.style.background = config.color;
-    block.dataset.tooltip = truncate(msg, 60);
-    block.dataset.color = config.color;
     blocksContainer.appendChild(block);
     count++;
   }
-
-  // Wire hover tooltips for blocks
-  blocksContainer.querySelectorAll('.feed-mini-block').forEach(block => {
-    block.addEventListener('mouseenter', (e) => {
-      showMiniBlockTooltip(block, block.dataset.tooltip);
-    });
-    block.addEventListener('mouseleave', () => {
-      hideMiniBlockTooltip();
-    });
-  });
 }
 
-let _miniBlockTooltipEl = null;
-
-function showMiniBlockTooltip(block, text) {
-  if (!_miniBlockTooltipEl) {
-    _miniBlockTooltipEl = document.createElement('div');
-    _miniBlockTooltipEl.className = 'feed-mini-block-tooltip';
-    document.body.appendChild(_miniBlockTooltipEl);
-  }
-  _miniBlockTooltipEl.textContent = text;
-  _miniBlockTooltipEl.style.display = 'block';
-  const rect = block.getBoundingClientRect();
-  _miniBlockTooltipEl.style.top = `${rect.top - 2}px`;
-}
-
-function hideMiniBlockTooltip() {
-  if (_miniBlockTooltipEl) {
-    _miniBlockTooltipEl.style.display = 'none';
-  }
-}
 
 /**
  * Render a grouped/collapsed item

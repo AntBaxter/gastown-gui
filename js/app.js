@@ -9,7 +9,7 @@ import { api, ws } from './api.js';
 import { state, subscribe } from './state.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
-import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter } from './components/activity-feed.js';
+import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter, toggleExcludeCategory } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
 import { renderGraphInsights } from './components/graph-insights.js';
@@ -670,11 +670,40 @@ function _refreshFeed() {
 }
 
 function _attachFeedFilterListeners() {
-  // Wire up chip clicks
-  document.querySelectorAll('.feed-chip[data-filter]').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const filter = chip.dataset.filter;
+  // Wire up dropdown trigger toggle
+  const trigger = document.getElementById('feed-filter-trigger');
+  const wrap = trigger?.closest('.feed-filter-dropdown-wrap');
+  if (trigger && wrap) {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wrap.classList.toggle('open');
+    });
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) {
+        wrap.classList.remove('open');
+      }
+    });
+  }
+
+  // Wire up dropdown item clicks (select filter)
+  document.querySelectorAll('.feed-dropdown-item[data-filter]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Don't select filter if clicking the exclude button
+      if (e.target.closest('.feed-dropdown-exclude')) return;
+      const filter = item.dataset.filter;
       setFeedFilter(filter);
+      wrap?.classList.remove('open');
+      _refreshFeed();
+    });
+  });
+
+  // Wire up exclude buttons
+  document.querySelectorAll('.feed-dropdown-exclude[data-exclude]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = btn.dataset.exclude;
+      toggleExcludeCategory(category);
       _refreshFeed();
     });
   });
