@@ -1278,23 +1278,6 @@ select {
   background: color-mix(in srgb, var(--accent-primary) 15%, var(--bg-secondary));
 }
 
-.bead-select-checkbox {
-  position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
-  color: var(--text-muted);
-  z-index: 2;
-  pointer-events: none;
-}
-
-.bead-select-checkbox .material-icons {
-  font-size: 20px;
-}
-
-.bead-card--selected .bead-select-checkbox {
-  color: var(--accent-primary);
-}
-
 .kanban-column-body .bead-card {
   position: relative;
 }

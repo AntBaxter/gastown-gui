@@ -196,10 +196,6 @@ export function renderKanbanBoard(container, beads, options = {}) {
       if (selectMode) {
         toggleSelection(beadId);
         card.classList.toggle('bead-card--selected', isSelected(beadId));
-        const checkbox = card.querySelector('.bead-select-checkbox .material-icons');
-        if (checkbox) {
-          checkbox.textContent = isSelected(beadId) ? 'check_box' : 'check_box_outline_blank';
-        }
         return;
       }
 
@@ -261,13 +257,6 @@ function renderKanbanCard(bead, index, selectMode) {
   // Add selected class if in select mode and bead is selected
   if (selectMode && isSelected(bead.id)) {
     html = html.replace('class="bead-card ', 'class="bead-card bead-card--selected ');
-  }
-
-  // Add checkbox overlay when in select mode
-  if (selectMode) {
-    const checkIcon = isSelected(bead.id) ? 'check_box' : 'check_box_outline_blank';
-    const checkboxHtml = `<div class="bead-select-checkbox"><span class="material-icons">${checkIcon}</span></div>`;
-    html = html.replace('<div class="bead-header">', checkboxHtml + '<div class="bead-header">');
   }
 
   // Insert badges before bead-footer
