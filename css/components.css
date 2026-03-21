@@ -5315,6 +5315,7 @@ select {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-md);
   padding: var(--space-md);
+  overflow-y: auto;
 }
 
 .formula-card {
