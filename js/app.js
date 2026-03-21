@@ -12,7 +12,7 @@ import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter, toggleExcludeCategory } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
-import { renderFloatingBar, onSelectionChange } from './shared/selection.js';
+import { renderFloatingBar, onSelectionChange, clearSelection } from './shared/selection.js';
 import { renderGraphInsights } from './components/graph-insights.js';
 import { renderAllBeadsGraph } from './components/dependency-graph.js';
 import { renderMailList } from './components/mail-list.js';
@@ -1040,6 +1040,9 @@ function setupSelectModeToggle() {
     const icon = toggleBtn.querySelector('.material-icons');
     if (icon) {
       icon.textContent = selectMode ? 'check_box' : 'check_box_outline_blank';
+    }
+    if (!selectMode) {
+      clearSelection();
     }
     loadWork();
   });
