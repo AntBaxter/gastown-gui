@@ -982,27 +982,24 @@ async function handleConvoyWizardSubmit(element) {
   }
 
   try {
-    // Step 1: Create the convoy
-    const result = await api.createConvoy(convoyWizard.name, convoyWizard.issues, convoyWizard.notify || null);
-    const convoyId = result?.convoy_id;
-
-    // Step 2: Prepare integration (create epic, reparent beads, create branch) if enabled
-    if (convoyWizard.integrationBranch && convoyId && convoyWizard.issues.length > 0) {
-      try {
-        const intResult = await api.prepareIntegration(convoyId, {
-          epicName: convoyWizard.name,
-          branchName: convoyWizard.branchName || undefined,
-          beadIds: convoyWizard.issues,
-          rig: convoyWizard.rig || undefined,
-        });
-        const reparentCount = intResult.reparented?.length || 0;
-        if (reparentCount > 0) {
-          showToast(`Epic created, ${reparentCount} bead(s) reparented under it`, 'info');
-        }
-      } catch (branchErr) {
-        showToast(`Convoy created, but integration setup failed: ${branchErr.message}`, 'warning');
+    // Step 1: Prepare integration FIRST if enabled (before convoy creation).
+    // The daemon can start slinging beads immediately after convoy creation,
+    // so the integration branch must exist before the convoy is created.
+    if (convoyWizard.integrationBranch && convoyWizard.issues.length > 0) {
+      const intResult = await api.prepareIntegrationStandalone({
+        epicName: convoyWizard.name,
+        branchName: convoyWizard.branchName || undefined,
+        beadIds: convoyWizard.issues,
+        rig: convoyWizard.rig || undefined,
+      });
+      const reparentCount = intResult.reparented?.length || 0;
+      if (reparentCount > 0) {
+        showToast(`Epic created, ${reparentCount} bead(s) reparented under it`, 'info');
       }
     }
+
+    // Step 2: Create the convoy (after integration branch is ready)
+    const result = await api.createConvoy(convoyWizard.name, convoyWizard.issues, convoyWizard.notify || null);
 
     showToast(`Convoy "${convoyWizard.name}" created`, 'success');
     closeAllModals();

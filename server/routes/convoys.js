@@ -69,14 +69,14 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
     }
   });
 
-  app.post('/api/convoy/:id/prepare-integration', async (req, res) => {
+  async function handlePrepareIntegration(req, res, convoyId) {
     try {
       const { epicName, branchName, beadIds, rig } = req.body || {};
       if (!epicName) return res.status(400).json({ error: 'epicName is required' });
       if (!Array.isArray(beadIds) || beadIds.length === 0) {
         return res.status(400).json({ error: 'beadIds must be a non-empty array' });
       }
-      const result = await convoyService.prepareIntegration(req.params.id, {
+      const result = await convoyService.prepareIntegration(convoyId, {
         epicName,
         branchName,
         beadIds,
@@ -86,6 +86,14 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  }
+
+  app.post('/api/convoy/:id/prepare-integration', (req, res) => {
+    handlePrepareIntegration(req, res, req.params.id);
+  });
+
+  app.post('/api/prepare-integration', (req, res) => {
+    handlePrepareIntegration(req, res, null);
   });
 
   // Feed convoy (sling ready issues)

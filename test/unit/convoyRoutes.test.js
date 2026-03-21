@@ -236,6 +236,24 @@ describe('Convoy prepare-integration route', () => {
     const body = await res.json();
     expect(body.error).toBe('beadIds must be a non-empty array');
   });
+
+  it('POST /api/prepare-integration (standalone) passes null convoyId', async () => {
+    calls = [];
+    const res = await fetch(`${baseUrl}/api/prepare-integration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ epicName: 'Standalone', beadIds: ['bd-3'], rig: 'myrig' }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.epicId).toBe('epic-123');
+    expect(calls[0]).toEqual(['prepareIntegration', null, {
+      epicName: 'Standalone',
+      branchName: undefined,
+      beadIds: ['bd-3'],
+      rig: 'myrig',
+    }]);
+  });
 });
 
 describe('Convoy routes error handling', () => {

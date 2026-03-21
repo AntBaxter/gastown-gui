@@ -195,7 +195,7 @@ app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
 });
 
 // Prepare integration (create epic, reparent beads, create integration branch)
-app.post('/api/convoy/:id/prepare-integration', (req, res) => {
+function handleMockPrepareIntegration(req, res) {
   const { epicName, branchName, beadIds, rig } = req.body || {};
   if (!epicName) return res.status(400).json({ error: 'epicName is required' });
   if (!Array.isArray(beadIds) || beadIds.length === 0) {
@@ -208,7 +208,9 @@ app.post('/api/convoy/:id/prepare-integration', (req, res) => {
     reparented: beadIds.map(id => ({ id, from: null })),
     skipped: [],
   });
-});
+}
+app.post('/api/convoy/:id/prepare-integration', handleMockPrepareIntegration);
+app.post('/api/prepare-integration', handleMockPrepareIntegration);
 
 // Feed convoy
 app.post('/api/convoy/:id/feed', (req, res) => {
