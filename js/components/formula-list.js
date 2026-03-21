@@ -11,6 +11,7 @@ import { getStaggerClass } from '../shared/animations.js';
 
 let container = null;
 let formulas = [];
+let formulaFilter = 'user'; // 'user' | 'system' | 'all'
 
 /**
  * Initialize the formula list component
@@ -18,6 +19,16 @@ let formulas = [];
 export function initFormulaList() {
   container = document.getElementById('formula-list-container');
   if (!container) return;
+
+  // Filter tabs
+  document.querySelectorAll('.formula-filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.formula-filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      formulaFilter = tab.dataset.formulaFilter;
+      renderFormulas();
+    });
+  });
 
   // Refresh button
   const refreshBtn = document.getElementById('formula-refresh');
@@ -76,7 +87,20 @@ export async function loadFormulas() {
 /**
  * Render formula cards
  */
+function isSystemFormula(formula) {
+  return formula.name && formula.name.startsWith('mol-');
+}
+
+function getFilteredFormulas() {
+  if (!formulas) return [];
+  if (formulaFilter === 'user') return formulas.filter(f => !isSystemFormula(f));
+  if (formulaFilter === 'system') return formulas.filter(f => isSystemFormula(f));
+  return formulas;
+}
+
 function renderFormulas() {
+  const filtered = getFilteredFormulas();
+
   if (!formulas || formulas.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -99,8 +123,20 @@ function renderFormulas() {
     return;
   }
 
+  if (filtered.length === 0) {
+    const filterLabel = formulaFilter === 'user' ? 'user' : 'system';
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="material-icons empty-icon">filter_list</span>
+        <h3>No ${filterLabel} formulas</h3>
+        <p>Try switching the filter to see other formulas</p>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = '';
-  formulas.forEach((formula, index) => {
+  filtered.forEach((formula, index) => {
     const card = createFormulaCard(formula, index);
     container.appendChild(card);
   });
@@ -116,14 +152,18 @@ function createFormulaCard(formula, index) {
 
   const description = formula.description || 'No description';
   const templatePreview = formula.template ? formula.template.substring(0, 100) + (formula.template.length > 100 ? '...' : '') : 'No template';
+  const isSystem = isSystemFormula(formula);
 
   card.innerHTML = `
     <div class="formula-header">
       <div class="formula-icon">
-        <span class="material-icons">science</span>
+        <span class="material-icons">${isSystem ? 'settings' : 'science'}</span>
       </div>
       <div class="formula-info">
-        <h3 class="formula-name">${escapeHtml(formula.name)}</h3>
+        <h3 class="formula-name">
+          ${escapeHtml(formula.name)}
+          ${isSystem ? '<span class="badge formula-system-badge">System</span>' : ''}
+        </h3>
         <p class="formula-description">${escapeHtml(description)}</p>
       </div>
     </div>
@@ -135,25 +175,29 @@ function createFormulaCard(formula, index) {
         <span class="material-icons">visibility</span>
         View
       </button>
+      ${isSystem ? '' : `
       <button class="btn btn-sm btn-secondary" data-action="edit" title="Edit formula">
         <span class="material-icons">edit</span>
         Edit
-      </button>
+      </button>`}
       <button class="btn btn-sm btn-primary" data-action="use" title="Use this formula">
         <span class="material-icons">play_arrow</span>
         Use
       </button>
+      ${isSystem ? '' : `
       <button class="btn btn-sm btn-icon btn-danger" data-action="delete" title="Delete formula">
         <span class="material-icons">delete</span>
-      </button>
+      </button>`}
     </div>
   `;
 
   // Add event listeners
   card.querySelector('[data-action="view"]').addEventListener('click', () => showFormulaDetails(formula));
-  card.querySelector('[data-action="edit"]').addEventListener('click', () => showEditFormulaModal(formula));
+  const editBtn = card.querySelector('[data-action="edit"]');
+  if (editBtn) editBtn.addEventListener('click', () => showEditFormulaModal(formula));
   card.querySelector('[data-action="use"]').addEventListener('click', () => showUseFormulaModal(formula));
-  card.querySelector('[data-action="delete"]').addEventListener('click', () => handleDeleteFormula(formula.name));
+  const deleteBtn = card.querySelector('[data-action="delete"]');
+  if (deleteBtn) deleteBtn.addEventListener('click', () => handleDeleteFormula(formula.name));
 
   return card;
 }

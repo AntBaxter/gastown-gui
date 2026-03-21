@@ -5399,6 +5399,48 @@ select {
   margin-top: auto;
 }
 
+/* Formula filter tabs */
+.formula-filter-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.formula-filter-tab {
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.formula-filter-tab:not(:last-child) {
+  border-right: 1px solid var(--border-default);
+}
+
+.formula-filter-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.formula-filter-tab.active {
+  color: var(--accent-primary);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+/* Formula system badge */
+.formula-system-badge {
+  color: var(--text-secondary);
+  background: rgba(139, 92, 246, 0.15);
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+}
+
 /* Formula detail view (in peek modal) */
 .formula-detail h3 {
   font-size: var(--text-xl);
