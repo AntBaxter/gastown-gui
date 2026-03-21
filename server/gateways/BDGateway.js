@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 function parseJsonOrNull(text) {
   try {
     return JSON.parse(text);
@@ -12,6 +15,35 @@ export class BDGateway {
     if (!gtRoot) throw new Error('BDGateway requires gtRoot');
     this._runner = runner;
     this._gtRoot = gtRoot;
+    this._routes = null;
+  }
+
+  async _loadRoutes() {
+    if (this._routes) return this._routes;
+    try {
+      const routesPath = path.join(this._gtRoot, '.beads', 'routes.jsonl');
+      const content = await readFile(routesPath, 'utf8');
+      this._routes = content
+        .split('\n')
+        .filter(Boolean)
+        .map(line => parseJsonOrNull(line))
+        .filter(r => r && r.prefix && r.path);
+    } catch {
+      this._routes = [];
+    }
+    return this._routes;
+  }
+
+  async _resolveBeadCwd(beadId) {
+    const routes = await this._loadRoutes();
+    // Match longest prefix first
+    const sorted = routes.slice().sort((a, b) => b.prefix.length - a.prefix.length);
+    for (const route of sorted) {
+      if (beadId.startsWith(route.prefix)) {
+        return path.join(this._gtRoot, route.path);
+      }
+    }
+    return this._gtRoot;
   }
 
   async exec(args, options = {}) {
@@ -120,7 +152,10 @@ export class BDGateway {
   }
 
   async delete(beadId) {
-    const result = await this.exec(['delete', beadId, '--force'], { timeoutMs: 30000 });
+    // bd delete doesn't support prefix-based routing from town root,
+    // so resolve the rig directory from the bead prefix
+    const cwd = await this._resolveBeadCwd(beadId);
+    const result = await this.exec(['delete', beadId, '--force'], { timeoutMs: 30000, cwd });
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
