@@ -8750,21 +8750,21 @@ a:focus-visible,
 .insights-dashboard {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--space-lg);
 }
 
 .insights-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+  padding: var(--space-lg);
 }
 
 .insights-section-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .insights-section-header .material-icons {
@@ -8796,7 +8796,7 @@ a:focus-visible,
 .insights-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
+  gap: var(--space-lg);
 }
 
 @media (max-width: 768px) {
@@ -8808,14 +8808,14 @@ a:focus-visible,
 .insights-empty {
   color: var(--text-muted);
   font-size: 13px;
-  padding: var(--spacing-md) 0;
+  padding: var(--space-md) 0;
 }
 
 /* Health Summary */
 .insights-health-summary {
   display: flex;
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 .health-stat {
@@ -8852,7 +8852,7 @@ a:focus-visible,
 .status-bar-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-sm);
 }
 
 .status-bar-label {
@@ -8862,6 +8862,7 @@ a:focus-visible,
 }
 
 .status-bar-track {
+  position: relative;
   flex: 1;
   height: 8px;
   background: var(--bg-tertiary);
@@ -8870,6 +8871,7 @@ a:focus-visible,
 }
 
 .insights-status-chart .status-bar-fill {
+  position: static;
   height: 100%;
   border-radius: var(--radius-full);
   transition: width var(--transition-normal);
@@ -8888,8 +8890,8 @@ a:focus-visible,
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -8914,7 +8916,7 @@ a:focus-visible,
 
 .chain-item {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--space-sm);
   cursor: pointer;
   padding: 4px;
   border-radius: var(--radius-sm);
@@ -8977,7 +8979,7 @@ a:focus-visible,
 .blocker-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-sm);
   padding: 6px 4px;
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -9025,7 +9027,7 @@ a:focus-visible,
 .stale-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-sm);
   padding: 6px 4px;
   cursor: pointer;
   border-radius: var(--radius-sm);
