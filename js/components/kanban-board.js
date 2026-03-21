@@ -10,7 +10,7 @@ import { renderBeadCard } from './work-list.js';
 import { BEAD_DETAIL, BLOCKED_TRIAGE } from '../shared/events.js';
 import { isHiddenBead } from '../shared/beads.js';
 import { escapeHtml, escapeAttr } from '../utils/html.js';
-import { isSelected, onSelectionChange, renderFloatingBar } from '../shared/selection.js';
+import { toggleSelection, isSelected, onSelectionChange, renderFloatingBar } from '../shared/selection.js';
 
 const KANBAN_COLUMNS = [
   { key: 'open', label: 'Open', icon: 'radio_button_unchecked', colorVar: '--accent-warning' },
@@ -112,7 +112,7 @@ function renderEpicFilter(epics, selectedEpicId) {
 export function renderKanbanBoard(container, beads, options = {}) {
   if (!container) return;
 
-  const { epics, epicFilter, epicChildren, blockedBeads, onEpicFilterChange } = options;
+  const { epics, epicFilter, epicChildren, blockedBeads, onEpicFilterChange, selectMode } = options;
   const selectedEpicId = epicFilter || 'all';
 
   // If epic is selected, show only its children (may be empty)
@@ -175,7 +175,7 @@ export function renderKanbanBoard(container, beads, options = {}) {
             <div class="kanban-column-body">
               ${items.length === 0
                 ? '<div class="kanban-empty">No items</div>'
-                : items.map((bead, i) => renderKanbanCard(bead, i)).join('')
+                : items.map((bead, i) => renderKanbanCard(bead, i, selectMode)).join('')
               }
             </div>
           </div>
@@ -192,6 +192,17 @@ export function renderKanbanBoard(container, beads, options = {}) {
       if (e.target.closest('a')) return;
       if (e.target.closest('[data-action]')) return;
       const beadId = card.dataset.beadId;
+
+      if (selectMode) {
+        toggleSelection(beadId);
+        card.classList.toggle('bead-card--selected', isSelected(beadId));
+        const checkbox = card.querySelector('.bead-select-checkbox .material-icons');
+        if (checkbox) {
+          checkbox.textContent = isSelected(beadId) ? 'check_box' : 'check_box_outline_blank';
+        }
+        return;
+      }
+
       const bead = annotatedBeads.find(b => b.id === beadId);
       document.dispatchEvent(new CustomEvent(BEAD_DETAIL, { detail: { beadId, bead } }));
     });
@@ -239,12 +250,24 @@ export function renderKanbanBoard(container, beads, options = {}) {
 /**
  * Render a kanban card with ready/blocked/gate indicators
  */
-function renderKanbanCard(bead, index) {
+function renderKanbanCard(bead, index, selectMode) {
   let html = renderBeadCard(bead, index);
 
   // Add gate class to card wrapper
   if (bead._isGate) {
     html = html.replace('class="bead-card ', 'class="bead-card bead-gate ');
+  }
+
+  // Add selected class if in select mode and bead is selected
+  if (selectMode && isSelected(bead.id)) {
+    html = html.replace('class="bead-card ', 'class="bead-card bead-card--selected ');
+  }
+
+  // Add checkbox overlay when in select mode
+  if (selectMode) {
+    const checkIcon = isSelected(bead.id) ? 'check_box' : 'check_box_outline_blank';
+    const checkboxHtml = `<div class="bead-select-checkbox"><span class="material-icons">${checkIcon}</span></div>`;
+    html = html.replace('<div class="bead-header">', checkboxHtml + '<div class="bead-header">');
   }
 
   // Insert badges before bead-footer

@@ -1267,6 +1267,49 @@ select {
 /* === Tooltips === */
 /* Tooltip styles moved to line ~2446 - single definition to avoid conflicts */
 
+/* === Bead Card Selection === */
+.bead-card--selected {
+  border-color: var(--accent-primary) !important;
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary));
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.bead-card--selected:hover {
+  background: color-mix(in srgb, var(--accent-primary) 15%, var(--bg-secondary));
+}
+
+.bead-select-checkbox {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  color: var(--text-muted);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bead-select-checkbox .material-icons {
+  font-size: 20px;
+}
+
+.bead-card--selected .bead-select-checkbox {
+  color: var(--accent-primary);
+}
+
+.kanban-column-body .bead-card {
+  position: relative;
+}
+
+/* Select mode toggle active state */
+#select-mode-toggle.active {
+  background: var(--accent-primary);
+  color: var(--text-on-primary, #fff);
+  border-color: var(--accent-primary);
+}
+
+#select-mode-toggle.hidden {
+  display: none;
+}
+
 /* === Selection Action Bar === */
 .selection-action-bar {
   position: sticky;

@@ -12,6 +12,7 @@ import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter, toggleExcludeCategory } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
+import { renderFloatingBar, onSelectionChange } from './shared/selection.js';
 import { renderGraphInsights } from './components/graph-insights.js';
 import { renderAllBeadsGraph } from './components/dependency-graph.js';
 import { renderMailList } from './components/mail-list.js';
@@ -129,6 +130,9 @@ async function init() {
 
   // Set up work view toggle (list/board)
   setupWorkViewToggle();
+
+  // Set up select mode toggle + floating bar
+  setupSelectModeToggle();
 
   // Set up rig filter
   setupRigFilter();
@@ -833,6 +837,7 @@ async function loadRigs() {
 // Track work filter state
 let workFilter = 'open'; // Default to showing open work
 let workViewMode = localStorage.getItem('gastown-work-view') || 'board'; // 'list' or 'board'
+let selectMode = false;
 
 async function loadWork() {
   showLoadingState(elements.workList, 'Loading work...');
@@ -871,6 +876,7 @@ async function loadWork() {
         epicFilter,
         epicChildren,
         blockedBeads,
+        selectMode,
         onEpicFilterChange: (epicId) => {
           state.setEpicFilter(epicId);
           loadWork();
@@ -999,6 +1005,50 @@ function setupWorkViewToggle() {
 
       loadWork();
     });
+  });
+}
+
+// Select mode toggle for kanban board
+function setupSelectModeToggle() {
+  const toggleBtn = document.getElementById('select-mode-toggle');
+  if (!toggleBtn) return;
+
+  // Render floating action bar into the work view container
+  const viewWork = document.getElementById('view-work');
+  if (viewWork) {
+    renderFloatingBar(viewWork);
+  }
+
+  // Update toggle button visibility based on view mode
+  function updateToggleVisibility() {
+    toggleBtn.classList.toggle('hidden', workViewMode !== 'board');
+  }
+  updateToggleVisibility();
+
+  // Observe view mode changes by watching the view toggle buttons
+  const viewToggle = document.getElementById('work-view-toggle');
+  if (viewToggle) {
+    viewToggle.addEventListener('click', () => {
+      // Defer to let the view mode update first
+      setTimeout(updateToggleVisibility, 0);
+    });
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    selectMode = !selectMode;
+    toggleBtn.classList.toggle('active', selectMode);
+    const icon = toggleBtn.querySelector('.material-icons');
+    if (icon) {
+      icon.textContent = selectMode ? 'check_box' : 'check_box_outline_blank';
+    }
+    loadWork();
+  });
+
+  // Re-render kanban when selection is cleared (e.g. via floating bar Clear button)
+  onSelectionChange((ids) => {
+    if (workViewMode === 'board' && ids.length === 0 && selectMode) {
+      loadWork();
+    }
   });
 }
 
