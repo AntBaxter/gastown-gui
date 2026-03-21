@@ -6629,7 +6629,7 @@ select {
   flex-shrink: 0;
 }
 
-.status-bar-fill {
+.agent-status-bar .status-bar-fill {
   position: absolute;
   top: 0;
   left: 0;
