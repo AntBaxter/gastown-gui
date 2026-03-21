@@ -39,6 +39,9 @@ export const MAIL_REPLY = 'mail:reply';
 // Triage Events
 export const BLOCKED_TRIAGE = 'blocked:triage';
 
+// Selection Events
+export const CONVOY_WIZARD_PREPOPULATE = 'convoy-wizard:prepopulate';
+
 // Modal & UI Events
 export const MODAL_SHOW = 'modal:show';
 export const MODAL_CLOSE = 'modal:close';

@@ -27,6 +27,7 @@ import {
   CONVOY_DETAIL,
   CONVOY_ESCALATE,
   CONVOY_ESCALATED,
+  CONVOY_WIZARD_PREPOPULATE,
   MAIL_DETAIL,
   MAIL_REPLY,
   MODAL_CLOSE,
@@ -165,6 +166,11 @@ export function initModals() {
     }).catch(err => {
       showToast(`Failed to sling work: ${err.message || 'Unknown error'}`, 'error');
     });
+  });
+
+  document.addEventListener(CONVOY_WIZARD_PREPOPULATE, (e) => {
+    const issues = e.detail?.issues || [];
+    openModal('new-convoy', { issues });
   });
 
   document.addEventListener(AGENT_PEEK, (e) => {
@@ -535,8 +541,11 @@ function resetConvoyWizard() {
   convoyWizard.branchName = '';
 }
 
-function initNewConvoyModal(element) {
+function initNewConvoyModal(element, data = {}) {
   resetConvoyWizard();
+  if (Array.isArray(data.issues) && data.issues.length > 0) {
+    convoyWizard.issues = [...data.issues];
+  }
   renderConvoyWizardStep(element);
   wireConvoyWizardNav(element);
 }

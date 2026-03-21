@@ -1267,6 +1267,50 @@ select {
 /* === Tooltips === */
 /* Tooltip styles moved to line ~2446 - single definition to avoid conflicts */
 
+/* === Selection Action Bar === */
+.selection-action-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-accent);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  animation: slideUp 0.2s ease-out;
+}
+
+.selection-action-bar.hidden {
+  display: none;
+}
+
+.selection-count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.selection-count .material-icons {
+  font-size: 18px;
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* === Toast Notifications === */
 .toast-container {
   position: fixed;
