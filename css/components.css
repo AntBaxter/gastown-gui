@@ -5434,12 +5434,80 @@ select {
   background: rgba(88, 166, 255, 0.1);
 }
 
+/* Formula type badges */
+.formula-type-badge {
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.formula-type-workflow {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.formula-type-convoy {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.formula-type-expansion {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.formula-type-aspect {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.15);
+}
+
 /* Formula system badge */
 .formula-system-badge {
   color: var(--text-secondary);
   background: rgba(139, 92, 246, 0.15);
   vertical-align: middle;
   margin-left: var(--space-xs);
+}
+
+/* Formula type filter tabs */
+.formula-type-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.formula-type-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.formula-type-tab .material-icons {
+  font-size: 16px;
+}
+
+.formula-type-tab:not(:last-child) {
+  border-right: 1px solid var(--border-default);
+}
+
+.formula-type-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.formula-type-tab.active {
+  color: var(--accent-primary);
+  background: rgba(88, 166, 255, 0.1);
 }
 
 /* Formula detail view (in peek modal) */

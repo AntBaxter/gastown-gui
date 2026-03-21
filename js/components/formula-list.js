@@ -12,6 +12,25 @@ import { getStaggerClass } from '../shared/animations.js';
 let container = null;
 let formulas = [];
 let formulaFilter = 'user'; // 'user' | 'system' | 'all'
+let typeFilter = 'all'; // 'all' | 'workflow' | 'convoy' | 'expansion' | 'aspect'
+
+const FORMULA_TYPES = {
+  workflow: { icon: 'account_tree', label: 'Workflow', color: '#3b82f6' },
+  convoy: { icon: 'groups', label: 'Convoy', color: '#10b981' },
+  expansion: { icon: 'unfold_more', label: 'Expansion', color: '#f59e0b' },
+  aspect: { icon: 'layers', label: 'Aspect', color: '#8b5cf6' },
+};
+
+function detectFormulaType(formula) {
+  if (formula.type && FORMULA_TYPES[formula.type]) return formula.type;
+  const name = (formula.name || '').toLowerCase();
+  const desc = (formula.description || '').toLowerCase();
+  const text = `${name} ${desc}`;
+  if (text.includes('convoy')) return 'convoy';
+  if (text.includes('expansion') || text.includes('expand')) return 'expansion';
+  if (text.includes('aspect')) return 'aspect';
+  return 'workflow';
+}
 
 /**
  * Initialize the formula list component
@@ -20,12 +39,22 @@ export function initFormulaList() {
   container = document.getElementById('formula-list-container');
   if (!container) return;
 
-  // Filter tabs
+  // User/System filter tabs
   document.querySelectorAll('.formula-filter-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.formula-filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       formulaFilter = tab.dataset.formulaFilter;
+      renderFormulas();
+    });
+  });
+
+  // Type filter tabs
+  document.querySelectorAll('.formula-type-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.formula-type-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      typeFilter = tab.dataset.typeFilter;
       renderFormulas();
     });
   });
@@ -93,9 +122,11 @@ function isSystemFormula(formula) {
 
 function getFilteredFormulas() {
   if (!formulas) return [];
-  if (formulaFilter === 'user') return formulas.filter(f => !isSystemFormula(f));
-  if (formulaFilter === 'system') return formulas.filter(f => isSystemFormula(f));
-  return formulas;
+  let filtered = formulas;
+  if (formulaFilter === 'user') filtered = filtered.filter(f => !isSystemFormula(f));
+  else if (formulaFilter === 'system') filtered = filtered.filter(f => isSystemFormula(f));
+  if (typeFilter !== 'all') filtered = filtered.filter(f => detectFormulaType(f) === typeFilter);
+  return filtered;
 }
 
 function renderFormulas() {
@@ -124,11 +155,14 @@ function renderFormulas() {
   }
 
   if (filtered.length === 0) {
-    const filterLabel = formulaFilter === 'user' ? 'user' : 'system';
+    const parts = [];
+    if (formulaFilter !== 'all') parts.push(formulaFilter);
+    if (typeFilter !== 'all') parts.push(typeFilter);
+    const filterLabel = parts.length > 0 ? parts.join(' ') : '';
     container.innerHTML = `
       <div class="empty-state">
         <span class="material-icons empty-icon">filter_list</span>
-        <h3>No ${filterLabel} formulas</h3>
+        <h3>No ${escapeHtml(filterLabel)} formulas</h3>
         <p>Try switching the filter to see other formulas</p>
       </div>
     `;
@@ -154,15 +188,18 @@ function createFormulaCard(formula, index) {
   const stepCount = formula.steps != null ? formula.steps : '—';
   const varCount = formula.vars != null ? formula.vars : '—';
   const isSystem = isSystemFormula(formula);
+  const fType = detectFormulaType(formula);
+  const typeInfo = FORMULA_TYPES[fType];
 
   card.innerHTML = `
     <div class="formula-header">
-      <div class="formula-icon">
-        <span class="material-icons">${isSystem ? 'settings' : 'science'}</span>
+      <div class="formula-icon" style="background: linear-gradient(135deg, ${typeInfo.color}, ${typeInfo.color}99)">
+        <span class="material-icons">${typeInfo.icon}</span>
       </div>
       <div class="formula-info">
         <h3 class="formula-name">
           ${escapeHtml(formula.name)}
+          <span class="badge formula-type-badge formula-type-${fType}">${typeInfo.label}</span>
           ${isSystem ? '<span class="badge formula-system-badge">System</span>' : ''}
         </h3>
         <p class="formula-description">${escapeHtml(description)}</p>
