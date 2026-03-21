@@ -13,7 +13,7 @@ function normalizeLabels(labels) {
 }
 
 export class BeadService {
-  constructor({ bdGateway, statusService, emit } = {}) {
+  constructor({ bdGateway, statusService, cache, emit } = {}) {
     if (!bdGateway) throw new Error('BeadService requires bdGateway');
     if (!bdGateway.list) throw new Error('BeadService requires bdGateway.list()');
     if (!bdGateway.search) throw new Error('BeadService requires bdGateway.search()');
@@ -22,11 +22,19 @@ export class BeadService {
 
     this._bd = bdGateway;
     this._status = statusService ?? null;
+    this._cache = cache ?? null;
     this._emit = emit ?? null;
   }
 
   async _getRigNames() {
     if (!this._status) return [];
+    if (this._cache?.getOrExecute) {
+      return this._cache.getOrExecute('rig_names', () => this._fetchRigNames(), 300000);
+    }
+    return this._fetchRigNames();
+  }
+
+  async _fetchRigNames() {
     try {
       const status = await this._status.getStatus();
       return (status?.rigs || []).map(r => r.name).filter(Boolean);
