@@ -206,7 +206,7 @@ function showEventDrivenModal(options) {
     dynamicModal = document.createElement('div');
     dynamicModal.id = 'dynamic-modal';
     dynamicModal.className = 'modal';
-    document.body.appendChild(dynamicModal);
+    overlay.appendChild(dynamicModal);
   }
 
   // Build modal content
