@@ -10,6 +10,7 @@
 import { api } from '../api.js';
 import { escapeHtml } from '../utils/html.js';
 import { detectCycles, CYCLE_EDGE_COLOR } from '../utils/cycle-detect.js';
+import { showToast } from './toast.js';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 72;
@@ -444,6 +445,9 @@ export async function renderConvoyGraph(container, convoyId, options = {}) {
         <button class="btn btn-sm btn-secondary dag-reset" title="Reset view">
           <span class="material-icons" style="font-size:16px">fit_screen</span>
         </button>
+        <button class="btn btn-sm btn-secondary dag-copy-mermaid" title="Copy as Mermaid">
+          <span class="material-icons" style="font-size:16px">content_copy</span> Mermaid
+        </button>
       </div>
       ${renderSVG(graph, nodeMap)}
       <div class="dag-legend">
@@ -456,6 +460,7 @@ export async function renderConvoyGraph(container, convoyId, options = {}) {
     setupPanZoom(container);
     setupNodeClicks(container, options.onNodeClick);
     setupZoomButtons(container);
+    setupMermaidExport(container, graph, nodeMap);
   } catch (err) {
     console.error('[ConvoyGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">
@@ -529,6 +534,61 @@ function setupZoomButtons(container) {
 }
 
 /**
+ * Serialize a dagre graph to Mermaid graph TD syntax.
+ * @param {object} g - dagre graph
+ * @param {Map} nodeMap - Map of id → bead
+ * @returns {string} Mermaid diagram text
+ */
+function graphToMermaid(g, nodeMap) {
+  const lines = ['graph TD'];
+
+  // Mermaid style classes for status
+  const statusStyles = [];
+
+  for (const id of g.nodes()) {
+    const bead = nodeMap.get(id);
+    if (!bead) continue;
+    const label = (bead.title || id).replace(/"/g, '#quot;');
+    const status = bead.status || 'open';
+    lines.push(`  ${id}["${label}"]:::${status}`);
+  }
+
+  for (const edge of g.edges()) {
+    const edgeData = g.edge(edge.v, edge.w);
+    const target = nodeMap.get(edge.w);
+    const arrow = target?.status === 'closed' ? '-->' : '==>';
+    lines.push(`  ${edge.v} ${arrow} ${edge.w}`);
+  }
+
+  // Add style definitions
+  lines.push('');
+  lines.push('  classDef open fill:#6e7681,color:#fff');
+  lines.push('  classDef in_progress fill:#d29922,color:#fff');
+  lines.push('  classDef hooked fill:#d29922,color:#fff');
+  lines.push('  classDef blocked fill:#f85149,color:#fff');
+  lines.push('  classDef closed fill:#3fb950,color:#fff');
+  lines.push('  classDef pinned fill:#a371f7,color:#fff');
+  lines.push('  classDef deferred fill:#8b949e,color:#fff');
+
+  return lines.join('\n');
+}
+
+/**
+ * Set up the "Copy as Mermaid" button click handler.
+ */
+function setupMermaidExport(container, g, nodeMap) {
+  const btn = container.querySelector('.dag-copy-mermaid');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    const mermaid = graphToMermaid(g, nodeMap);
+    navigator.clipboard.writeText(mermaid).then(() => {
+      showToast('Copied Mermaid diagram to clipboard', 'success', 3000);
+    });
+  });
+}
+
+/**
  * Render a dependency graph into a container element.
  *
  * @param {HTMLElement} container - DOM element to render into
@@ -579,6 +639,9 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
         <button class="btn btn-sm btn-secondary dag-reset" title="Reset view">
           <span class="material-icons" style="font-size:16px">fit_screen</span>
         </button>
+        <button class="btn btn-sm btn-secondary dag-copy-mermaid" title="Copy as Mermaid">
+          <span class="material-icons" style="font-size:16px">content_copy</span> Mermaid
+        </button>
       </div>
       ${renderSVG(graph, nodeMap)}
       <div class="dag-legend">
@@ -592,6 +655,7 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
     setupPanZoom(container);
     setupNodeClicks(container, options.onNodeClick);
     setupZoomButtons(container);
+    setupMermaidExport(container, graph, nodeMap);
   } catch (err) {
     console.error('[DependencyGraph] Error:', err);
     container.innerHTML = `<div class="dag-error">

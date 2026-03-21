@@ -7,6 +7,7 @@
 
 import { BEAD_DETAIL } from '../shared/events.js';
 import { escapeHtml, escapeAttr } from '../utils/html.js';
+import { showToast } from './toast.js';
 
 const STATUS_COLORS = {
   open: { label: 'Open', color: 'var(--accent-warning)' },
@@ -42,6 +43,11 @@ export function renderGraphInsights(container, insights) {
 
   container.innerHTML = `
     <div class="insights-dashboard">
+      <div class="insights-toolbar">
+        <button class="btn btn-sm btn-secondary insights-copy-markdown" title="Copy as Markdown">
+          <span class="material-icons" style="font-size:16px">content_copy</span> Markdown
+        </button>
+      </div>
       ${renderHealthSection(health)}
       <div class="insights-grid">
         ${renderCriticalPath(criticalPath)}
@@ -60,6 +66,17 @@ export function renderGraphInsights(container, insights) {
       }));
     });
   });
+
+  // Wire markdown export button
+  const mdBtn = container.querySelector('.insights-copy-markdown');
+  if (mdBtn) {
+    mdBtn.addEventListener('click', () => {
+      const md = insightsToMarkdown(insights);
+      navigator.clipboard.writeText(md).then(() => {
+        showToast('Copied insights as Markdown to clipboard', 'success', 3000);
+      });
+    });
+  }
 }
 
 function renderHealthSection(health) {
@@ -193,6 +210,64 @@ function renderTopBlockers(topBlockers) {
       </div>
     </div>
   `;
+}
+
+/**
+ * Convert insights data to Markdown format.
+ * @param {Object} insights - Response from /api/beads/insights
+ * @returns {string} Markdown text
+ */
+function insightsToMarkdown(insights) {
+  const lines = ['# Project Insights', ''];
+  const { health, criticalPath, topBlockers, staleItems } = insights;
+
+  // Status summary table
+  if (health) {
+    lines.push('## Status Summary', '');
+    lines.push(`- **Total Beads:** ${health.totalBeads}`);
+    lines.push(`- **Avg Age:** ${health.avgAgeDays} days`);
+    lines.push(`- **Stale (>7d):** ${health.staleCount}`);
+    lines.push('');
+    lines.push('| Status | Count |');
+    lines.push('|--------|-------|');
+    for (const [status, count] of Object.entries(health.statusCounts).sort((a, b) => b[1] - a[1])) {
+      const label = STATUS_COLORS[status]?.label || status;
+      lines.push(`| ${label} | ${count} |`);
+    }
+    lines.push('');
+  }
+
+  // Critical path
+  if (criticalPath && criticalPath.length > 0) {
+    lines.push('## Critical Path', '');
+    for (const item of criticalPath) {
+      const label = STATUS_COLORS[item.status]?.label || item.status;
+      lines.push(`1. **${item.title}** (\`${item.id}\`) - ${label}`);
+    }
+    lines.push('');
+  }
+
+  // Top blockers
+  if (topBlockers && topBlockers.length > 0) {
+    lines.push('## Top Blockers', '');
+    for (const item of topBlockers) {
+      const label = STATUS_COLORS[item.status]?.label || item.status;
+      lines.push(`- **${item.title}** (\`${item.id}\`) - blocks ${item.blockCount} items - ${label}`);
+    }
+    lines.push('');
+  }
+
+  // Stale items
+  if (staleItems && staleItems.length > 0) {
+    lines.push('## Stale Items (>7 days)', '');
+    for (const item of staleItems) {
+      const label = STATUS_COLORS[item.status]?.label || item.status;
+      lines.push(`- **${item.title}** (\`${item.id}\`) - ${item.ageDays}d old - ${label}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
 function renderStaleItems(staleItems) {
