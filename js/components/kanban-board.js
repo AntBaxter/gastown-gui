@@ -112,6 +112,14 @@ function renderEpicFilter(epics, selectedEpicId) {
 export function renderKanbanBoard(container, beads, options = {}) {
   if (!container) return;
 
+  // Remove stale delegated click handler from graph view (if any).
+  // Graph view adds a click handler on [data-bead-id] to the container itself,
+  // which persists across view switches and fires on kanban cards too.
+  if (container._nodeClickHandler) {
+    container.removeEventListener('click', container._nodeClickHandler);
+    delete container._nodeClickHandler;
+  }
+
   const { epics, epicFilter, epicChildren, blockedBeads, onEpicFilterChange, selectMode } = options;
   const selectedEpicId = epicFilter || 'all';
 

@@ -313,7 +313,14 @@ function setupPanZoom(container) {
  * @param {{ isSelectMode: () => boolean }} mode - selection mode accessor
  */
 function setupNodeClicks(container, onNodeClick, mode = {}) {
-  container.addEventListener('click', (e) => {
+  // Remove previous handler to prevent stacking across re-renders.
+  // Stale handlers from prior graph renders fire on kanban cards too
+  // (they also have [data-bead-id]), causing duplicate bead detail opens.
+  if (container._nodeClickHandler) {
+    container.removeEventListener('click', container._nodeClickHandler);
+  }
+
+  const handler = (e) => {
     const node = e.target.closest('[data-bead-id]');
     if (node) {
       const beadId = node.dataset.beadId;
@@ -323,7 +330,10 @@ function setupNodeClicks(container, onNodeClick, mode = {}) {
         onNodeClick(beadId);
       }
     }
-  });
+  };
+
+  container._nodeClickHandler = handler;
+  container.addEventListener('click', handler);
 }
 
 /**

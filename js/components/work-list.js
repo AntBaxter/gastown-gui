@@ -51,6 +51,12 @@ const STATUS_CONFIG = {
 export function renderWorkList(container, beads, options = {}) {
   if (!container) return;
 
+  // Remove stale delegated click handler from graph view (if any)
+  if (container._nodeClickHandler) {
+    container.removeEventListener('click', container._nodeClickHandler);
+    delete container._nodeClickHandler;
+  }
+
   const { selectMode } = options;
 
   // Show all work types except internal/ephemeral ones
