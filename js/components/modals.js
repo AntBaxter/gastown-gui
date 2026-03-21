@@ -21,6 +21,7 @@ import {
   BEAD_CREATED,
   BEAD_DETAIL,
   BEAD_SLING,
+  BLOCKED_TRIAGE,
   CONVOY_CREATED,
   CONVOY_DETAIL,
   CONVOY_ESCALATE,
@@ -169,6 +170,10 @@ export function initModals() {
     showPeekModal(e.detail.agentId);
   });
 
+  document.addEventListener(BLOCKED_TRIAGE, (e) => {
+    showBlockedTriageModal(e.detail.beadId, e.detail.blockers, e.detail.bead);
+  });
+
   // Register peek modal
   registerModal('peek', {
     element: document.getElementById('peek-modal'),
@@ -248,6 +253,186 @@ function closeDynamicModal() {
     dynamicModal.classList.add('hidden');
   }
   overlay?.classList.add('hidden');
+}
+
+/**
+ * Show blocked chain triage modal
+ * Displays recursive blocker chain with actions per blocker
+ */
+async function showBlockedTriageModal(beadId, blockerIds, bead) {
+  const title = bead
+    ? `Blocked: ${escapeHtml(bead.title || beadId)}`
+    : `Blocked: ${escapeHtml(beadId)}`;
+
+  const loadingContent = `
+    <div class="blocked-triage-modal">
+      <div class="blocked-triage-header">
+        <span class="material-icons" style="color: var(--accent-danger)">block</span>
+        <span>${escapeHtml(beadId)}</span>
+        ${bead?.status ? `<span class="badge badge-${escapeAttr(bead.status)}">${escapeHtml(bead.status)}</span>` : ''}
+      </div>
+      <div class="blocked-triage-loading">
+        <span class="material-icons spin">sync</span> Loading blocker chain...
+      </div>
+    </div>
+  `;
+
+  showEventDrivenModal({
+    title,
+    content: loadingContent,
+    onMount: async (modal) => {
+      try {
+        const blockerDetails = await Promise.all(
+          (blockerIds || []).map(async (id) => {
+            try {
+              const result = await api.getBead(id);
+              return result.ok !== false ? (result.bead || result) : { id, title: id, status: 'unknown' };
+            } catch {
+              return { id, title: id, status: 'unknown' };
+            }
+          })
+        );
+
+        const body = modal.querySelector('.modal-body');
+        if (!body) return;
+
+        body.innerHTML = `
+          <div class="blocked-triage-modal">
+            <div class="blocked-triage-header">
+              <span class="material-icons" style="color: var(--accent-danger)">block</span>
+              <strong>${escapeHtml(beadId)}</strong>
+              ${bead?.title ? `<span class="text-muted">${escapeHtml(bead.title)}</span>` : ''}
+              ${bead?.status ? `<span class="badge badge-${escapeAttr(bead.status)}">${escapeHtml(bead.status)}</span>` : ''}
+            </div>
+            <div class="blocked-triage-tree">
+              <h3 class="blocked-triage-section-title">Blockers (${blockerDetails.length})</h3>
+              ${blockerDetails.map(blocker => renderBlockerNode(beadId, blocker)).join('')}
+            </div>
+          </div>
+        `;
+
+        wireTriageActions(modal, beadId);
+      } catch (err) {
+        const body = modal.querySelector('.modal-body');
+        if (body) {
+          body.innerHTML = `
+            <div class="blocked-triage-modal">
+              <div class="empty-state">
+                <span class="material-icons empty-icon">error</span>
+                <p>Failed to load blocker details: ${escapeHtml(err.message)}</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+  });
+}
+
+function renderBlockerNode(blockedBeadId, blocker) {
+  const statusIcon = getBlockerStatusIcon(blocker.status);
+  const age = blocker.created_at ? formatAge(blocker.created_at) : '';
+  const assignee = blocker.assignee ? blocker.assignee.split('/').pop() : 'unassigned';
+
+  return `
+    <div class="blocker-node" data-blocker-id="${escapeAttr(blocker.id)}">
+      <div class="blocker-node-info">
+        <span class="material-icons blocker-status-icon" style="color: ${statusIcon.color}">${statusIcon.icon}</span>
+        <span class="blocker-id">${escapeHtml(blocker.id)}</span>
+        <span class="blocker-title">${escapeHtml(blocker.title || '')}</span>
+      </div>
+      <div class="blocker-node-meta">
+        ${blocker.status ? `<span class="badge badge-${escapeAttr(blocker.status)}">${escapeHtml(blocker.status)}</span>` : ''}
+        <span class="blocker-assignee"><span class="material-icons">person</span>${escapeHtml(assignee)}</span>
+        ${age ? `<span class="blocker-age"><span class="material-icons">schedule</span>${escapeHtml(age)}</span>` : ''}
+      </div>
+      <div class="blocker-node-actions">
+        <button class="btn btn-sm btn-ghost" data-triage-action="view" data-blocker-id="${escapeAttr(blocker.id)}" title="View detail">
+          <span class="material-icons">open_in_new</span> View
+        </button>
+        <button class="btn btn-sm btn-ghost" data-triage-action="remove-dep" data-blocked-id="${escapeAttr(blockedBeadId)}" data-blocker-id="${escapeAttr(blocker.id)}" title="Remove dependency">
+          <span class="material-icons">link_off</span> Remove Dep
+        </button>
+        ${blocker.status !== 'closed' ? `
+        <button class="btn btn-sm btn-primary" data-triage-action="close" data-blocker-id="${escapeAttr(blocker.id)}" title="Close blocker">
+          <span class="material-icons">check_circle</span> Close
+        </button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function getBlockerStatusIcon(status) {
+  switch (status) {
+    case 'closed': return { icon: 'check_circle', color: 'var(--accent-success)' };
+    case 'in_progress': return { icon: 'pending', color: 'var(--accent-primary)' };
+    case 'blocked': return { icon: 'block', color: 'var(--accent-danger)' };
+    case 'deferred': return { icon: 'pause_circle', color: 'var(--text-muted)' };
+    default: return { icon: 'radio_button_unchecked', color: 'var(--accent-warning)' };
+  }
+}
+
+function formatAge(dateStr) {
+  const created = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - created;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return '1d ago';
+  return `${diffDays}d ago`;
+}
+
+function wireTriageActions(modal, blockedBeadId) {
+  modal.querySelectorAll('[data-triage-action="view"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const blockerId = btn.dataset.blockerId;
+      closeDynamicModal();
+      document.dispatchEvent(new CustomEvent(BEAD_DETAIL, { detail: { beadId: blockerId } }));
+    });
+  });
+
+  modal.querySelectorAll('[data-triage-action="remove-dep"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const blockerId = btn.dataset.blockerId;
+      const blockedId = btn.dataset.blockedId;
+      if (!confirm(`Remove dependency: ${blockedId} will no longer be blocked by ${blockerId}?`)) return;
+      try {
+        await api.removeDependency(blockedId, blockerId);
+        showToast(`Dependency removed: ${blockedId} no longer blocked by ${blockerId}`, 'success');
+        btn.closest('.blocker-node')?.remove();
+      } catch (err) {
+        showToast(`Failed to remove dependency: ${err.message}`, 'error');
+      }
+    });
+  });
+
+  modal.querySelectorAll('[data-triage-action="close"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const blockerId = btn.dataset.blockerId;
+      if (!confirm(`Close blocker ${blockerId}?`)) return;
+      try {
+        await api.markWorkDone(blockerId, 'Closed via blocked triage');
+        showToast(`Blocker ${blockerId} closed`, 'success');
+        const node = btn.closest('.blocker-node');
+        if (node) {
+          const badge = node.querySelector('.badge');
+          if (badge) {
+            badge.className = 'badge badge-closed';
+            badge.textContent = 'closed';
+          }
+          const icon = node.querySelector('.blocker-status-icon');
+          if (icon) {
+            icon.textContent = 'check_circle';
+            icon.style.color = 'var(--accent-success)';
+          }
+          btn.remove();
+        }
+      } catch (err) {
+        showToast(`Failed to close blocker: ${err.message}`, 'error');
+      }
+    });
+  });
 }
 
 /**

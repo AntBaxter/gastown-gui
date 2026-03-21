@@ -7,7 +7,7 @@
  */
 
 import { renderBeadCard } from './work-list.js';
-import { BEAD_DETAIL } from '../shared/events.js';
+import { BEAD_DETAIL, BLOCKED_TRIAGE } from '../shared/events.js';
 import { isHiddenBead } from '../shared/beads.js';
 import { escapeHtml, escapeAttr } from '../utils/html.js';
 
@@ -196,6 +196,19 @@ export function renderKanbanBoard(container, beads, options = {}) {
     });
   });
 
+  // Add blocked badge click handlers
+  container.querySelectorAll('.blocked-badge[data-blocked-bead]').forEach(badge => {
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const beadId = badge.dataset.blockedBead;
+      const blockers = JSON.parse(badge.dataset.blockers || '[]');
+      const bead = annotatedBeads.find(b => b.id === beadId);
+      document.dispatchEvent(new CustomEvent(BLOCKED_TRIAGE, {
+        detail: { beadId, blockers, bead }
+      }));
+    });
+  });
+
   // Add action button handlers
   container.querySelectorAll('.bead-actions [data-action]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -227,7 +240,7 @@ function renderKanbanCard(bead, index) {
   if (bead._isBlocked && bead._blockers) {
     const blockerList = bead._blockers.slice(0, 2).map(id => escapeHtml(id)).join(', ');
     const more = bead._blockers.length > 2 ? ` +${bead._blockers.length - 2}` : '';
-    badges.push(`<span class="blocked-badge"><span class="material-icons">block</span>Blocked by ${blockerList}${more}</span>`);
+    badges.push(`<span class="blocked-badge" data-blocked-bead="${escapeAttr(bead.id)}" data-blockers="${escapeAttr(JSON.stringify(bead._blockers))}"><span class="material-icons">block</span>Blocked by ${blockerList}${more}</span>`);
   }
   if (bead._isGate) {
     badges.push('<span class="gate-badge"><span class="material-icons">verified</span>Review Gate</span>');

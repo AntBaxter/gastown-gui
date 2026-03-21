@@ -36,6 +36,9 @@ export const MAIL_DETAIL = 'mail:detail';
 export const MAIL_READ = 'mail:read';
 export const MAIL_REPLY = 'mail:reply';
 
+// Triage Events
+export const BLOCKED_TRIAGE = 'blocked:triage';
+
 // Modal & UI Events
 export const MODAL_SHOW = 'modal:show';
 export const MODAL_CLOSE = 'modal:close';

@@ -8365,10 +8365,127 @@ a:focus-visible,
   border-radius: 10px;
   background: var(--accent-danger, #ef4444);
   color: white;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.blocked-badge:hover {
+  opacity: 0.85;
 }
 
 .blocked-badge .material-icons {
   font-size: 12px;
+}
+
+/* === Blocked Triage Modal === */
+
+.blocked-triage-modal {
+  min-width: 400px;
+}
+
+.blocked-triage-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--space-md);
+}
+
+.blocked-triage-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) 0;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.blocked-triage-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-sm);
+}
+
+.blocked-triage-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.blocker-node {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary, var(--bg-card));
+}
+
+.blocker-node-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+}
+
+.blocker-status-icon {
+  font-size: 18px;
+}
+
+.blocker-id {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.blocker-title {
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blocker-node-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 26px;
+}
+
+.blocker-assignee,
+.blocker-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.blocker-assignee .material-icons,
+.blocker-age .material-icons {
+  font-size: 14px;
+}
+
+.blocker-node-actions {
+  display: flex;
+  gap: var(--space-xs);
+  padding-left: 26px;
+  padding-top: var(--space-xs);
+}
+
+.blocker-node-actions .btn-sm {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.blocker-node-actions .material-icons {
+  font-size: 14px;
 }
 
 /* === Review Gate Card === */
