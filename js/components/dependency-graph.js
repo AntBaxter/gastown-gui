@@ -629,6 +629,11 @@ export async function renderAllBeadsGraph(container, options = {}) {
       return;
     }
 
+    // Fetch per-bead dependencies in parallel (same pattern as renderConvoyGraph)
+    const depResults = await Promise.all(
+      allBeads.map(b => api.getBeadDependencies(b.id).catch(() => []))
+    );
+
     // Build node map from all beads
     const beadMap = new Map();
     for (const bead of allBeads) {
@@ -646,6 +651,21 @@ export async function renderAllBeadsGraph(container, options = {}) {
         // Add the blocker to beadMap if not already present
         if (!beadMap.has(depId)) {
           beadMap.set(depId, { id: depId, title: depId, status: 'open' });
+        }
+      }
+    }
+
+    // Build edges from per-bead dependency data (blocks relationships)
+    for (let i = 0; i < allBeads.length; i++) {
+      const bead = allBeads[i];
+      const deps = depResults[i] || [];
+      for (const dep of deps) {
+        if (dep.dependency_type === 'blocks') {
+          // dep blocks this bead: edge from blocker to blocked
+          edges.push({ from: dep.id, to: bead.id });
+          if (!beadMap.has(dep.id)) {
+            beadMap.set(dep.id, { id: dep.id, title: dep.title || dep.id, status: dep.status || 'open' });
+          }
         }
       }
     }
