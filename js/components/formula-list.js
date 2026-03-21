@@ -151,7 +151,8 @@ function createFormulaCard(formula, index) {
   card.dataset.formulaName = formula.name;
 
   const description = formula.description || 'No description';
-  const templatePreview = formula.template ? formula.template.substring(0, 100) + (formula.template.length > 100 ? '...' : '') : 'No template';
+  const stepCount = formula.steps != null ? formula.steps : '—';
+  const varCount = formula.vars != null ? formula.vars : '—';
   const isSystem = isSystemFormula(formula);
 
   card.innerHTML = `
@@ -167,8 +168,15 @@ function createFormulaCard(formula, index) {
         <p class="formula-description">${escapeHtml(description)}</p>
       </div>
     </div>
-    <div class="formula-template">
-      <code>${escapeHtml(templatePreview)}</code>
+    <div class="formula-meta">
+      <span class="formula-meta-item" title="Steps">
+        <span class="material-icons">format_list_numbered</span>
+        ${escapeHtml(String(stepCount))} steps
+      </span>
+      <span class="formula-meta-item" title="Variables">
+        <span class="material-icons">data_object</span>
+        ${escapeHtml(String(varCount))} vars
+      </span>
     </div>
     <div class="formula-actions">
       <button class="btn btn-sm btn-secondary" data-action="view" title="View full template">

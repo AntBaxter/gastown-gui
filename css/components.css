@@ -5375,21 +5375,22 @@ select {
   line-height: 1.4;
 }
 
-.formula-template {
-  background: var(--bg-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--space-sm) var(--space-md);
-  overflow: hidden;
+.formula-meta {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
 }
 
-.formula-template code {
-  font-family: var(--font-mono);
+.formula-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   font-size: var(--text-xs);
   color: var(--text-secondary);
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.formula-meta-item .material-icons {
+  font-size: 14px;
 }
 
 .formula-actions {
