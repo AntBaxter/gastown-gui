@@ -147,7 +147,7 @@ js/shared/beads.js - Bead domain helpers/constants
 js/shared/close-reason.js - close_reason formatting
 js/shared/events.js - Custom event names/bus
 js/shared/github-repos.js - Bead/rig → GitHub repo mapping
-js/shared/selection.js - Selection state manager + floating action bar for kanban/graph views
+js/shared/selection.js - Selection state manager + floating action bar for kanban/list/graph views
 js/shared/timing.js - Shared timing constants (polling, debounce)
 
 js/utils/formatting.js - Date/number formatters

@@ -10,6 +10,7 @@ import { escapeHtml, truncate } from '../utils/html.js';
 import { formatTimeAgoOrDate } from '../utils/formatting.js';
 import { getBeadPriority, isHiddenBead } from '../shared/beads.js';
 import { BEAD_DETAIL, WORK_REFRESH } from '../shared/events.js';
+import { toggleSelection, isSelected, onSelectionChange, renderFloatingBar } from '../shared/selection.js';
 import { TIMING_MS } from '../shared/timing.js';
 import { getStaggerClass } from '../shared/animations.js';
 import { parseCloseReason } from '../shared/close-reason.js';
@@ -44,9 +45,13 @@ const STATUS_CONFIG = {
  * Render the work list
  * @param {HTMLElement} container - The list container
  * @param {Array} beads - Array of bead objects
+ * @param {Object} [options] - Rendering options
+ * @param {boolean} [options.selectMode] - Whether selection mode is active
  */
-export function renderWorkList(container, beads) {
+export function renderWorkList(container, beads, options = {}) {
   if (!container) return;
+
+  const { selectMode } = options;
 
   // Show all work types except internal/ephemeral ones
   const tasks = beads.filter(b => !isHiddenBead(b));
@@ -62,15 +67,27 @@ export function renderWorkList(container, beads) {
     return;
   }
 
-  container.innerHTML = tasks.map((bead, index) => renderBeadCard(bead, index)).join('');
+  container.innerHTML = tasks.map((bead, index) => renderListCard(bead, index, selectMode)).join('');
 
   // Add click handlers for cards
   container.querySelectorAll('.bead-card').forEach(card => {
     card.addEventListener('click', (e) => {
       // Don't trigger if clicking a link
       if (e.target.closest('a')) return;
+      if (e.target.closest('[data-action]')) return;
 
       const beadId = card.dataset.beadId;
+
+      if (selectMode) {
+        toggleSelection(beadId);
+        card.classList.toggle('bead-card--selected', isSelected(beadId));
+        const checkbox = card.querySelector('.bead-select-checkbox .material-icons');
+        if (checkbox) {
+          checkbox.textContent = isSelected(beadId) ? 'check_box' : 'check_box_outline_blank';
+        }
+        return;
+      }
+
       showBeadDetail(beadId, beads.find(b => b.id === beadId));
     });
   });
@@ -114,6 +131,20 @@ export function renderWorkList(container, beads) {
       await handleWorkAction(action, beadId, btn);
     });
   });
+
+  // Selection mode: sync selection state and render floating bar
+  if (selectMode) {
+    container.querySelectorAll('.bead-card[data-bead-id]').forEach(card => {
+      card.classList.toggle('bead-card--selected', isSelected(card.dataset.beadId));
+    });
+    onSelectionChange((ids) => {
+      const selectedSet = new Set(ids);
+      container.querySelectorAll('.bead-card[data-bead-id]').forEach(card => {
+        card.classList.toggle('bead-card--selected', selectedSet.has(card.dataset.beadId));
+      });
+    });
+    renderFloatingBar(container);
+  }
 }
 
 /**
@@ -280,6 +311,24 @@ export function renderBeadCard(bead, index) {
       </div>
     </div>
   `;
+}
+
+/**
+ * Render a list card with optional selection checkbox overlay
+ */
+function renderListCard(bead, index, selectMode) {
+  let html = renderBeadCard(bead, index);
+
+  if (selectMode) {
+    if (isSelected(bead.id)) {
+      html = html.replace('class="bead-card ', 'class="bead-card bead-card--selected ');
+    }
+    const checkIcon = isSelected(bead.id) ? 'check_box' : 'check_box_outline_blank';
+    const checkboxHtml = `<div class="bead-select-checkbox"><span class="material-icons">${checkIcon}</span></div>`;
+    html = html.replace('<div class="bead-header">', checkboxHtml + '<div class="bead-header">');
+  }
+
+  return html;
 }
 
 /**

@@ -884,7 +884,7 @@ async function loadWork() {
       });
     } else {
       const beads = await api.get(`/api/beads${query ? '?' + query : ''}`);
-      renderWorkList(elements.workList, beads || []);
+      renderWorkList(elements.workList, beads || [], { selectMode });
     }
   } catch (err) {
     console.error('[App] Failed to load work:', err);
@@ -1021,7 +1021,7 @@ function setupSelectModeToggle() {
 
   // Update toggle button visibility based on view mode
   function updateToggleVisibility() {
-    toggleBtn.classList.toggle('hidden', workViewMode !== 'board');
+    toggleBtn.classList.toggle('hidden', workViewMode !== 'board' && workViewMode !== 'list');
   }
   updateToggleVisibility();
 
@@ -1047,9 +1047,9 @@ function setupSelectModeToggle() {
     loadWork();
   });
 
-  // Re-render kanban when selection is cleared (e.g. via floating bar Clear button)
+  // Re-render when selection is cleared (e.g. via floating bar Clear button)
   onSelectionChange((ids) => {
-    if (workViewMode === 'board' && ids.length === 0 && selectMode) {
+    if ((workViewMode === 'board' || workViewMode === 'list') && ids.length === 0 && selectMode) {
       loadWork();
     }
   });
