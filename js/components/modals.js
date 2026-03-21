@@ -548,14 +548,6 @@ function initNewConvoyModal(element, data = {}) {
   if (Array.isArray(data.issues) && data.issues.length > 0) {
     convoyWizard.issues = [...data.issues];
   }
-  if (data.rig) {
-    convoyWizard.rig = data.rig;
-  } else {
-    const selectedRig = state.getSelectedRig();
-    if (selectedRig && selectedRig !== 'all') {
-      convoyWizard.rig = selectedRig;
-    }
-  }
   renderConvoyWizardStep(element);
   wireConvoyWizardNav(element);
 }
@@ -652,12 +644,21 @@ function saveConvoyWizardStepData(element) {
           }
         }
       }
+      // Infer rig from first bead's ID for integration branch support.
+      // Bead IDs are prefixed by rig (e.g. ga- = gastownui, vs- = vsbel).
+      // Fetch the bead to get its rig field.
+      if (convoyWizard.issues.length > 0 && !convoyWizard.rig) {
+        const firstId = convoyWizard.issues[0];
+        api.getBead(firstId).then(data => {
+          const bead = Array.isArray(data) ? data[0] : data;
+          if (bead?.rig) convoyWizard.rig = bead.rig;
+        }).catch(() => {});
+      }
       break;
     }
     case 3: {
       convoyWizard.integrationBranch = element.querySelector('#convoy-wiz-intbranch')?.checked || false;
       convoyWizard.branchName = element.querySelector('#convoy-wiz-branchname')?.value?.trim() || '';
-      convoyWizard.rig = element.querySelector('#convoy-wiz-rig')?.value || '';
       break;
     }
   }
@@ -885,14 +886,6 @@ function renderConvoyStep3() {
 
       <div class="convoy-wiz-intbranch-config ${convoyWizard.integrationBranch ? '' : 'hidden'}" id="convoy-wiz-intbranch-config">
         <div class="form-group">
-          <label for="convoy-wiz-rig">Target rig</label>
-          <select id="convoy-wiz-rig">
-            <option value="">Auto-detect</option>
-            ${(state.getRigs() || []).map(r => `<option value="${escapeAttr(r)}" ${convoyWizard.rig === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}
-          </select>
-          <small class="form-hint">Rig where the epic and integration branch are created</small>
-        </div>
-        <div class="form-group">
           <label for="convoy-wiz-branchname">Branch name (optional)</label>
           <input type="text" id="convoy-wiz-branchname"
             placeholder="Auto-generated from convoy name if empty"
@@ -964,10 +957,6 @@ function renderConvoyStep4() {
         <span class="convoy-wiz-review-label">Integration Branch</span>
         <span class="convoy-wiz-review-value">${escapeHtml(branchDisplay)}</span>
       </div>
-      ${convoyWizard.integrationBranch && convoyWizard.rig ? `<div class="convoy-wiz-review-row">
-        <span class="convoy-wiz-review-label">Target Rig</span>
-        <span class="convoy-wiz-review-value">${escapeHtml(convoyWizard.rig)}</span>
-      </div>` : ''}
       ${reparentingPreview}
     </div>
   `;
@@ -982,11 +971,9 @@ async function handleConvoyWizardSubmit(element) {
   }
 
   try {
-    // Step 1: Prepare integration FIRST if enabled (before convoy creation).
-    // The daemon can start slinging beads immediately after convoy creation,
-    // so the integration branch must exist before the convoy is created.
+    // Step 1: Prepare integration FIRST (before convoy, so daemon doesn't sling to wrong branch)
     if (convoyWizard.integrationBranch && convoyWizard.issues.length > 0) {
-      const intResult = await api.prepareIntegrationStandalone({
+      const intResult = await api.prepareIntegration(null, {
         epicName: convoyWizard.name,
         branchName: convoyWizard.branchName || undefined,
         beadIds: convoyWizard.issues,
@@ -998,7 +985,7 @@ async function handleConvoyWizardSubmit(element) {
       }
     }
 
-    // Step 2: Create the convoy (after integration branch is ready)
+    // Step 2: Create the convoy (daemon may start slinging — integration branch must exist first)
     const result = await api.createConvoy(convoyWizard.name, convoyWizard.issues, convoyWizard.notify || null);
 
     showToast(`Convoy "${convoyWizard.name}" created`, 'success');

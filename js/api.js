@@ -90,11 +90,10 @@ export const api = {
   },
 
   prepareIntegration(convoyId, { epicName, branchName, beadIds, rig }) {
-    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/prepare-integration`, { epicName, branchName, beadIds, rig: rig || undefined });
-  },
-
-  prepareIntegrationStandalone({ epicName, branchName, beadIds, rig }) {
-    return this.post('/api/prepare-integration', { epicName, branchName, beadIds, rig: rig || undefined });
+    const path = convoyId
+      ? `/api/convoy/${encodeURIComponent(convoyId)}/prepare-integration`
+      : '/api/prepare-integration';
+    return this.post(path, { epicName, branchName, beadIds, rig: rig || undefined });
   },
 
   feedConvoy(convoyId) {

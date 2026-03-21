@@ -44,20 +44,20 @@ export class ConvoyService {
     return result.data || { id: convoyId, raw: result.raw };
   }
 
-  async integrationBranchStatus(convoyId, { rig } = {}) {
+  async integrationBranchStatus(convoyId) {
     if (!this._gt.integrationBranchStatus) {
       throw new Error('Gateway does not support integrationBranchStatus');
     }
-    const result = await this._gt.integrationBranchStatus(convoyId, { rig });
+    const result = await this._gt.integrationBranchStatus(convoyId);
     if (!result.ok) throw new Error(result.error || 'Failed to get integration branch status');
     return result.data || { raw: result.raw };
   }
 
-  async createIntegrationBranch(convoyId, { branch, rig } = {}) {
+  async createIntegrationBranch(convoyId, { branch } = {}) {
     if (!this._gt.integrationBranchCreate) {
       throw new Error('Gateway does not support integrationBranchCreate');
     }
-    const result = await this._gt.integrationBranchCreate(convoyId, { branch, rig });
+    const result = await this._gt.integrationBranchCreate(convoyId, { branch });
     if (!result.ok) throw new Error(result.error || 'Failed to create integration branch');
 
     if (this._emit) {
@@ -67,11 +67,11 @@ export class ConvoyService {
     return { ok: true, raw: result.raw };
   }
 
-  async landIntegrationBranch(convoyId, { dryRun = false, rig } = {}) {
+  async landIntegrationBranch(convoyId, { dryRun = false } = {}) {
     if (!this._gt.integrationBranchLand) {
       throw new Error('Gateway does not support integrationBranchLand');
     }
-    const result = await this._gt.integrationBranchLand(convoyId, { dryRun, rig });
+    const result = await this._gt.integrationBranchLand(convoyId, { dryRun });
     if (!result.ok) throw new Error(result.error || 'Failed to land integration branch');
 
     if (!dryRun && this._emit) {
@@ -104,7 +104,7 @@ export class ConvoyService {
       throw new Error('beadIds must be a non-empty array');
     }
 
-    // 1. Create an epic bead in the target rig
+    // 1. Create an epic bead in the target rig (so it shares the same prefix as children)
     const createResult = await this._bd.create({ title: epicName, type: 'epic', rig });
     if (!createResult.ok || !createResult.beadId) {
       throw new Error(createResult.error || 'Failed to create epic bead');
