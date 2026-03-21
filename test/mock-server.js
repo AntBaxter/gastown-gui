@@ -1142,6 +1142,9 @@ app.post('/api/crews', (req, res) => {
   if (!name) {
     return res.status(400).json({ error: 'Crew name is required' });
   }
+  if (!rig) {
+    return res.status(400).json({ error: 'Rig is required: gt crew add cannot infer rig from the server process' });
+  }
   if (!/^[A-Za-z0-9._-]+$/.test(name)) {
     return res.status(400).json({ error: 'Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)' });
   }

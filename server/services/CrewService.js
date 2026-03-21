@@ -55,6 +55,11 @@ export class CrewService {
 
   async add({ name, rig } = {}) {
     if (!name) throw new Error('Crew name is required');
+    if (!rig) {
+      const err = new Error('Rig is required: gt crew add cannot infer rig from the server process');
+      err.statusCode = 400;
+      throw err;
+    }
     if (!SafeSegment.isValid(name)) {
       const err = new Error('Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)');
       err.statusCode = 400;

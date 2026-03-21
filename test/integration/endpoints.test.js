@@ -1113,11 +1113,23 @@ describe('Crew Management Endpoints', () => {
     expect(data.error).toMatch(/invalid crew name/i);
   });
 
+  it('should reject crew creation without rig', async () => {
+    const { status } = await api('/api/crews', {
+      method: 'POST',
+      body: {
+        name: 'test-crew-no-rig',
+      },
+    });
+
+    expect(status).toBe(400);
+  });
+
   it('should reject crew creation with shell metacharacters', async () => {
     const { status } = await api('/api/crews', {
       method: 'POST',
       body: {
         name: 'crew;rm -rf',
+        rig: 'test-rig',
       },
     });
 

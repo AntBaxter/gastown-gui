@@ -232,11 +232,11 @@ export function showNewCrewModal() {
               pattern="[A-Za-z0-9._-]+" title="Letters, numbers, hyphens, dots, or underscores only (no spaces)">
           </div>
           <div class="form-group">
-            <label for="crew-rig">Rig (optional)</label>
-            <select id="crew-rig" name="rig">
-              <option value="">None</option>
+            <label for="crew-rig">Rig</label>
+            <select id="crew-rig" name="rig" required>
+              <option value="">Select a rig...</option>
             </select>
-            <small class="form-help">Associate this crew with a specific rig/project</small>
+            <small class="form-help">The rig/project this crew belongs to</small>
           </div>
           <div class="form-actions">
             <button type="button" class="btn btn-ghost" data-action="close">Cancel</button>
@@ -268,6 +268,11 @@ export function showNewCrewModal() {
 
           if (!name || !/^[A-Za-z0-9._-]+$/.test(name)) {
             showToast('Invalid crew name: use only letters, numbers, hyphens, dots, or underscores (no spaces)', 'error');
+            return;
+          }
+
+          if (!rig) {
+            showToast('Please select a rig for this crew', 'error');
             return;
           }
 
