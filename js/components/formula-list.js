@@ -13,6 +13,7 @@ let container = null;
 let formulas = [];
 let formulaFilter = 'user'; // 'user' | 'system' | 'all'
 let typeFilter = 'all'; // 'all' | 'workflow' | 'convoy' | 'expansion' | 'aspect'
+let searchQuery = '';
 
 const FORMULA_TYPES = {
   workflow: { icon: 'account_tree', label: 'Workflow', color: '#3b82f6' },
@@ -48,6 +49,15 @@ export function initFormulaList() {
       renderFormulas();
     });
   });
+
+  // Search input
+  const searchInput = document.getElementById('formula-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      renderFormulas();
+    });
+  }
 
   // Type filter tabs
   document.querySelectorAll('.formula-type-tab').forEach(tab => {
@@ -126,6 +136,13 @@ function getFilteredFormulas() {
   if (formulaFilter === 'user') filtered = filtered.filter(f => !isSystemFormula(f));
   else if (formulaFilter === 'system') filtered = filtered.filter(f => isSystemFormula(f));
   if (typeFilter !== 'all') filtered = filtered.filter(f => detectFormulaType(f) === typeFilter);
+  if (searchQuery) {
+    filtered = filtered.filter(f => {
+      const name = (f.name || '').toLowerCase();
+      const desc = (f.description || '').toLowerCase();
+      return name.includes(searchQuery) || desc.includes(searchQuery);
+    });
+  }
   return filtered;
 }
 
@@ -159,11 +176,12 @@ function renderFormulas() {
     if (formulaFilter !== 'all') parts.push(formulaFilter);
     if (typeFilter !== 'all') parts.push(typeFilter);
     const filterLabel = parts.length > 0 ? parts.join(' ') : '';
+    const searchNote = searchQuery ? ` matching "${escapeHtml(searchQuery)}"` : '';
     container.innerHTML = `
       <div class="empty-state">
-        <span class="material-icons empty-icon">filter_list</span>
-        <h3>No ${escapeHtml(filterLabel)} formulas</h3>
-        <p>Try switching the filter to see other formulas</p>
+        <span class="material-icons empty-icon">${searchQuery ? 'search_off' : 'filter_list'}</span>
+        <h3>No ${escapeHtml(filterLabel)} formulas${searchNote}</h3>
+        <p>${searchQuery ? 'Try a different search term or clear the search' : 'Try switching the filter to see other formulas'}</p>
       </div>
     `;
     return;
