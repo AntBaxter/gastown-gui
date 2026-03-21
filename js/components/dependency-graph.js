@@ -615,7 +615,7 @@ export async function renderAllBeadsGraph(container, options = {}) {
     // Fetch all open/in_progress/blocked beads and blocked info
     const params = new URLSearchParams();
     params.set('status', 'open');
-    if (options.rig && options.rig !== 'all') params.set('rig', options.rig);
+    if (options.rig) params.set('rig', options.rig);
 
     const [openBeads, blockedBeads] = await Promise.all([
       api.get(`/api/beads?${params}`),
