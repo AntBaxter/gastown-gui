@@ -604,9 +604,14 @@ function validateConvoyWizardStep(element) {
     case 2:
       // Issues are optional
       return true;
-    case 3:
-      // Integration branch config is optional
+    case 3: {
+      const intToggle = element.querySelector('#convoy-wiz-intbranch');
+      if (intToggle?.checked && convoyWizard.issues.length === 0) {
+        showToast('Integration branch requires at least one issue (add issues in step 2)', 'warning');
+        return false;
+      }
       return true;
+    }
     case 4:
       // Review step — always valid
       return true;
@@ -909,6 +914,19 @@ function renderConvoyStep4() {
     ? (convoyWizard.branchName || `integration/${convoyWizard.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 60)}`)
     : 'None';
 
+  const reparentingPreview = convoyWizard.integrationBranch && convoyWizard.issues.length > 0
+    ? `<div class="convoy-wiz-review-row">
+        <span class="convoy-wiz-review-label">Reparenting</span>
+        <span class="convoy-wiz-review-value">
+          <span class="convoy-wiz-reparent-notice">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;color:var(--warning)">warning</span>
+            ${convoyWizard.issues.length} bead(s) will be reparented under a new epic "<strong>${escapeHtml(convoyWizard.name)}</strong>".
+            Beads with existing parents will be moved and tagged <code>gt:reparented</code>.
+          </span>
+        </span>
+      </div>`
+    : '';
+
   return `
     <div class="convoy-wiz-review">
       <div class="convoy-wiz-review-row">
@@ -927,6 +945,7 @@ function renderConvoyStep4() {
         <span class="convoy-wiz-review-label">Integration Branch</span>
         <span class="convoy-wiz-review-value">${escapeHtml(branchDisplay)}</span>
       </div>
+      ${reparentingPreview}
     </div>
   `;
 }
@@ -944,12 +963,20 @@ async function handleConvoyWizardSubmit(element) {
     const result = await api.createConvoy(convoyWizard.name, convoyWizard.issues, convoyWizard.notify || null);
     const convoyId = result?.convoy_id;
 
-    // Step 2: Create integration branch if enabled
-    if (convoyWizard.integrationBranch && convoyId) {
+    // Step 2: Prepare integration (create epic, reparent beads, create branch) if enabled
+    if (convoyWizard.integrationBranch && convoyId && convoyWizard.issues.length > 0) {
       try {
-        await api.createIntegrationBranch(convoyId, convoyWizard.branchName || undefined);
+        const intResult = await api.prepareIntegration(convoyId, {
+          epicName: convoyWizard.name,
+          branchName: convoyWizard.branchName || undefined,
+          beadIds: convoyWizard.issues,
+        });
+        const reparentCount = intResult.reparented?.length || 0;
+        if (reparentCount > 0) {
+          showToast(`Epic created, ${reparentCount} bead(s) reparented under it`, 'info');
+        }
       } catch (branchErr) {
-        showToast(`Convoy created, but integration branch failed: ${branchErr.message}`, 'warning');
+        showToast(`Convoy created, but integration setup failed: ${branchErr.message}`, 'warning');
       }
     }
 

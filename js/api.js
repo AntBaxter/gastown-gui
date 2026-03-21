@@ -89,6 +89,10 @@ export const api = {
     return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/integration-branch/land`, { dryRun });
   },
 
+  prepareIntegration(convoyId, { epicName, branchName, beadIds }) {
+    return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/prepare-integration`, { epicName, branchName, beadIds });
+  },
+
   feedConvoy(convoyId) {
     return this.post(`/api/convoy/${encodeURIComponent(convoyId)}/feed`);
   },
