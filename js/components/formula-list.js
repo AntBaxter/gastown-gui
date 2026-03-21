@@ -489,21 +489,72 @@ async function showFormulaDetails(formula) {
 }
 
 /**
- * Show use formula modal
+ * Show use formula modal with structured variable inputs
  */
-function showUseFormulaModal(formula) {
+async function showUseFormulaModal(formula) {
   const modal = document.getElementById('use-formula-modal');
   const nameInput = document.getElementById('use-formula-name');
+  const titleEl = document.getElementById('use-formula-title');
+  const descEl = document.getElementById('use-formula-description');
+  const varsContainer = document.getElementById('use-formula-vars');
   const targetSelect = document.getElementById('use-formula-target');
 
-  if (modal && nameInput) {
-    nameInput.value = formula.name;
+  if (!modal || !nameInput) return;
 
-    // Populate targets
-    populateTargets(targetSelect);
+  nameInput.value = formula.name;
+  titleEl.textContent = `Run: ${formula.name}`;
+  descEl.textContent = '';
+  descEl.classList.add('hidden');
+  varsContainer.innerHTML = '';
 
-    document.getElementById('modal-overlay').classList.remove('hidden');
-    modal.classList.remove('hidden');
+  // Populate targets
+  populateTargets(targetSelect);
+
+  // Show modal immediately, then load details
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  modal.classList.remove('hidden');
+
+  try {
+    const details = await api.getFormula(formula.name);
+
+    // Show description
+    if (details.description) {
+      descEl.textContent = details.description;
+      descEl.classList.remove('hidden');
+    }
+
+    // Render variable inputs
+    if (details.vars && typeof details.vars === 'object') {
+      const entries = Object.entries(details.vars);
+      if (entries.length > 0) {
+        varsContainer.innerHTML = `<div class="formula-vars-heading">Variables</div>`;
+        entries.forEach(([varName, def]) => {
+          const isRequired = def.required === true;
+          const defaultVal = def.default != null ? String(def.default) : '';
+          const inputId = `use-formula-var-${varName}`;
+
+          const group = document.createElement('div');
+          group.className = 'form-group formula-var-group';
+          group.innerHTML = `
+            <label for="${escapeHtml(inputId)}">
+              ${escapeHtml(varName)}
+              ${isRequired ? '<span class="formula-var-required">*</span>' : '<span class="formula-var-optional">(optional)</span>'}
+            </label>
+            ${def.description ? `<span class="formula-var-hint">${escapeHtml(def.description)}</span>` : ''}
+            <input type="text" id="${escapeHtml(inputId)}" name="var:${escapeHtml(varName)}"
+              ${defaultVal ? `value="${escapeHtml(defaultVal)}"` : ''}
+              ${isRequired ? 'required' : ''}
+              placeholder="${isRequired ? 'Required' : defaultVal ? `Default: ${escapeHtml(defaultVal)}` : 'Optional'}"
+              class="formula-var-input"
+              data-var-name="${escapeHtml(varName)}"
+              data-var-required="${isRequired}">
+          `;
+          varsContainer.appendChild(group);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[Formulas] Failed to load formula details:', err);
   }
 }
 
@@ -539,20 +590,41 @@ async function handleUseFormula(e) {
   const form = e.target;
   const name = form.querySelector('#use-formula-name').value.trim();
   const target = form.querySelector('#use-formula-target').value;
-  const args = form.querySelector('#use-formula-args').value.trim();
 
   if (!name || !target) {
     showToast('Formula name and target are required', 'error');
     return;
   }
 
+  // Collect variable values and validate required ones
+  const varInputs = form.querySelectorAll('.formula-var-input');
+  const missing = [];
+  const varParts = [];
+  varInputs.forEach(input => {
+    const varName = input.dataset.varName;
+    const val = input.value.trim();
+    if (input.dataset.varRequired === 'true' && !val) {
+      missing.push(varName);
+    }
+    if (val) {
+      varParts.push(`${varName}=${val}`);
+    }
+  });
+
+  if (missing.length > 0) {
+    showToast(`Required variables missing: ${missing.join(', ')}`, 'error');
+    return;
+  }
+
+  const args = varParts.length > 0 ? varParts.join(',') : undefined;
+
   const submitBtn = form.querySelector('[type="submit"]');
   const originalText = submitBtn.innerHTML;
-  submitBtn.innerHTML = '<span class="material-icons spinning">sync</span> Using...';
+  submitBtn.innerHTML = '<span class="material-icons spinning">sync</span> Running...';
   submitBtn.disabled = true;
 
   try {
-    await api.useFormula(name, target, args || undefined);
+    await api.useFormula(name, target, args);
     showToast(`Formula "${name}" applied to ${target}`, 'success');
 
     // Close modal
@@ -560,7 +632,7 @@ async function handleUseFormula(e) {
     document.getElementById('use-formula-modal').classList.add('hidden');
     form.reset();
   } catch (err) {
-    showToast(`Failed to use formula: ${err.message}`, 'error');
+    showToast(`Failed to run formula: ${err.message}`, 'error');
   } finally {
     submitBtn.innerHTML = originalText;
     submitBtn.disabled = false;

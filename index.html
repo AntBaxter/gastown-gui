@@ -944,31 +944,26 @@
       <!-- Use Formula Modal -->
       <div class="modal hidden" id="use-formula-modal">
         <div class="modal-header">
-          <h2>Use Formula</h2>
+          <h2 id="use-formula-title">Use Formula</h2>
           <button class="modal-close" data-modal-close>
             <span class="material-icons">close</span>
           </button>
         </div>
         <form class="modal-body" id="use-formula-form">
-          <div class="form-group">
-            <label for="use-formula-name">Formula</label>
-            <input type="text" id="use-formula-name" name="name" readonly>
-          </div>
+          <p class="use-formula-description hidden" id="use-formula-description"></p>
+          <input type="hidden" id="use-formula-name" name="name">
           <div class="form-group">
             <label for="use-formula-target">Target</label>
             <select id="use-formula-target" name="target" required>
               <option value="">Select target...</option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="use-formula-args">Arguments (optional)</label>
-            <textarea id="use-formula-args" name="args" placeholder="Additional arguments for the formula..." rows="3"></textarea>
-          </div>
+          <div id="use-formula-vars"></div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
             <button type="submit" class="btn btn-primary">
               <span class="material-icons">play_arrow</span>
-              Use Formula
+              Run Formula
             </button>
           </div>
         </form>

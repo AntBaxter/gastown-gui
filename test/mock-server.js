@@ -1019,13 +1019,26 @@ const mockFormulas = [
   {
     name: 'fix-bug',
     description: 'Standard bug fix workflow',
+    type: 'workflow',
     template: 'Investigate, fix, and verify the bug: ${issue}',
+    vars: {
+      issue: { required: true, description: 'Issue ID or description to fix' },
+      severity: { required: false, default: 'medium', description: 'Bug severity level' },
+    },
+    steps: 3,
     created_at: new Date(Date.now() - 604800000).toISOString(),
   },
   {
     name: 'add-feature',
     description: 'Feature implementation workflow',
+    type: 'workflow',
     template: 'Implement the feature: ${feature}\n\nRequirements:\n${requirements}',
+    vars: {
+      feature: { required: true, description: 'Feature name or title' },
+      requirements: { required: true, description: 'Feature requirements' },
+      branch: { required: false, default: '', description: 'Target branch name' },
+    },
+    steps: 5,
     created_at: new Date(Date.now() - 1209600000).toISOString(),
   },
 ];
