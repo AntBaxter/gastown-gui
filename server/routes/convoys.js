@@ -68,6 +68,24 @@ export function registerConvoyRoutes(app, { convoyService } = {}) {
     }
   });
 
+  app.post('/api/convoy/:id/prepare-integration', async (req, res) => {
+    try {
+      const { epicName, branchName, beadIds } = req.body || {};
+      if (!epicName) return res.status(400).json({ error: 'epicName is required' });
+      if (!Array.isArray(beadIds) || beadIds.length === 0) {
+        return res.status(400).json({ error: 'beadIds must be a non-empty array' });
+      }
+      const result = await convoyService.prepareIntegration(req.params.id, {
+        epicName,
+        branchName,
+        beadIds,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Feed convoy (sling ready issues)
   app.post('/api/convoy/:id/feed', async (req, res) => {
     try {

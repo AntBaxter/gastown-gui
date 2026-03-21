@@ -194,6 +194,22 @@ app.post('/api/convoy/:id/integration-branch/land', (req, res) => {
   res.json({ ok: true, raw: 'Landed integration branch to main' });
 });
 
+// Prepare integration (create epic, reparent beads, create integration branch)
+app.post('/api/convoy/:id/prepare-integration', (req, res) => {
+  const { epicName, branchName, beadIds } = req.body || {};
+  if (!epicName) return res.status(400).json({ error: 'epicName is required' });
+  if (!Array.isArray(beadIds) || beadIds.length === 0) {
+    return res.status(400).json({ error: 'beadIds must be a non-empty array' });
+  }
+  const epicId = `epic-${Date.now()}`;
+  res.json({
+    epicId,
+    integrationBranch: branchName || `integration/${epicName.toLowerCase().replace(/\s+/g, '-')}`,
+    reparented: beadIds.map(id => ({ id, from: null })),
+    skipped: [],
+  });
+});
+
 // Feed convoy
 app.post('/api/convoy/:id/feed', (req, res) => {
   const convoy = mockData.convoys.find(c => c.id === req.params.id);

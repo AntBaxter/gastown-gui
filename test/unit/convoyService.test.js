@@ -159,6 +159,99 @@ describe('ConvoyService', () => {
     expect(slingCalls).toEqual(['bd-1', 'bd-3']);
   });
 
+  it('prepareIntegration creates epic, reparents beads, creates integration branch', async () => {
+    const events = [];
+    const showResults = {
+      'bd-1': { ok: true, data: { id: 'bd-1', parent: null } },
+      'bd-2': { ok: true, data: { id: 'bd-2', parent: 'old-epic' } },
+      'bd-3': { ok: true, data: { id: 'bd-3', parent: 'bd-1' } },
+    };
+    const updateCalls = [];
+
+    const bdGateway = {
+      create: async ({ title, type }) => {
+        expect(type).toBe('epic');
+        return { ok: true, beadId: 'new-epic-1' };
+      },
+      show: async (id) => showResults[id] || { ok: false },
+      updateParent: async (id, parentId) => {
+        updateCalls.push({ id, parentId });
+        return { ok: true, raw: '' };
+      },
+      updateNotes: async () => ({ ok: true, raw: '' }),
+      addLabel: async () => ({ ok: true, raw: '' }),
+    };
+
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+      integrationBranchCreate: async (epicId, opts) => {
+        expect(epicId).toBe('new-epic-1');
+        return { ok: true, raw: 'integration/my-feature' };
+      },
+    };
+
+    const service = new ConvoyService({
+      gtGateway,
+      bdGateway,
+      emit: (type, data) => events.push({ type, data }),
+    });
+
+    const result = await service.prepareIntegration('convoy-1', {
+      epicName: 'My Feature',
+      beadIds: ['bd-1', 'bd-2', 'bd-3'],
+    });
+
+    expect(result.epicId).toBe('new-epic-1');
+    expect(result.integrationBranch).toBe('integration/my-feature');
+    // bd-1: no parent, reparented to epic
+    // bd-2: parent outside set, reparented with note
+    // bd-3: parent is bd-1 (in set), skipped
+    expect(result.reparented).toEqual([
+      { id: 'bd-1', from: null },
+      { id: 'bd-2', from: 'old-epic' },
+    ]);
+    expect(result.skipped).toEqual([
+      { id: 'bd-3', reason: 'parent bd-1 already in set' },
+    ]);
+    // bd-1 and bd-2 reparented to new-epic-1
+    expect(updateCalls).toEqual([
+      { id: 'bd-1', parentId: 'new-epic-1' },
+      { id: 'bd-2', parentId: 'new-epic-1' },
+    ]);
+    expect(events).toEqual([{
+      type: 'integration_prepared',
+      data: { convoy_id: 'convoy-1', epic_id: 'new-epic-1' },
+    }]);
+  });
+
+  it('prepareIntegration throws when epicName is missing', async () => {
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+    };
+    const bdGateway = { create: async () => ({ ok: true, beadId: 'x' }) };
+
+    const service = new ConvoyService({ gtGateway, bdGateway });
+    await expect(service.prepareIntegration('c-1', { beadIds: ['bd-1'] }))
+      .rejects.toThrow('epicName is required');
+  });
+
+  it('prepareIntegration throws when beadIds is empty', async () => {
+    const gtGateway = {
+      listConvoys: async () => ({ ok: true, data: [] }),
+      convoyStatus: async () => ({ ok: true, data: {} }),
+      createConvoy: async () => ({ ok: true, raw: '', convoyId: '' }),
+    };
+    const bdGateway = { create: async () => ({ ok: true, beadId: 'x' }) };
+
+    const service = new ConvoyService({ gtGateway, bdGateway });
+    await expect(service.prepareIntegration('c-1', { epicName: 'Test', beadIds: [] }))
+      .rejects.toThrow('beadIds must be a non-empty array');
+  });
+
   it('creates a convoy and emits convoy_created', async () => {
     const events = [];
     const gtGateway = {

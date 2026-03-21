@@ -1,11 +1,12 @@
 export class ConvoyService {
-  constructor({ gtGateway, cache, emit } = {}) {
+  constructor({ gtGateway, bdGateway, cache, emit } = {}) {
     if (!gtGateway) throw new Error('ConvoyService requires gtGateway');
     if (!gtGateway.listConvoys) throw new Error('ConvoyService requires gtGateway.listConvoys()');
     if (!gtGateway.convoyStatus) throw new Error('ConvoyService requires gtGateway.convoyStatus()');
     if (!gtGateway.createConvoy) throw new Error('ConvoyService requires gtGateway.createConvoy()');
 
     this._gt = gtGateway;
+    this._bd = bdGateway ?? null;
     this._cache = cache ?? null;
     this._emit = emit ?? null;
   }
@@ -92,6 +93,93 @@ export class ConvoyService {
     }
 
     return { ok: true, convoyId, raw: result.raw };
+  }
+
+  async prepareIntegration(convoyId, { epicName, branchName, beadIds } = {}) {
+    if (!this._bd) {
+      throw new Error('ConvoyService requires bdGateway for prepareIntegration');
+    }
+    if (!epicName) throw new Error('epicName is required');
+    if (!Array.isArray(beadIds) || beadIds.length === 0) {
+      throw new Error('beadIds must be a non-empty array');
+    }
+
+    // 1. Create an epic bead
+    const createResult = await this._bd.create({ title: epicName, type: 'epic' });
+    if (!createResult.ok || !createResult.beadId) {
+      throw new Error(createResult.error || 'Failed to create epic bead');
+    }
+    const epicId = createResult.beadId;
+
+    // 2-5. Fetch each bead, check parent, reparent as needed
+    const beadIdSet = new Set(beadIds);
+    const reparented = [];
+    const skipped = [];
+
+    for (const beadId of beadIds) {
+      try {
+        const showResult = await this._bd.show(beadId);
+        if (!showResult.ok) {
+          skipped.push({ id: beadId, reason: 'failed to fetch bead' });
+          continue;
+        }
+
+        const bead = Array.isArray(showResult.data) ? showResult.data[0] : showResult.data;
+        const currentParent = bead?.parent || bead?.parent_id || null;
+
+        // Skip beads whose parent is already in the set
+        if (currentParent && beadIdSet.has(currentParent)) {
+          skipped.push({ id: beadId, reason: `parent ${currentParent} already in set` });
+          continue;
+        }
+
+        // For beads with existing parents outside the set, add note and label
+        if (currentParent) {
+          reparented.push({ id: beadId, from: currentParent });
+          await this._bd.updateNotes(beadId, `reparented_from: ${currentParent}`);
+          await this._bd.addLabel(beadId, 'gt:reparented');
+        }
+
+        // Reparent to the new epic
+        const parentResult = await this._bd.updateParent(beadId, epicId);
+        if (!parentResult.ok) {
+          skipped.push({ id: beadId, reason: 'failed to reparent' });
+          continue;
+        }
+
+        // Track root-level reparents (no previous parent)
+        if (!currentParent) {
+          reparented.push({ id: beadId, from: null });
+        }
+      } catch (err) {
+        skipped.push({ id: beadId, reason: err.message });
+      }
+    }
+
+    // 6. Create integration branch
+    if (!this._gt.integrationBranchCreate) {
+      throw new Error('Gateway does not support integrationBranchCreate');
+    }
+    const branchResult = await this._gt.integrationBranchCreate(epicId, {
+      branch: branchName || undefined,
+    });
+    if (!branchResult.ok) {
+      throw new Error(branchResult.error || 'Failed to create integration branch');
+    }
+
+    if (this._emit) {
+      this._emit('integration_prepared', {
+        convoy_id: convoyId,
+        epic_id: epicId,
+      });
+    }
+
+    return {
+      epicId,
+      integrationBranch: (branchResult.raw || '').trim() || null,
+      reparented,
+      skipped,
+    };
   }
 
   async feed(convoyId) {

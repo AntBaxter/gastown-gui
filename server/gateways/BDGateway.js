@@ -151,6 +151,18 @@ export class BDGateway {
     return { ...result, raw: (result.stdout || '').trim() };
   }
 
+  async updateNotes(beadId, notes) {
+    const args = ['update', beadId, '--notes', notes];
+    const result = await this.exec(args, { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
+  async addLabel(beadId, label) {
+    const args = ['update', beadId, '--labels', label];
+    const result = await this.exec(args, { timeoutMs: 30000 });
+    return { ...result, raw: (result.stdout || '').trim() };
+  }
+
   async delete(beadId) {
     // bd delete doesn't support prefix-based routing from town root,
     // so resolve the rig directory from the bead prefix

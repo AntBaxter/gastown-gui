@@ -158,6 +158,85 @@ describe('Convoy integration branch routes', () => {
   });
 });
 
+describe('Convoy prepare-integration route', () => {
+  let server;
+  let baseUrl;
+  let calls;
+
+  beforeAll(async () => {
+    calls = [];
+    const convoyService = {
+      list: async () => [],
+      get: async () => ({}),
+      create: async () => ({ ok: true, convoyId: 'c-1', raw: '' }),
+      integrationBranchStatus: async () => ({}),
+      createIntegrationBranch: async () => ({ ok: true, raw: '' }),
+      landIntegrationBranch: async () => ({ ok: true, raw: '' }),
+      feed: async () => ({ ok: true, slung: 0, total: 0 }),
+      prepareIntegration: async (id, opts) => {
+        calls.push(['prepareIntegration', id, opts]);
+        return {
+          epicId: 'epic-123',
+          integrationBranch: 'integration/my-feature',
+          reparented: [{ id: 'bd-1', from: null }],
+          skipped: [],
+        };
+      },
+    };
+
+    const app = createApp({ allowedOrigins: ['*'] });
+    registerConvoyRoutes(app, { convoyService });
+
+    server = createServer(app);
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  it('POST /api/convoy/:id/prepare-integration returns result', async () => {
+    const res = await fetch(`${baseUrl}/api/convoy/convoy-abc/prepare-integration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ epicName: 'My Feature', beadIds: ['bd-1', 'bd-2'] }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.epicId).toBe('epic-123');
+    expect(body.integrationBranch).toBe('integration/my-feature');
+    expect(calls[0]).toEqual(['prepareIntegration', 'convoy-abc', {
+      epicName: 'My Feature',
+      branchName: undefined,
+      beadIds: ['bd-1', 'bd-2'],
+    }]);
+  });
+
+  it('POST /api/convoy/:id/prepare-integration returns 400 without epicName', async () => {
+    const res = await fetch(`${baseUrl}/api/convoy/convoy-abc/prepare-integration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ beadIds: ['bd-1'] }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('epicName is required');
+  });
+
+  it('POST /api/convoy/:id/prepare-integration returns 400 without beadIds', async () => {
+    const res = await fetch(`${baseUrl}/api/convoy/convoy-abc/prepare-integration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ epicName: 'Test' }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('beadIds must be a non-empty array');
+  });
+});
+
 describe('Convoy routes error handling', () => {
   let server;
   let baseUrl;
