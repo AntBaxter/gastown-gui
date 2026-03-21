@@ -9,6 +9,7 @@
 
 import { api } from '../api.js';
 import { escapeHtml } from '../utils/html.js';
+import { detectCycles, CYCLE_EDGE_COLOR } from '../utils/cycle-detect.js';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 72;
@@ -87,6 +88,27 @@ function buildGraph(epic, deps, blocked) {
 
   dagre.layout(g);
   return { graph: g, nodeMap };
+}
+
+/**
+ * Render a warning banner showing detected cycles.
+ */
+function renderCycleBanner(cycles, nodeMap) {
+  const cycleDescriptions = cycles.map(path => {
+    const labels = path.map(id => {
+      const bead = nodeMap.get(id);
+      return bead ? (bead.title || id) : id;
+    });
+    return escapeHtml(labels.join(' \u2192 '));
+  });
+
+  return `<div class="dag-cycle-warning">
+    <span class="material-icons" style="font-size:18px;vertical-align:middle">warning</span>
+    <strong>Dependency cycle${cycles.length > 1 ? 's' : ''} detected:</strong>
+    <ul class="dag-cycle-list">
+      ${cycleDescriptions.map(d => `<li>${d}</li>`).join('')}
+    </ul>
+  </div>`;
 }
 
 /**
@@ -542,7 +564,11 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
     }
 
     const { graph, nodeMap } = buildGraph(epic, deps, blocked);
+    const cycles = detectCycles(graph);
+    const cycleBannerHtml = cycles.length > 0 ? renderCycleBanner(cycles, nodeMap) : '';
+
     container.innerHTML = `<div class="dag-container">
+      ${cycleBannerHtml}
       <div class="dag-toolbar">
         <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
           <span class="material-icons" style="font-size:16px">zoom_in</span>
@@ -559,6 +585,7 @@ export async function renderDependencyGraph(container, epicId, options = {}) {
         <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.default}"></span> Pending</span>
         <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.blocked}"></span> Blocked</span>
         <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.resolved}"></span> Resolved</span>
+        ${cycles.length > 0 ? `<span class="dag-legend-item"><span class="dag-legend-dot" style="background:${CYCLE_EDGE_COLOR}"></span> Cycle</span>` : ''}
       </div>
     </div>`;
 

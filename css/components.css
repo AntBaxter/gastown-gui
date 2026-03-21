@@ -8658,3 +8658,30 @@ a:focus-visible,
   background: rgba(163, 113, 247, 0.15);
   color: var(--accent-secondary);
 }
+
+.dag-cycle-warning {
+  background: rgba(212, 160, 23, 0.12);
+  border: 1px solid rgba(212, 160, 23, 0.4);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  color: #d4a017;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dag-cycle-warning strong {
+  margin-left: 4px;
+}
+
+.dag-cycle-list {
+  margin: 4px 0 0 24px;
+  padding: 0;
+  list-style: disc;
+}
+
+.dag-cycle-list li {
+  margin: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
