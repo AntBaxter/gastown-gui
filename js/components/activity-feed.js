@@ -70,6 +70,9 @@ try {
   if (stored) excludedCategories = new Set(JSON.parse(stored));
 } catch (_) { /* ignore */ }
 
+// Thread filter state (client-side only, not persisted)
+let activeThread = null; // target string to filter by, or null
+
 /**
  * Get the current active filter
  */
@@ -105,15 +108,30 @@ export function getExcludedCategories() {
 }
 
 /**
- * Filter events by the active category and exclusions
+ * Set thread filter to show only events with a given target
+ */
+export function setThreadFilter(target) {
+  activeThread = target || null;
+}
+
+/**
+ * Get the current thread filter
+ */
+export function getThreadFilter() {
+  return activeThread;
+}
+
+/**
+ * Filter events by the active category, exclusions, and thread
  */
 function filterEvents(events) {
   return events.filter(event => {
     const type = event.type || 'system';
     const config = EVENT_CONFIG[type] || EVENT_CONFIG.system;
     if (excludedCategories.has(config.category)) return false;
-    if (activeFilter === 'all') return true;
-    return config.category === activeFilter;
+    if (activeFilter !== 'all' && config.category !== activeFilter) return false;
+    if (activeThread && (event.target || '') !== activeThread) return false;
+    return true;
   });
 }
 
@@ -206,11 +224,12 @@ export function renderActivityFeed(container, events) {
 export function addEventToFeed(container, event) {
   if (!container) return;
 
-  // Check if event passes current filter and exclusions
+  // Check if event passes current filter, exclusions, and thread
   const type = event.type || 'system';
   const config = EVENT_CONFIG[type] || EVENT_CONFIG.system;
   if (excludedCategories.has(config.category)) return;
   if (activeFilter !== 'all' && config.category !== activeFilter) return;
+  if (activeThread && (event.target || '') !== activeThread) return;
 
   // Remove empty state if present
   const emptyState = container.querySelector('.feed-empty');
@@ -299,55 +318,46 @@ export function addEventToFeed(container, event) {
 }
 
 /**
- * Render the filter bar for the feed header area
+ * Render the filter bar with chips for the feed header area
  */
 export function renderFeedFilterBar(headerContainer) {
   if (!headerContainer) return;
 
   const feedEl = document.getElementById('activity-feed');
   const isCollapsed = feedEl?.classList.contains('collapsed');
-  const hasExclusions = excludedCategories.size > 0;
-  const hasActiveFilter = activeFilter !== 'all' || hasExclusions;
 
-  headerContainer.innerHTML = `
-    <h2>Activity</h2>
-    <div class="feed-controls">
-      <div class="feed-filter-dropdown">
-        <button class="icon-btn-sm feed-filter-btn" id="feed-filter-btn"
-                title="Filter activity">
-          <span class="material-icons">${hasActiveFilter ? 'filter_alt' : 'filter_list'}</span>
-          ${hasActiveFilter ? `<span class="filter-active-dot"></span>` : ''}
-        </button>
-        <div class="feed-filter-menu" id="feed-filter-menu">
-          ${Object.entries(FILTER_CATEGORIES).map(([key, cat]) => {
-            const isExcluded = excludedCategories.has(key);
-            const isAll = key === 'all';
-            return `
-            <button class="feed-filter-option ${activeFilter === key ? 'active' : ''} ${isExcluded ? 'excluded-category' : ''}"
-                    data-filter="${key}">
-              <span class="material-icons">${cat.icon}</span>
-              <span>${cat.label}</span>
-              ${activeFilter === key ? '<span class="material-icons filter-check">check</span>' : ''}
-              ${!isAll ? `
-                <button class="feed-exclude-toggle ${isExcluded ? 'excluded' : ''}"
-                        data-exclude="${key}"
-                        title="${isExcluded ? 'Include ' + cat.label : 'Exclude ' + cat.label}">
-                  <span class="material-icons" style="font-size: 14px">${isExcluded ? 'block' : 'remove_circle_outline'}</span>
-                </button>
-              ` : ''}
-            </button>
-          `}).join('')}
-          <div class="feed-filter-divider"></div>
-          <button class="feed-filter-option" id="feed-clear-btn">
-            <span class="material-icons">clear_all</span>
-            <span>Clear Feed</span>
-          </button>
-        </div>
-      </div>
-      <button class="icon-btn-sm" id="collapse-feed" title="Toggle activity panel">
-        <span class="material-icons">${isCollapsed ? 'chevron_left' : 'chevron_right'}</span>
+  const chips = Object.entries(FILTER_CATEGORIES).map(([key, cat]) => {
+    const isActive = activeFilter === key;
+    return `<button class="feed-chip ${isActive ? 'active' : ''}" data-filter="${escapeAttr(key)}" title="${escapeAttr(cat.label)}">
+      <span class="material-icons">${cat.icon}</span>
+      <span class="feed-chip-label">${cat.label}</span>
+    </button>`;
+  }).join('');
+
+  const threadBar = activeThread ? `
+    <div class="feed-thread-bar">
+      <span class="material-icons">forum</span>
+      <span>Thread: <strong>${escapeHtml(activeThread)}</strong></span>
+      <button class="feed-thread-clear" id="feed-thread-clear" title="Clear thread filter">
+        <span class="material-icons">close</span>
       </button>
     </div>
+  ` : '';
+
+  headerContainer.innerHTML = `
+    <div class="feed-header-top">
+      <h2>Activity</h2>
+      <div class="feed-controls">
+        <button class="icon-btn-sm" id="feed-clear-btn" title="Clear feed">
+          <span class="material-icons">clear_all</span>
+        </button>
+        <button class="icon-btn-sm" id="collapse-feed" title="Toggle activity panel">
+          <span class="material-icons">${isCollapsed ? 'chevron_left' : 'chevron_right'}</span>
+        </button>
+      </div>
+    </div>
+    <div class="feed-chips" id="feed-chips">${chips}</div>
+    ${threadBar}
   `;
 
   // Wire up collapse button
@@ -487,14 +497,20 @@ function renderFeedItem(event, index, isNew) {
         ${event.details ? `
           <div class="feed-details">${escapeHtml(event.details)}</div>
         ` : ''}
-        ${event.convoy_id ? `
-          <div class="feed-meta">
+        <div class="feed-meta">
+          ${event.convoy_id ? `
             <span class="feed-tag">
               <span class="material-icons">local_shipping</span>
               ${event.convoy_id.slice(0, 8)}
             </span>
-          </div>
-        ` : ''}
+          ` : ''}
+          ${event.target ? `
+            <button class="feed-thread-link" data-thread-target="${escapeAttr(event.target)}" title="Show thread for ${escapeAttr(event.target)}">
+              <span class="material-icons">forum</span>
+              Thread
+            </button>
+          ` : ''}
+        </div>
       </div>
     </div>
   `;

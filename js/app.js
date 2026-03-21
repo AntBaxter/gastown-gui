@@ -9,7 +9,7 @@ import { api, ws } from './api.js';
 import { state, subscribe } from './state.js';
 import { renderConvoyList } from './components/convoy-list.js';
 import { renderAgentGrid } from './components/agent-grid.js';
-import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, getActiveFilter, toggleExcludeCategory, getExcludedCategories, updateCollapsedBar } from './components/activity-feed.js';
+import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
 import { renderMailList } from './components/mail-list.js';
@@ -654,72 +654,44 @@ function setupMailFilters() {
   }
 }
 
-let _feedFilterOutsideClickRegistered = false;
-
 function setupFeedFilters() {
   renderFeedFilterBar(elements.feedHeader);
-  _attachFeedFilterMenuListeners();
+  _attachFeedFilterListeners();
   updateCollapsedBar();
-
-  // Close the dropdown when clicking anywhere outside — registered once
-  if (!_feedFilterOutsideClickRegistered) {
-    _feedFilterOutsideClickRegistered = true;
-    document.addEventListener('click', () => {
-      document.getElementById('feed-filter-menu')?.classList.remove('open');
-    });
-  }
 }
 
-function _attachFeedFilterMenuListeners() {
-  // Wire up filter dropdown toggle
-  const filterBtn = document.getElementById('feed-filter-btn');
-  const filterMenu = document.getElementById('feed-filter-menu');
+function _refreshFeed() {
+  renderFeedFilterBar(elements.feedHeader);
+  _attachFeedFilterListeners();
+  renderActivityFeed(elements.feedList, state.get('events'));
+  _attachThreadLinkListeners();
+  updateCollapsedBar();
+}
 
-  if (filterBtn && filterMenu) {
-    filterBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      filterMenu.classList.toggle('open');
+function _attachFeedFilterListeners() {
+  // Wire up chip clicks
+  document.querySelectorAll('.feed-chip[data-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const filter = chip.dataset.filter;
+      setFeedFilter(filter);
+      _refreshFeed();
     });
-
-    filterMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-
-    // Filter option clicks (on the option itself, not the exclude toggle)
-    filterMenu.querySelectorAll('.feed-filter-option[data-filter]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        // Don't trigger filter select when clicking exclude toggle
-        if (e.target.closest('.feed-exclude-toggle')) return;
-        const filter = btn.dataset.filter;
-        setFeedFilter(filter);
-        filterMenu.classList.remove('open');
-        renderFeedFilterBar(elements.feedHeader);
-        _attachFeedFilterMenuListeners();
-        renderActivityFeed(elements.feedList, state.get('events'));
-        updateCollapsedBar();
-      });
-    });
-
-    // Exclude toggle clicks
-    filterMenu.querySelectorAll('.feed-exclude-toggle').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const category = btn.dataset.exclude;
-        toggleExcludeCategory(category);
-        renderFeedFilterBar(elements.feedHeader);
-        _attachFeedFilterMenuListeners();
-        renderActivityFeed(elements.feedList, state.get('events'));
-        updateCollapsedBar();
-      });
-    });
-  }
+  });
 
   // Wire up clear button
   const clearBtn = document.getElementById('feed-clear-btn');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       state.clearEvents();
-      document.getElementById('feed-filter-menu')?.classList.remove('open');
+    });
+  }
+
+  // Wire up thread clear button
+  const threadClearBtn = document.getElementById('feed-thread-clear');
+  if (threadClearBtn) {
+    threadClearBtn.addEventListener('click', () => {
+      setThreadFilter(null);
+      _refreshFeed();
     });
   }
 
@@ -735,6 +707,17 @@ function _attachFeedFilterMenuListeners() {
       updateCollapsedBar();
     });
   }
+}
+
+function _attachThreadLinkListeners() {
+  document.querySelectorAll('.feed-thread-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = link.dataset.threadTarget;
+      setThreadFilter(target);
+      _refreshFeed();
+    });
+  });
 }
 
 async function loadAgents() {
@@ -1162,6 +1145,7 @@ function subscribeToState() {
     } else {
       renderActivityFeed(elements.feedList, events);
     }
+    _attachThreadLinkListeners();
     updateCollapsedBar();
   });
 
