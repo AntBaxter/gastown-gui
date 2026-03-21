@@ -13,6 +13,7 @@ import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilte
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
 import { renderGraphInsights } from './components/graph-insights.js';
+import { renderAllBeadsGraph } from './components/dependency-graph.js';
 import { renderMailList } from './components/mail-list.js';
 import { renderRigList } from './components/rig-list.js';
 import { renderCrewList, loadCrews, showNewCrewModal } from './components/crew-list.js';
@@ -843,7 +844,14 @@ async function loadWork() {
     else if (selectedRig === 'all') params.set('rig', 'all');
     const query = params.toString();
 
-    if (workViewMode === 'insights') {
+    if (workViewMode === 'graph') {
+      await renderAllBeadsGraph(elements.workList, {
+        rig: selectedRig || 'all',
+        onNodeClick: (beadId) => {
+          document.dispatchEvent(new CustomEvent('bead:detail', { detail: { beadId } }));
+        },
+      });
+    } else if (workViewMode === 'insights') {
       const insights = await api.getInsights(selectedRig || 'all');
       renderGraphInsights(elements.workList, insights);
     } else if (workViewMode === 'board') {

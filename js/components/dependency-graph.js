@@ -596,6 +596,117 @@ function setupMermaidExport(container, g, nodeMap) {
  * @param {Object} options
  * @param {Function} options.onNodeClick - Callback when a node is clicked (receives beadId)
  */
+/**
+ * Render a dependency graph of all open/in_progress/blocked beads.
+ * Fetches beads and their dependencies, builds a combined DAG.
+ *
+ * @param {HTMLElement} container - DOM element to render into
+ * @param {Object} options
+ * @param {string} options.rig - Optional rig filter
+ * @param {Function} options.onNodeClick - Callback when a node is clicked (receives beadId)
+ */
+export async function renderAllBeadsGraph(container, options = {}) {
+  if (!container) return;
+
+  container.innerHTML = '<div class="dag-loading"><span class="loading-spinner"></span> Loading dependency graph...</div>';
+
+  try {
+    // Fetch all open/in_progress/blocked beads and blocked info
+    const params = new URLSearchParams();
+    params.set('status', 'open');
+    if (options.rig && options.rig !== 'all') params.set('rig', options.rig);
+
+    const [openBeads, blockedBeads] = await Promise.all([
+      api.get(`/api/beads?${params}`),
+      api.getBlockedBeads(options.rig),
+    ]);
+
+    const allBeads = openBeads || [];
+
+    if (allBeads.length === 0) {
+      container.innerHTML = '<div class="dag-empty"><span class="material-icons">account_tree</span><p>No open beads to graph</p></div>';
+      return;
+    }
+
+    // Build node map from all beads
+    const beadMap = new Map();
+    for (const bead of allBeads) {
+      beadMap.set(bead.id, bead);
+    }
+
+    // Build edges from blocked_by relationships
+    const edges = [];
+    const blockedIds = new Set();
+    for (const b of (blockedBeads || [])) {
+      blockedIds.add(b.id);
+      for (const depId of (b.blocked_by || [])) {
+        edges.push({ from: depId, to: b.id });
+        // Add the blocker to beadMap if not already present
+        if (!beadMap.has(depId)) {
+          beadMap.set(depId, { id: depId, title: depId, status: 'open' });
+        }
+      }
+    }
+
+    // Also add parent-child edges from dependents
+    for (const bead of allBeads) {
+      for (const child of (bead.dependents || [])) {
+        edges.push({ from: bead.id, to: child.id });
+        if (!beadMap.has(child.id)) beadMap.set(child.id, child);
+      }
+    }
+
+    const beadsArray = Array.from(beadMap.values());
+
+    // Mobile fallback
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
+      container.innerHTML = renderConvoyMobileFallback(beadsArray, blockedIds);
+      setupNodeClicks(container, options.onNodeClick);
+      return;
+    }
+
+    const { graph, nodeMap } = buildCombinedGraph(beadsArray, edges, blockedIds);
+    const cycles = detectCycles(graph);
+    const cycleBannerHtml = cycles.length > 0 ? renderCycleBanner(cycles, nodeMap) : '';
+
+    container.innerHTML = `<div class="dag-container">
+      ${cycleBannerHtml}
+      <div class="dag-toolbar">
+        <button class="btn btn-sm btn-secondary dag-zoom-in" title="Zoom in">
+          <span class="material-icons" style="font-size:16px">zoom_in</span>
+        </button>
+        <button class="btn btn-sm btn-secondary dag-zoom-out" title="Zoom out">
+          <span class="material-icons" style="font-size:16px">zoom_out</span>
+        </button>
+        <button class="btn btn-sm btn-secondary dag-reset" title="Reset view">
+          <span class="material-icons" style="font-size:16px">fit_screen</span>
+        </button>
+        <button class="btn btn-sm btn-secondary dag-copy-mermaid" title="Copy as Mermaid">
+          <span class="material-icons" style="font-size:16px">content_copy</span> Mermaid
+        </button>
+      </div>
+      ${renderSVG(graph, nodeMap)}
+      <div class="dag-legend">
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.default}"></span> Pending</span>
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.blocked}"></span> Blocked</span>
+        <span class="dag-legend-item"><span class="dag-legend-dot" style="background:${EDGE_COLORS.resolved}"></span> Resolved</span>
+        ${cycles.length > 0 ? `<span class="dag-legend-item"><span class="dag-legend-dot" style="background:${CYCLE_EDGE_COLOR}"></span> Cycle</span>` : ''}
+      </div>
+    </div>`;
+
+    setupPanZoom(container);
+    setupNodeClicks(container, options.onNodeClick);
+    setupZoomButtons(container);
+    setupMermaidExport(container, graph, nodeMap);
+  } catch (err) {
+    console.error('[AllBeadsGraph] Error:', err);
+    container.innerHTML = `<div class="dag-error">
+      <span class="material-icons">error_outline</span>
+      <p>Failed to load dependency graph: ${escapeHtml(err.message)}</p>
+    </div>`;
+  }
+}
+
 export async function renderDependencyGraph(container, epicId, options = {}) {
   if (!container) return;
 
