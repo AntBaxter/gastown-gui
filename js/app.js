@@ -12,6 +12,7 @@ import { renderAgentGrid } from './components/agent-grid.js';
 import { renderActivityFeed, addEventToFeed, renderFeedFilterBar, setActiveFilter as setFeedFilter, updateCollapsedBar, setThreadFilter } from './components/activity-feed.js';
 import { renderWorkList } from './components/work-list.js';
 import { renderKanbanBoard } from './components/kanban-board.js';
+import { renderGraphInsights } from './components/graph-insights.js';
 import { renderMailList } from './components/mail-list.js';
 import { renderRigList } from './components/rig-list.js';
 import { renderCrewList, loadCrews, showNewCrewModal } from './components/crew-list.js';
@@ -813,7 +814,10 @@ async function loadWork() {
     else if (selectedRig === 'all') params.set('rig', 'all');
     const query = params.toString();
 
-    if (workViewMode === 'board') {
+    if (workViewMode === 'insights') {
+      const insights = await api.getInsights(selectedRig || 'all');
+      renderGraphInsights(elements.workList, insights);
+    } else if (workViewMode === 'board') {
       // Fetch beads, epics, and blocked data in parallel for kanban
       const epicFilter = state.getEpicFilter();
       const [beads, epics, blockedBeads, epicChildren] = await Promise.all([

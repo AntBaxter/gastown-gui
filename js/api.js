@@ -188,6 +188,13 @@ export const api = {
     return this.get(`/api/beads/blocked${query ? '?' + query : ''}`);
   },
 
+  getInsights(rig) {
+    const params = new URLSearchParams();
+    if (rig) params.set('rig', rig);
+    const query = params.toString();
+    return this.get(`/api/beads/insights${query ? '?' + query : ''}`);
+  },
+
   addDependency(beadId, dependsOn) {
     return this.post(`/api/bead/${encodeURIComponent(beadId)}/dep`, { dependsOn });
   },

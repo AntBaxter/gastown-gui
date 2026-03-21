@@ -233,4 +233,170 @@ export class BeadService {
     this._emit?.('bead_updated', { bead_id: beadId });
     return { ok: true, raw: result.raw };
   }
+
+  async getInsights({ rig } = {}) {
+    const cacheKey = `insights_${rig || 'default'}`;
+    if (this._cache?.getOrExecute) {
+      return this._cache.getOrExecute(cacheKey, () => this._computeInsights({ rig }), 60000);
+    }
+    return this._computeInsights({ rig });
+  }
+
+  async _computeInsights({ rig } = {}) {
+    const [allBeads, blockedBeads] = await Promise.all([
+      this.list({ rig }),
+      this.getBlocked({ rig }),
+    ]);
+
+    const active = allBeads.filter(b =>
+      b.status === 'open' || b.status === 'in_progress' || b.status === 'in-progress' ||
+      b.status === 'blocked' || b.status === 'hooked' || b.status === 'pinned'
+    );
+
+    const health = this._computeHealth(allBeads);
+    const criticalPath = this._computeCriticalPath(active, blockedBeads);
+    const topBlockers = this._computeTopBlockers(active, blockedBeads);
+    const staleItems = this._computeStaleItems(active);
+
+    return { health, criticalPath, topBlockers, staleItems };
+  }
+
+  _computeHealth(beads) {
+    const statusCounts = {};
+    const typeCounts = {};
+    let totalAge = 0;
+    let staleCount = 0;
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+    for (const b of beads) {
+      const st = b.status || 'open';
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+      const t = b.issue_type || 'task';
+      typeCounts[t] = (typeCounts[t] || 0) + 1;
+
+      if (b.created_at) {
+        const age = now - new Date(b.created_at).getTime();
+        totalAge += age;
+        if (age > sevenDays && st !== 'closed' && st !== 'deferred') {
+          staleCount++;
+        }
+      }
+    }
+
+    return {
+      statusCounts,
+      typeCounts,
+      totalBeads: beads.length,
+      avgAgeDays: beads.length > 0 ? Math.round(totalAge / beads.length / (24 * 60 * 60 * 1000)) : 0,
+      staleCount,
+    };
+  }
+
+  _computeCriticalPath(beads, blockedBeads) {
+    const blockedMap = new Map();
+    if (Array.isArray(blockedBeads)) {
+      for (const b of blockedBeads) {
+        if (b.blocked_by && b.blocked_by.length > 0) {
+          blockedMap.set(b.id, b.blocked_by);
+        }
+      }
+    }
+
+    const beadMap = new Map(beads.map(b => [b.id, b]));
+    let longestChain = [];
+
+    const visited = new Set();
+    const inStack = new Set();
+
+    const dfs = (id, chain) => {
+      if (inStack.has(id)) return; // cycle
+      if (visited.has(id)) return;
+      visited.add(id);
+      inStack.add(id);
+
+      const currentChain = [...chain, id];
+      if (currentChain.length > longestChain.length) {
+        longestChain = currentChain;
+      }
+
+      const blockers = blockedMap.get(id) || [];
+      for (const blockerId of blockers) {
+        dfs(blockerId, currentChain);
+      }
+
+      inStack.delete(id);
+    };
+
+    for (const [id] of blockedMap) {
+      if (!visited.has(id)) {
+        dfs(id, []);
+      }
+    }
+
+    return longestChain.map(id => {
+      const b = beadMap.get(id);
+      return b ? { id: b.id, title: b.title, status: b.status } : { id, title: id, status: 'unknown' };
+    });
+  }
+
+  _computeTopBlockers(beads, blockedBeads) {
+    const blockCount = new Map();
+    if (!Array.isArray(blockedBeads)) return [];
+
+    const blockedMap = new Map();
+    for (const b of blockedBeads) {
+      if (b.blocked_by && b.blocked_by.length > 0) {
+        blockedMap.set(b.id, b.blocked_by);
+      }
+    }
+
+    const countTransitive = (id, visited) => {
+      if (visited.has(id)) return;
+      visited.add(id);
+      const blockers = blockedMap.get(id) || [];
+      for (const blockerId of blockers) {
+        blockCount.set(blockerId, (blockCount.get(blockerId) || 0) + 1);
+        countTransitive(blockerId, visited);
+      }
+    };
+
+    for (const [id] of blockedMap) {
+      countTransitive(id, new Set());
+    }
+
+    const beadMap = new Map(beads.map(b => [b.id, b]));
+    return [...blockCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id, count]) => {
+        const b = beadMap.get(id);
+        return {
+          id,
+          title: b?.title || id,
+          status: b?.status || 'unknown',
+          blockCount: count,
+        };
+      });
+  }
+
+  _computeStaleItems(beads) {
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+    return beads
+      .filter(b => {
+        if (!b.created_at) return false;
+        const age = now - new Date(b.created_at).getTime();
+        return age > sevenDays && b.status !== 'closed' && b.status !== 'deferred';
+      })
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .slice(0, 20)
+      .map(b => ({
+        id: b.id,
+        title: b.title,
+        status: b.status,
+        ageDays: Math.round((now - new Date(b.created_at).getTime()) / (24 * 60 * 60 * 1000)),
+      }));
+  }
 }

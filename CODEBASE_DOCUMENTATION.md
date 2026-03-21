@@ -128,6 +128,7 @@ js/components/kanban-board.js - Kanban board view for beads (columns by status)
 js/components/rig-list.js - Rig management + polecat spawn/stop
 js/components/crew-list.js - Crew CRUD operations
 js/components/epic-detail.js - Epic child task tree (progress, ready/gate badges, sling)
+js/components/graph-insights.js - Project insights dashboard (health, critical path, blockers, stale)
 js/components/health-check.js - System health display (doctor)
 js/components/activity-feed.js - Real-time event stream
 js/components/modals.js - Modal dialogs (sling, nudge, compose)

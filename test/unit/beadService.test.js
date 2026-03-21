@@ -252,6 +252,61 @@ describe('BeadService', () => {
     expect(result).toEqual([]);
   });
 
+  it('getInsights computes health, critical path, top blockers, stale items', async () => {
+    const now = Date.now();
+    const oldDate = new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const recentDate = new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString();
+
+    const bdGateway = makeBdGateway({
+      list: async () => ({
+        ok: true,
+        data: [
+          { id: 'b-1', title: 'Task A', status: 'open', issue_type: 'task', created_at: oldDate },
+          { id: 'b-2', title: 'Task B', status: 'blocked', issue_type: 'bug', created_at: recentDate },
+          { id: 'b-3', title: 'Task C', status: 'closed', issue_type: 'task', created_at: oldDate },
+        ],
+      }),
+      blocked: async () => ({
+        ok: true,
+        data: [
+          { id: 'b-2', blocked_by: ['b-1'] },
+        ],
+      }),
+    });
+
+    const service = new BeadService({ bdGateway });
+    const result = await service.getInsights();
+
+    expect(result.health.totalBeads).toBe(3);
+    expect(result.health.statusCounts.open).toBe(1);
+    expect(result.health.statusCounts.blocked).toBe(1);
+    expect(result.health.staleCount).toBe(1);
+    expect(result.criticalPath.length).toBeGreaterThanOrEqual(1);
+    expect(result.topBlockers.length).toBe(1);
+    expect(result.topBlockers[0].id).toBe('b-1');
+    expect(result.staleItems.length).toBe(1);
+    expect(result.staleItems[0].id).toBe('b-1');
+  });
+
+  it('getInsights uses cache when available', async () => {
+    let callCount = 0;
+    const bdGateway = makeBdGateway({
+      list: async () => { callCount++; return { ok: true, data: [] }; },
+      blocked: async () => ({ ok: true, data: [] }),
+    });
+
+    const cache = {
+      getOrExecute: async (key, fn, ttl) => {
+        expect(ttl).toBe(60000);
+        return fn();
+      },
+    };
+
+    const service = new BeadService({ bdGateway, cache });
+    await service.getInsights();
+    expect(callCount).toBe(1);
+  });
+
   it('search with rig=all aggregates and filters by query', async () => {
     const bdGateway = makeBdGateway({
       search: async () => ({ ok: true, data: [{ id: 'hq-1', title: 'Login bug' }] }),

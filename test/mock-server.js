@@ -845,6 +845,28 @@ app.get('/api/bead/:beadId', (req, res) => {
   res.json(bead);
 });
 
+app.get('/api/beads/insights', (req, res) => {
+  res.json({
+    health: {
+      statusCounts: { open: 5, in_progress: 3, blocked: 2, closed: 10 },
+      typeCounts: { task: 12, bug: 5, feature: 3 },
+      totalBeads: 20,
+      avgAgeDays: 4,
+      staleCount: 2,
+    },
+    criticalPath: [
+      { id: 'gt-001', title: 'Setup auth', status: 'blocked' },
+      { id: 'gt-002', title: 'Add login page', status: 'open' },
+    ],
+    topBlockers: [
+      { id: 'gt-001', title: 'Setup auth', status: 'blocked', blockCount: 3 },
+    ],
+    staleItems: [
+      { id: 'gt-010', title: 'Old task', status: 'open', ageDays: 14 },
+    ],
+  });
+});
+
 app.get('/api/beads/epics', (req, res) => {
   res.json(mockBeads.filter(b => b.issue_type === 'epic' && !b.ephemeral));
 });

@@ -39,6 +39,10 @@ describe('Bead routes (real Express app)', () => {
         calls.push(['getBlocked']);
         return [{ id: 'blocked-1', blocked_by: ['dep-1'] }];
       },
+      getInsights: async (opts) => {
+        calls.push(['getInsights', opts]);
+        return { health: {}, criticalPath: [], topBlockers: [], staleItems: [] };
+      },
     };
 
     const app = createApp({ allowedOrigins: ['*'] });
@@ -104,5 +108,17 @@ describe('Bead routes (real Express app)', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
+  });
+
+  it('GET /api/beads/insights returns insights object', async () => {
+    calls.length = 0;
+    const res = await fetch(`${baseUrl}/api/beads/insights?rig=all`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveProperty('health');
+    expect(body).toHaveProperty('criticalPath');
+    expect(body).toHaveProperty('topBlockers');
+    expect(body).toHaveProperty('staleItems');
+    expect(calls[0]).toEqual(['getInsights', { rig: 'all' }]);
   });
 });

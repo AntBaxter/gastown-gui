@@ -36,6 +36,15 @@ export function registerBeadRoutes(app, { beadService } = {}) {
     }
   });
 
+  app.get('/api/beads/insights', async (req, res) => {
+    try {
+      const data = await beadService.getInsights({ rig: req.query.rig });
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/beads/epics', async (req, res) => {
     try {
       const data = await beadService.listEpics({ rig: req.query.rig });
