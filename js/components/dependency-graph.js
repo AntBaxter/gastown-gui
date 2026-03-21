@@ -11,6 +11,7 @@ import { api } from '../api.js';
 import { escapeHtml } from '../utils/html.js';
 import { detectCycles, CYCLE_EDGE_COLOR } from '../utils/cycle-detect.js';
 import { showToast } from './toast.js';
+import { isHiddenBead } from '../shared/beads.js';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 72;
@@ -621,7 +622,7 @@ export async function renderAllBeadsGraph(container, options = {}) {
       api.getBlockedBeads(options.rig),
     ]);
 
-    const allBeads = openBeads || [];
+    const allBeads = (openBeads || []).filter(b => !isHiddenBead(b));
 
     if (allBeads.length === 0) {
       container.innerHTML = '<div class="dag-empty"><span class="material-icons">account_tree</span><p>No open beads to graph</p></div>';
@@ -638,6 +639,7 @@ export async function renderAllBeadsGraph(container, options = {}) {
     const edges = [];
     const blockedIds = new Set();
     for (const b of (blockedBeads || [])) {
+      if (isHiddenBead(b)) continue;
       blockedIds.add(b.id);
       for (const depId of (b.blocked_by || [])) {
         edges.push({ from: depId, to: b.id });
