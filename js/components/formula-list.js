@@ -469,19 +469,41 @@ async function showFormulaDetails(formula) {
       </div>
     `;
 
-    // Use peek modal to display
-    const peekModal = document.getElementById('peek-modal');
-    const peekName = document.getElementById('peek-agent-name');
-    const peekOutput = document.getElementById('peek-output');
-    const peekStatus = document.getElementById('peek-status');
+    // Show in a dedicated formula detail modal
+    const existingModal = document.getElementById('formula-detail-modal');
+    if (existingModal) existingModal.remove();
 
-    if (peekModal && peekName && peekOutput) {
-      peekName.textContent = `Formula: ${formula.name}`;
-      peekStatus.innerHTML = '<span class="status-indicator running"></span><span class="status-text">Formula Details</span>';
-      peekOutput.querySelector('.output-content').innerHTML = detailHtml;
+    const modal = document.createElement('div');
+    modal.id = 'formula-detail-modal';
+    modal.className = 'modal modal-lg';
+    modal.innerHTML = `
+      <div class="modal-header">
+        <h2>
+          <span class="material-icons">science</span>
+          <span>Formula: ${escapeHtml(formula.name)}</span>
+        </h2>
+        <button class="modal-close" data-modal-close>
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        ${detailHtml}
+      </div>
+    `;
 
-      document.getElementById('modal-overlay').classList.remove('hidden');
-      peekModal.classList.remove('hidden');
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) {
+      overlay.appendChild(modal);
+      overlay.classList.remove('hidden');
+      modal.classList.remove('hidden');
+
+      // Wire close button
+      modal.querySelector('[data-modal-close]').addEventListener('click', () => {
+        modal.remove();
+        // Hide overlay if no other modals visible
+        const visibleModals = overlay.querySelectorAll('.modal:not(.hidden)');
+        if (visibleModals.length === 0) overlay.classList.add('hidden');
+      });
     }
   } catch (err) {
     showToast(`Failed to load formula: ${err.message}`, 'error');
