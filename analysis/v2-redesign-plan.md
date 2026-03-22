@@ -22,7 +22,7 @@ formula-driven automation as a first-class interaction pattern.
 |--------|-------------|
 | **Vanilla JS, no framework** | Zero build step, fast iteration, no dependency rot. A rewrite should stay vanilla or adopt a minimal framework (Preact/Lit) — not React/Vue/Angular. |
 | **Gateway > Service > Route** | Clean backend separation. CLI-as-source-of-truth is the right call. |
-| **CSS custom properties** | The design token system (`variables.css`) is solid. Light/dark theming already works. Extending this to support "persona themes" (see Section 6) is straightforward. |
+| **CSS custom properties** | The design token system (`variables.css`) is solid. Light/dark theming already works. |
 | **WebSocket real-time feed** | Live activity updates are essential for an orchestration dashboard. |
 | **Kanban board view** | The kanban view for beads is the strongest interaction pattern in v1 — it maps directly to how people think about work status. |
 
@@ -225,69 +225,161 @@ expands it. Voice is just one input method for the description.
 
 ---
 
-## 6. Themeable Naming ("Persona Themes")
+## 6. Agent Interaction and Communication
 
-### 6.1 The idea
+### 6.1 The problem
 
-Rename Gas Town's internal concepts (rigs, polecats, convoys, mayor, witness,
-refinery) to match a user-selected theme — fairytale, sci-fi, corporate, etc.
+The current UI surfaces agent status (grid view, start/stop controls) but
+provides no way to *interact* with agents. The human overseer has to drop
+to the CLI (`gt mail send`, `gt nudge`, `gt seance`) to communicate. This
+is the single biggest gap between "monitoring dashboard" and "control center."
 
-Example mappings:
+### 6.2 Communication primitives available
 
-| Concept | Gas Town (default) | Fairytale | Sci-Fi | Corporate |
-|---------|-------------------|-----------|--------|-----------|
-| Rig | Rig | Kingdom | Station | Department |
-| Polecat | Polecat | Knight | Drone | Associate |
-| Convoy | Convoy | Quest | Mission | Initiative |
-| Mayor | Mayor | King/Queen | Admiral | Director |
-| Witness | Witness | Oracle | Sensor | Auditor |
-| Refinery | Refinery | Forge | Fabricator | QA |
-| Bead | Bead | Deed | Objective | Ticket |
+Gas Town has three communication mechanisms, each with different trade-offs:
 
-### 6.2 Analysis: mostly bad, but salvageable
+| Mechanism | Latency | Persistence | Cost | Best for |
+|-----------|---------|-------------|------|----------|
+| **Nudge** (`gt nudge`) | Real-time (3 modes: wait-idle, queue, immediate) | Ephemeral | Zero (no Dolt commit) | Quick messages, status checks, unblocking |
+| **Mail** (`gt mail send`) | Async (agent reads at next turn boundary) | Permanent (creates bead + Dolt commit) | 1 Dolt commit per message | Structured handoffs, escalations, work assignments |
+| **Seance** (`gt seance --talk`) | Interactive | Session-scoped | Spawns new Claude subprocess | Interrogating past sessions, debugging decisions |
 
-**Why it's appealing:**
-- Gas Town's naming is idiosyncratic. "Polecat" means nothing to a new user.
-  A sci-fi theme at least gives *some* mental model ("drone does tasks").
-- Theming is fun and increases engagement for teams that enjoy it.
-- It could reduce the learning curve if the metaphor is well-chosen.
+### 6.3 What "talk to the Mayor" could look like
 
-**Why it's dangerous:**
-- **Documentation divergence.** Every doc, tutorial, error message, CLI output,
-  and log message uses Gas Town naming. A theme layer creates a translation
-  barrier: "My Knight is stuck" → which polecat? Debugging becomes harder.
-- **Cognitive overhead.** Users now have to learn *two* naming systems — the
-  theme for the UI and the real names for CLI/logs/docs.
-- **Maintenance burden.** Every new concept needs N theme variants. Every UI
-  string needs to go through a lookup table. Internationalization is hard
-  enough without adding fantasy-language localization.
-- **Team confusion.** If Alice uses Fairytale and Bob uses Sci-Fi, they can't
-  communicate about the system without a Rosetta Stone.
+The desire is to have a meaningful conversation with the Mayor (or any agent)
+through the UI. Here's the honest assessment of what's feasible:
 
-**Salvageable approach — Persona as onboarding, not runtime:**
-Instead of runtime theming, use persona metaphors in the **onboarding/tutorial**
-to explain concepts:
+**Option A: Nudge-based messaging (feasible now)**
 
-> "Think of a Polecat as a knight on a quest — it gets assigned a task (bead),
-> works on it autonomously, and reports back when done."
+The simplest approach: a chat-like panel that sends nudges to agents and
+displays their responses from the feed. This is **not** a real conversation —
+it's fire-and-forget messaging with visible activity.
 
-Then use the real names everywhere else. This gets the cognitive benefit
-(approachable mental model) without the maintenance and communication costs.
+```
++------------------------------------------+
+| Mayor — Online                     [···] |
++------------------------------------------+
+| [You] Check status of auth convoy        |
+| [Mayor] ← (activity appears in feed)    |
+|                                          |
+| [Type a message...]          [Send]      |
++------------------------------------------+
+```
 
-**Alternative — cosmetic theming only:**
-Let users change colors, icons, and the system greeting ("Welcome to the
-Forge" vs "Welcome to Gas Town") without renaming concepts. This satisfies
-the personalization urge without creating a translation layer.
+**Limitations:** Nudges are one-way. The agent receives the message but its
+"response" is just whatever it does next (visible in the activity feed). There's
+no request-response pattern — you can't ask a question and get an answer back
+in the UI.
 
-**Recommendation:** Do NOT implement runtime concept renaming. DO invest in
-better onboarding that uses relatable metaphors. Optionally allow cosmetic
-theming (color schemes, icons, greeting text).
+**Option B: Mail-based conversation (feasible, but clunky)**
+
+Mail supports replies (`--type reply`), so a threaded conversation is possible.
+The UI could show a mail thread view with send/reply. But mail is **async** —
+the agent processes mail when it checks its inbox, which may not happen for
+minutes. And every message costs a Dolt commit, so chatty conversations would
+pollute the database.
+
+**Option C: Seance-style interactive session (future, requires new infrastructure)**
+
+The most compelling but hardest option: spawn a conversational subprocess that
+has the agent's full context and can answer questions interactively. This is
+what `gt seance --talk` does for predecessor sessions, but extending it to
+*live* agents would require:
+
+1. A way to fork an agent's context into a read-only conversational session
+2. WebSocket streaming of the conversation (not just events)
+3. Clear UX distinction between "talking about the agent's work" vs "giving
+   the agent new instructions"
+
+**Recommendation:** Start with **Option A** (nudge panel) in v2.0. It's cheap,
+uses existing infrastructure, and covers 80% of the use case (sending
+instructions to agents). Add mail threading in v2.1. Explore seance-style
+interactive conversations as a v3 feature if demand warrants it.
+
+### 6.4 Agent detail improvements
+
+Beyond messaging, the agent detail view should surface more of what agents are
+actually doing:
+
+- **Current hook/assignment** — what bead is this agent working on?
+- **Recent activity timeline** — commits, bead updates, mail sent/received
+- **Session health** — context usage, time since last activity, heartbeat status
+- **Quick actions** — nudge, restart, unsling, reassign work
+- **Molecule progress** — if working a formula, show checklist progress
 
 ---
 
-## 7. What We Should NOT Do
+## 7. Alternative Agent Harnesses
 
-### 7.1 Don't adopt a heavy framework
+### 7.1 What Gas Town already supports
+
+Gas Town is **not Claude-only**. The `gt sling` command accepts an `--agent` flag
+that selects which agent harness to use, and `gt config agent` manages harness
+definitions. As of now, Gas Town ships with these built-in harnesses:
+
+| Harness | Command | Notes |
+|---------|---------|-------|
+| **claude** | `claude --dangerously-skip-permissions` | Default. Claude Code CLI. |
+| **gemini** | `gemini --approval-mode yolo` | Google Gemini CLI agent |
+| **codex** | `codex --dangerously-bypass-approvals-and-sandbox` | OpenAI Codex CLI |
+| **copilot** | `copilot --yolo` | GitHub Copilot agent |
+| **cursor** | `cursor-agent -f` | Cursor's agent mode |
+| **amp** | `amp --dangerously-allow-all --no-ide` | Sourcegraph AMP |
+| **auggie** | `auggie --allow-indexing` | Auggie agent |
+| **omp** | `omp --hook .omp/hooks/gastown-hook.ts` | OMP with GT hooks |
+| **opencode** | `opencode` | Open Code agent |
+| **pi** | `pi -e .pi/extensions/gastown-hooks.js` | Pi with GT extensions |
+
+**Custom agents** can be added with `gt config agent set <name> <command>`.
+
+**Per-sling override:** `gt sling ga-abc myrig --agent gemini` dispatches that
+specific piece of work to the Gemini harness instead of the default.
+
+**Default agent:** `gt config default-agent` controls which harness is used
+when no `--agent` flag is specified (currently: `claude`).
+
+### 7.2 What the UI should expose
+
+The GUI currently has no visibility into harness configuration. In v2, the
+System panel should include:
+
+1. **Harness registry view** — list all available agents (built-in + custom),
+   show which is default, allow changing the default
+2. **Per-sling harness selection** — when dispatching work from the GUI (via
+   the "Run formula" or "Assign work" flows), let the user pick which harness
+   to use
+3. **Custom harness management** — add/edit/remove custom agent definitions
+   (wraps `gt config agent set/remove`)
+4. **Agent badges** — show which harness each running agent is using (e.g.,
+   a small icon or label on the agent card: "claude", "gemini", etc.)
+
+### 7.3 Custom prompts and configuration
+
+Gas Town manages agent context through several mechanisms:
+
+- **CLAUDE.md / AGENTS.md** — project-level instructions injected into every
+  agent session. These work for Claude Code; other harnesses have their own
+  equivalents (e.g., `.cursorrules` for Cursor).
+- **Formula variables** — `gt sling --var key=value` passes structured data
+  to formulas, which template it into agent instructions.
+- **Sling messages** — `gt sling --message "context"` and `--args "instructions"`
+  provide per-assignment context.
+- **Mail** — structured messages delivered to agent sessions.
+
+For non-Claude harnesses, Gas Town integrates via hooks (see `omp` and `pi`
+harness definitions). Each harness needs its own hook implementation to
+participate in the Gas Town protocol (heartbeats, nudge delivery, etc.).
+
+**UI opportunity:** A "Harness Configuration" section that shows the current
+project instructions (CLAUDE.md contents, formula variables) and allows editing
+them through the GUI. This makes it easier for non-technical users to customize
+agent behavior without touching files directly.
+
+---
+
+## 8. What We Should NOT Do
+
+### 8.1 Don't adopt a heavy framework
 
 React, Vue, Angular, Svelte — all would require a build step, a bundler, a
 package ecosystem, and framework-specific knowledge. The current vanilla
@@ -296,7 +388,7 @@ code without framework expertise. If we need better DOM performance, use
 `morphdom`. If we need components, use web components (Lit) or just keep
 vanilla JS with better update patterns.
 
-### 7.2 Don't build a general-purpose project management tool
+### 8.2 Don't build a general-purpose project management tool
 
 Gas Town is an **agent orchestration system**, not Jira. The UI should expose
 Gas Town's unique capabilities (formula-driven automation, autonomous agents,
@@ -304,14 +396,14 @@ real-time orchestration) rather than replicating generic PM features (Gantt
 charts, resource allocation, time tracking). Every feature should pass the
 test: "Does this help someone operate Gas Town, or is this generic PM?"
 
-### 7.3 Don't make the CLI secondary
+### 8.3 Don't make the CLI secondary
 
 The CLI is the source of truth and the primary interface for agents. The GUI
 is a *window* into the CLI's world, not a replacement. Don't add GUI-only
 features that bypass the CLI — this creates state divergence and breaks agent
 workflows.
 
-### 7.4 Don't over-automate formula triggers
+### 8.4 Don't over-automate formula triggers
 
 Auto-running formulas on entity creation is powerful but risky. A misconfigured
 auto-trigger could spawn dozens of polecats or create hundreds of beads from
@@ -321,23 +413,18 @@ a single action. Always:
 - Rate-limit: max 1 auto-trigger per entity per event type per minute
 - Log all auto-triggers prominently in the activity feed
 
-### 7.5 Don't ship voice as a core dependency
+### 8.5 Don't ship voice as a core dependency
 
 WhisperFlow/SpeechRecognition is a progressive enhancement. The core flow
 (create epic → formula expands it) must work perfectly with typed text input.
 Voice is a convenience layer on top. Don't block the redesign on voice
 integration.
 
-### 7.6 Don't rename concepts at runtime
-
-See Section 6.2. The maintenance and communication costs far outweigh the
-engagement benefits.
-
 ---
 
-## 8. Areas for Improvement
+## 9. Areas for Improvement
 
-### 8.1 Search and navigation
+### 9.1 Search and navigation
 
 The current UI has no global search. In v2, a **command palette** (Cmd+K /
 Ctrl+K) should be the fastest way to find anything:
@@ -351,7 +438,7 @@ Ctrl+K) should be the fastest way to find anything:
 This pattern (VS Code, Linear, Notion) is well-understood and works on both
 desktop and mobile (as a search bar).
 
-### 8.2 Notifications and attention management
+### 9.2 Notifications and attention management
 
 The current activity feed is a firehose. v2 needs **tiered notifications**:
 
@@ -361,7 +448,7 @@ The current activity feed is a firehose. v2 needs **tiered notifications**:
 | **Action needed** | Beads assigned to you, review requests | Badge on nav item + inbox-style list |
 | **Informational** | Status changes, completions, mail | Activity feed (current behavior) |
 
-### 8.3 Bead relationships
+### 9.3 Bead relationships
 
 Dependencies are partially visualized (graph view exists). v2 should make
 relationships **first-class** in the bead detail:
@@ -371,7 +458,7 @@ relationships **first-class** in the bead detail:
 - "Linked PR" with CI status inline
 - "Created from formula" with formula name and run history
 
-### 8.4 Batch operations
+### 9.4 Batch operations
 
 Currently, actions are one-bead-at-a-time. The kanban selection mechanism
 exists (v1 has a floating action bar for multi-select). v2 should expand this:
@@ -379,16 +466,39 @@ exists (v1 has a floating action bar for multi-select). v2 should expand this:
 - Multi-select beads → bulk status change, bulk assign, bulk add to convoy
 - Convoy-level actions: "close all completed beads", "re-dispatch all blocked"
 
-### 8.5 Dashboard customization
+### 9.5 Dashboard customization
 
 Different users care about different metrics. A simple widget-based dashboard
 where users can add/remove/reorder cards (convoy summary, agent status, recent
 activity, blocked beads, PR status) would serve diverse needs without requiring
 everyone to use the same fixed layout.
 
+### 9.6 Cost and resource visibility
+
+Gas Town runs multiple AI agent sessions simultaneously, each consuming tokens
+and compute. The UI should surface:
+
+- **Per-agent costs** — `gt costs` data visualized as a chart or table
+- **Per-convoy costs** — aggregate token usage across all agents working a convoy
+- **Cost trends** — are costs increasing? Which convoys are most expensive?
+- **Session health metrics** — context window usage, time-to-completion
+
+This is especially important as users experiment with different harnesses
+(Section 7) which have different cost profiles.
+
+### 9.7 Convoy lifecycle management
+
+The current convoy view shows status but doesn't help manage the lifecycle:
+
+- **Convoy creation wizard** — guided flow: name, description, select beads,
+  assign polecats, pick harness, set merge strategy
+- **Convoy completion summary** — when all beads close, show a summary:
+  total time, agents used, beads completed, PRs merged
+- **Convoy templates** — save convoy configurations for recurring work patterns
+
 ---
 
-## 9. Implementation Plan
+## 10. Implementation Plan
 
 ### Phase 0: Foundation (1-2 weeks equivalent of polecat work)
 - [ ] Define v2 information architecture (4-view model from Section 2.1)
@@ -417,18 +527,22 @@ everyone to use the same fixed layout.
 - [ ] "One = auto-run, many = choose" picker modal
 - [ ] Formula run history on entity detail views
 
-### Phase 4: System Panel (1 week)
+### Phase 4: System Panel & Agent Interaction (1-2 weeks)
 - [ ] Collapse Rigs, Agents, Crews, Health into tabbed admin panel
 - [ ] Agent status ambient indicator (header/status bar)
 - [ ] Service controls (start/stop/restart) in admin panel
+- [ ] Nudge-based messaging panel for agent interaction
+- [ ] Harness registry view (list/configure agent harnesses)
+- [ ] Per-sling harness selection in dispatch UI
 
 ### Phase 5: Polish and Progressive Enhancement (1-2 weeks)
 - [ ] Command palette refinement
 - [ ] Notification tiers (critical/action/info)
 - [ ] Dashboard widget customization
+- [ ] Cost and resource visibility dashboard
 - [ ] Voice input (WhisperFlow) as progressive enhancement on epic creation
-- [ ] Cosmetic theme support (color schemes, not concept renaming)
-- [ ] Onboarding refresh with metaphor-based concept explanations
+- [ ] Mail threading for agent conversations
+- [ ] Custom harness management UI
 
 ### Phase 6: Migration (ongoing)
 - [ ] Feature-flag v2 views alongside v1
@@ -437,7 +551,7 @@ everyone to use the same fixed layout.
 
 ---
 
-## 10. Risk Assessment
+## 11. Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -447,10 +561,12 @@ everyone to use the same fixed layout.
 | Voice integration delays entire project | Low | Medium | Voice is Phase 5 (progressive enhancement), not blocking. |
 | Vanilla JS hits complexity ceiling | Medium | Medium | morphdom buys time. Evaluate Lit/Preact at Phase 2 checkpoint. |
 | Users resist navigation changes | Medium | Medium | Feature-flag v2, keep v1 accessible during migration. |
+| Non-Claude harnesses have inconsistent GT protocol support | Medium | Medium | Test each harness with GT hooks before advertising it. Start with Claude + one alternative. |
+| Agent messaging creates Dolt write amplification | Medium | Low | Default to nudge (zero cost), only use mail for persistent conversations. |
 
 ---
 
-## 11. Summary of Recommendations
+## 12. Summary of Recommendations
 
 1. **Consolidate 11 tabs into 4 views** — Command Center, Workbench, Mail, System.
 2. **Anchor the UX on convoys** — they're the natural top-level object.
@@ -458,7 +574,9 @@ everyone to use the same fixed layout.
 4. **Add morphdom** for efficient DOM updates without a framework rewrite.
 5. **Formula triggers as contextual actions** — not a separate browsing tab.
 6. **Voice-to-epic as progressive enhancement** — text input is the core path.
-7. **Do NOT rename concepts at runtime** — use metaphors in onboarding instead.
-8. **Command palette (Cmd+K)** — the fastest navigation pattern.
-9. **Tiered notifications** — not everything is equally important.
-10. **Ship incrementally** — feature-flag v2 views, migrate one at a time.
+7. **Agent interaction via nudge panel** — lightweight messaging in the UI, mail threading later.
+8. **Expose harness configuration** — Gas Town supports 10+ agent harnesses; the UI should let users see, configure, and select them.
+9. **Command palette (Cmd+K)** — the fastest navigation pattern.
+10. **Tiered notifications** — not everything is equally important.
+11. **Cost visibility** — surface per-agent and per-convoy resource usage.
+12. **Ship incrementally** — feature-flag v2 views, migrate one at a time.
